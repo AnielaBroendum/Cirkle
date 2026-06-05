@@ -40,7 +40,7 @@ Build the auth system:
    - src/app/(retailer)/layout.tsx — sidebar nav with: Dashboard, Samples, Brands
    - src/app/(consumer)/layout.tsx — bottom tab nav (mobile-first) with: Home, Saved, Orders, Profile
 
-All user-facing text should be in Danish. Code and comments in English. Use Tailwind + shadcn/ui patterns. Mobile-first responsive design.
+All user-facing text should be in English. Code and comments in English. Use Tailwind + shadcn/ui patterns. Mobile-first responsive design.
 ```
 
 ---
@@ -128,28 +128,28 @@ Read CLAUDE.md for context. Brand and retailer sides are working. Now build the 
    - No auth required to view
    - Looks up sample → product → brand → retailer
    - Shows: product images (carousel), brand name + description, product name, materials, available sizes, price
-   - Attribution info: "Scannet hos [retailer name]" if from retailer sample
-   - Three CTAs: "Køb nu" (requires auth), "Gem til senere" (requires auth), "Del" (share link)
+   - Attribution info: "Scanned at [retailer name]" if from retailer sample
+   - Three CTAs: "Buy now" (requires auth), "Save for later" (requires auth), "Share" (share link)
    - Records a scan in the scans table with source_type='retailer' and source_retailer_id
    - If user is not logged in and clicks buy/save: redirect to /auth/signup?role=consumer&redirect=/p/[sampleId]
    - Mobile-first design — this is the first thing consumers see. Make it beautiful.
 
 2. Peer discovery page at /d/[productId]?ref=[userId]:
    - Similar to /p/[sampleId] but attribution is peer-based
-   - Shows: "Scannet via [peer name]" and "[peer name] får 50 points hvis du køber"
+   - Shows: "Scanned via [peer name]" and "[peer name] gets 50 points if you buy"
    - Records scan with source_type='peer' and source_user_id from ref param
 
 3. Mock checkout flow:
-   - After user clicks "Køb nu" and is authenticated:
+   - After user clicks "Buy now" and is authenticated:
    - Size/color selector if variants exist
    - Shipping address form (name, address, city, postal code)
    - Points redemption: show balance, let user choose how many to use (1 point = 1 kr discount)
    - Order summary showing: product, size, color, price, points discount, total
-   - "Bekræft ordre" button → creates order, order_items, order_event (status: pending)
+   - "Confirm order" button → creates order, order_items, order_event (status: pending)
    - Attribution: find the user's most recent scan for this product (within 90 days) and create an attribution record
    - If peer attribution: award 50 points to the peer via points_ledger
    - Award 100 welcome points on first purchase if user has no points yet
-   - Confirmation page: "Din [product] pakkes hos [brand]. Estimeret levering: 3-5 hverdage."
+   - Confirmation page: "Your [product] is being packed at [brand]'s studio. Estimated delivery: 3-5 business days."
 
 4. Consumer profile at /(consumer)/profile:
    - Points balance + history (earned/spent with reasons)
@@ -162,7 +162,7 @@ Read CLAUDE.md for context. Brand and retailer sides are working. Now build the 
 
 6. Saved products at /(consumer)/saved:
    - Grid of saved products with image, name, price, "days left" until attribution expires
-   - "Køb nu" button to go to checkout
+   - "Buy now" button to go to checkout
    - Remove from saved
 ```
 
@@ -176,23 +176,23 @@ Read CLAUDE.md for context. The full scan-to-buy flow works. Now build brand-sid
 1. Brand order management at /(brand)/orders:
    - List of orders sorted by status (pending first, then confirmed, packed, shipped)
    - Per order: order number, customer name, items with sizes/colors, shipping address, created date
-   - Action buttons: "Bekræft" → "Pakket" → enter tracking number → "Afsendt" → "Leveret"
+   - Action buttons: "Confirm" → "Packed" → enter tracking number → "Shipped" → "Delivered"
    - Each status change creates an order_event and updates the order status
    - Each status change sends an email notification to the consumer (via Resend, or console.log if not configured)
 
 2. Commission tracking visible in brand dashboard:
-   - "Kommission skyldig" section showing attributed sales with retailer name, amount, type (direct/deferred/tier2)
+   - "Commission owed" section showing attributed sales with retailer name, amount, type (direct/deferred/tier2)
    - Total commission owed per retailer this month
 
 3. Retailer commission view in retailer dashboard:
-   - "Optjent kommission" section showing sales attributed to this retailer
+   - "Earned commission" section showing sales attributed to this retailer
    - Per sale: product, date, type (direct/deferred/tier2), amount
    - Monthly total
 
 4. Peer discovery QR for delivered products:
    - When brand marks order as delivered, generate a peer discovery QR code
    - QR encodes: {APP_URL}/d/{product_id}?ref={consumer_user_id}
-   - Show this QR in the consumer's order detail page: "Del din trøje — dine venner kan scanne og du får points!"
+   - Show this QR in the consumer's order detail page: "Share your item — your friends can scan it and you earn points!"
    - Also make it downloadable/shareable
 
 5. Email notifications (use Resend if API key is set, otherwise console.log):
@@ -236,7 +236,7 @@ Read CLAUDE.md for context. All features are built. Now polish and add test data
 
 4. Error handling:
    - Proper error pages (404, 500)
-   - Form validation with clear error messages in Danish
+   - Form validation with clear error messages in English
    - Toast notifications for success/error on actions
 
 5. Empty states:

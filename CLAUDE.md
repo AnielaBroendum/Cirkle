@@ -112,7 +112,7 @@ src/
 - Use Supabase RLS (Row Level Security) for data access control
 - All prices in DKK (stored as integers in øre, displayed as kr)
 - UUIDs for all primary keys
-- Danish language for user-facing content; English for code/comments
+- English language for all user-facing content and code/comments
 - Mobile-first responsive design
 - Tailwind for styling — no custom CSS files
 - Error handling: always return proper HTTP status codes from API routes

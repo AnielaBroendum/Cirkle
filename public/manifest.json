@@ -1,7 +1,7 @@
 {
   "name": "Cirkle",
   "short_name": "Cirkle",
-  "description": "Discover and buy fashion through QR scans — in stores and from friends",
+  "description": "Discover and buy fashion through QR scans — in stores and from friends.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
