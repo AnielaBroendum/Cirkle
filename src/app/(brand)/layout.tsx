@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
+import { createClient } from '@/lib/supabase';
 import {
   LayoutDashboard,
   Package,
@@ -13,7 +14,10 @@ import {
   Menu,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { Database } from '@/lib/database.types';
+
+type BrandProfile = Database['public']['Tables']['brand_profiles']['Row'];
 
 const NAV_ITEMS = [
   { href: '/brand/dashboard', label: 'Oversigt', icon: LayoutDashboard },
@@ -25,12 +29,48 @@ const NAV_ITEMS = [
 
 export default function BrandLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { profile, signOut } = useAuth();
+  const router = useRouter();
+  const { user, profile, loading, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+
+  useEffect(() => {
+    if (loading || !user) return;
+
+    const supabase = createClient();
+    supabase
+      .from('brand_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }: { data: BrandProfile | null }) => {
+        setBrandProfile(data as BrandProfile | null);
+        setCheckingOnboarding(false);
+
+        const isOnboardingPage = pathname.startsWith('/brand/onboarding');
+        if (data?.onboarding_complete && isOnboardingPage) {
+          router.replace('/brand/dashboard');
+        } else if (!data?.onboarding_complete && !isOnboardingPage) {
+          router.replace('/brand/onboarding');
+        }
+      });
+  }, [loading, user, pathname, router]);
+
+  if (loading || checkingOnboarding) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-pulse text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  if (pathname.startsWith('/brand/onboarding')) {
+    return <div className="min-h-screen bg-gray-50">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile header */}
       <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
         <button
           onClick={() => setSidebarOpen(true)}
@@ -42,7 +82,6 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
         <div className="w-9" />
       </header>
 
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 z-50 bg-black/50"
@@ -50,7 +89,6 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-200 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -68,9 +106,11 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
 
-        {profile && (
+        {(brandProfile || profile) && (
           <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900 truncate">{profile.name}</p>
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {brandProfile?.name || profile?.name}
+            </p>
             <p className="text-xs text-gray-500">Brand</p>
           </div>
         )}
@@ -107,7 +147,6 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Main content */}
       <main className="lg:pl-64">
         <div className="p-4 sm:p-6 lg:p-8">{children}</div>
       </main>
