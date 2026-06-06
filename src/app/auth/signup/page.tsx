@@ -63,16 +63,21 @@ function SignUpForm() {
       return;
     }
 
-    switch (role) {
-      case 'brand':
-        router.push('/brand/dashboard');
-        break;
-      case 'retailer':
-        router.push('/retailer/dashboard');
-        break;
-      case 'consumer':
-        router.push('/consumer/profile');
-        break;
+    const redirect = searchParams.get('redirect');
+    if (redirect && !redirect.startsWith('/auth')) {
+      router.push(redirect);
+    } else {
+      switch (role) {
+        case 'brand':
+          router.push('/brand/dashboard');
+          break;
+        case 'retailer':
+          router.push('/retailer/dashboard');
+          break;
+        case 'consumer':
+          router.push('/consumer/profile');
+          break;
+      }
     }
   }
 

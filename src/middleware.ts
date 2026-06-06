@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createMiddlewareClient } from '@/lib/supabase-middleware';
 
-const PUBLIC_PATHS = ['/', '/auth', '/p', '/d'];
+const PUBLIC_PATHS = ['/', '/auth', '/p', '/d', '/invite'];
 
 function isPublicPath(pathname: string): boolean {
   if (pathname === '/') return true;

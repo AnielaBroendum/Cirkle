@@ -467,7 +467,7 @@ export type Database = {
         Row: {
           id: string;
           brand_id: string;
-          retailer_id: string;
+          retailer_id: string | null;
           status: 'invited' | 'active' | 'paused' | 'declined';
           commission_direct: number;
           commission_deferred: number;
@@ -482,7 +482,7 @@ export type Database = {
         Insert: {
           id?: string;
           brand_id: string;
-          retailer_id: string;
+          retailer_id?: string | null;
           status?: 'invited' | 'active' | 'paused' | 'declined';
           commission_direct?: number;
           commission_deferred?: number;
@@ -494,7 +494,7 @@ export type Database = {
         Update: {
           id?: string;
           brand_id?: string;
-          retailer_id?: string;
+          retailer_id?: string | null;
           status?: 'invited' | 'active' | 'paused' | 'declined';
           commission_direct?: number;
           commission_deferred?: number;

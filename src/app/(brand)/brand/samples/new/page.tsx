@@ -62,8 +62,11 @@ export default function NewSamplePage() {
         setProducts((productsRes.data ?? []) as Product[]);
 
         const partnerships = (partnershipsRes.data ?? []) as Partnership[];
-        if (partnerships.length > 0) {
-          const retailerIds = partnerships.map((p) => p.retailer_id);
+        const withRetailer = partnerships.filter(
+          (p): p is Partnership & { retailer_id: string } => p.retailer_id !== null
+        );
+        if (withRetailer.length > 0) {
+          const retailerIds = withRetailer.map((p) => p.retailer_id);
           const { data: retailerData } = await supabase
             .from('retailer_profiles')
             .select('id, name')
@@ -77,7 +80,7 @@ export default function NewSamplePage() {
           );
 
           setRetailers(
-            partnerships.map((p) => ({
+            withRetailer.map((p) => ({
               partnership_id: p.id,
               retailer_id: p.retailer_id,
               retailer_name: retailerMap.get(p.retailer_id) ?? 'Ukendt',

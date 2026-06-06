@@ -36,7 +36,11 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading) return;
+    if (!user) {
+      setCheckingOnboarding(false);
+      return;
+    }
 
     const supabase = createClient();
     supabase
