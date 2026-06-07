@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { generateToken } from '@/lib/utils';
+import { sendRetailerInvitation } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -67,7 +68,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
-  console.log(`[Cirkle] Invitation link for ${email}: ${invitationUrl}`);
+  try {
+    await sendRetailerInvitation(email, bp.name, invitationUrl);
+  } catch (e) {
+    console.error('Failed to send invitation email:', e);
+  }
 
   return NextResponse.json({
     id: (partnership as { id: string }).id,

@@ -8,6 +8,8 @@ import {
   ShoppingBag,
   User,
 } from 'lucide-react';
+import InstallPrompt from '@/components/pwa/install-prompt';
+import PageTransition from '@/components/pwa/page-transition';
 
 const TAB_ITEMS = [
   { href: '/consumer/home', label: 'Hjem', icon: Home },
@@ -27,7 +29,12 @@ export default function ConsumerLayout({ children }: { children: React.ReactNode
       </header>
 
       {/* Page content */}
-      <main className="max-w-lg mx-auto px-4 py-4">{children}</main>
+      <main className="max-w-lg mx-auto px-4 py-4">
+        <PageTransition>{children}</PageTransition>
+      </main>
+
+      {/* PWA install prompt */}
+      <InstallPrompt />
 
       {/* Bottom tab bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 safe-area-bottom">

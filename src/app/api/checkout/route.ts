@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { createAdminClient } from '@/lib/supabase-admin';
+import { sendOrderConfirmation, sendNewOrderToBrand } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -161,6 +162,52 @@ export async function POST(request: NextRequest) {
       reason: 'welcome_bonus',
       order_id: order.id,
     });
+  }
+
+  // Send email notifications
+  try {
+    const { data: consumerProfile } = await admin
+      .from('profiles')
+      .select('email, name')
+      .eq('id', user.id)
+      .single();
+
+    const { data: brandUser } = await admin
+      .from('brand_profiles')
+      .select('user_id')
+      .eq('id', product.brand_id)
+      .single();
+
+    if (consumerProfile?.email) {
+      await sendOrderConfirmation(
+        consumerProfile.email,
+        {
+          order_number: order.order_number,
+          total_dkk: totalOre,
+          items: [{ name: product.name, size, color }],
+        },
+        product.brand_profiles.name,
+      );
+    }
+
+    if (brandUser?.user_id) {
+      const { data: brandProfile } = await admin
+        .from('profiles')
+        .select('email')
+        .eq('id', brandUser.user_id)
+        .single();
+
+      if (brandProfile?.email) {
+        await sendNewOrderToBrand(brandProfile.email, {
+          order_number: order.order_number,
+          total_dkk: totalOre,
+          consumer_name: consumerProfile?.name || shipping_name,
+          items: [{ name: product.name }],
+        });
+      }
+    }
+  } catch (e) {
+    console.error('Failed to send order emails:', e);
   }
 
   return NextResponse.json({

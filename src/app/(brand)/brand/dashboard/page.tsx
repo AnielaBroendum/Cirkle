@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { formatDKK } from '@/lib/utils';
+import { formatDKK, formatCommission } from '@/lib/utils';
 import {
   ScanLine,
   ShoppingBag,
@@ -12,6 +12,7 @@ import {
   QrCode,
   ArrowRight,
   Clock,
+  Coins,
 } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 
@@ -32,6 +33,15 @@ type ActivityItem = {
   time: string;
 };
 
+type CommissionItem = {
+  id: string;
+  retailer_name: string;
+  amount_dkk: number;
+  type: string;
+  order_number: number | null;
+  created_at: string;
+};
+
 export default function BrandDashboardPage() {
   const { user } = useAuth();
   const [kpis, setKpis] = useState<KPIs>({
@@ -41,6 +51,8 @@ export default function BrandDashboardPage() {
     activeSamples: 0,
   });
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [commissions, setCommissions] = useState<CommissionItem[]>([]);
+  const [totalCommissionOwed, setTotalCommissionOwed] = useState(0);
   const [loading, setLoading] = useState(true);
   const [brandName, setBrandName] = useState('');
 
@@ -66,7 +78,7 @@ export default function BrandDashboardPage() {
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-        const [samplesRes, scansRes, ordersRes, revenueRes] = await Promise.all([
+        const [samplesRes, scansRes, ordersRes, revenueRes, commissionsRes] = await Promise.all([
           supabase
             .from('samples')
             .select('id', { count: 'exact', head: true })
@@ -96,6 +108,15 @@ export default function BrandDashboardPage() {
             .eq('brand_id', brandId)
             .gte('created_at', monthStart)
             .neq('status', 'cancelled'),
+          supabase
+            .from('attributions')
+            .select('id, attribution_type, commission_amount_dkk, source_retailer_id, created_at, order_id')
+            .in('order_id',
+              (await supabase.from('orders').select('id').eq('brand_id', brandId)).data?.map((o: { id: string }) => o.id) ?? []
+            )
+            .not('source_retailer_id', 'is', null)
+            .gte('created_at', monthStart)
+            .order('created_at', { ascending: false }),
         ]);
 
         type OrderRow = { id: string; order_number: number; status: string; total_dkk: number; created_at: string };
@@ -138,6 +159,41 @@ export default function BrandDashboardPage() {
 
         items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
         setActivity(items.slice(0, 8));
+
+        // Commission data
+        type AttrRow = { id: string; attribution_type: string; commission_amount_dkk: number | null; source_retailer_id: string | null; created_at: string; order_id: string };
+        const attrData = (commissionsRes.data ?? []) as AttrRow[];
+        if (attrData.length > 0) {
+          const retailerIds = Array.from(new Set(attrData.map((a) => a.source_retailer_id).filter(Boolean))) as string[];
+          const orderIds = Array.from(new Set(attrData.map((a) => a.order_id)));
+
+          const [retailersRes, attrOrdersRes] = await Promise.all([
+            supabase.from('retailer_profiles').select('id, name').in('id', retailerIds),
+            supabase.from('orders').select('id, order_number').in('id', orderIds),
+          ]);
+
+          const retailerMap = new Map(
+            ((retailersRes.data ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name])
+          );
+          const orderNumMap = new Map(
+            ((attrOrdersRes.data ?? []) as { id: string; order_number: number }[]).map((o) => [o.id, o.order_number])
+          );
+
+          const commissionItems: CommissionItem[] = attrData
+            .filter((a) => a.commission_amount_dkk && a.source_retailer_id)
+            .map((a) => ({
+              id: a.id,
+              retailer_name: retailerMap.get(a.source_retailer_id!) ?? 'Ukendt',
+              amount_dkk: a.commission_amount_dkk!,
+              type: a.attribution_type,
+              order_number: orderNumMap.get(a.order_id) ?? null,
+              created_at: a.created_at,
+            }));
+
+          setCommissions(commissionItems);
+          setTotalCommissionOwed(commissionItems.reduce((sum, c) => sum + c.amount_dkk, 0));
+        }
+
         setLoading(false);
       });
   }, [user]);
@@ -223,6 +279,39 @@ export default function BrandDashboardPage() {
           </div>
           <ArrowRight className="h-4 w-4 text-amber-600 group-hover:translate-x-1 transition-transform" />
         </Link>
+      )}
+
+      {/* Commission owed */}
+      {commissions.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Kommission denne maaned</h2>
+            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full">
+              {formatDKK(totalCommissionOwed)} skyldig
+            </span>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {commissions.map((c) => {
+              const typeLabel = c.type === 'direct' ? 'Direkte' : c.type === 'deferred' ? 'Udskudt' : 'Tier 2';
+              const typeColor = c.type === 'direct' ? 'bg-green-100 text-green-700' : c.type === 'deferred' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
+              return (
+                <div key={c.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
+                    <Coins className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900">{c.retailer_name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${typeColor}`}>{typeLabel}</span>
+                      {c.order_number && <span className="text-xs text-gray-400">Ordre #{c.order_number}</span>}
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900">{formatDKK(c.amount_dkk)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Activity feed */}

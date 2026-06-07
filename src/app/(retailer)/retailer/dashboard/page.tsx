@@ -11,6 +11,7 @@ import {
   QrCode,
   Clock,
   Handshake,
+  Coins,
 } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 
@@ -42,6 +43,14 @@ type PartnershipItem = {
   status: string;
 };
 
+type CommissionDetail = {
+  id: string;
+  product_name: string;
+  type: string;
+  amount_dkk: number;
+  created_at: string;
+};
+
 export default function RetailerDashboardPage() {
   const { user } = useAuth();
   const [kpis, setKpis] = useState<KPIs>({
@@ -52,6 +61,7 @@ export default function RetailerDashboardPage() {
   });
   const [recentScans, setRecentScans] = useState<ScanFeedItem[]>([]);
   const [partnerships, setPartnerships] = useState<PartnershipItem[]>([]);
+  const [commissionDetails, setCommissionDetails] = useState<CommissionDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [storeName, setStoreName] = useState('');
 
@@ -113,9 +123,10 @@ export default function RetailerDashboardPage() {
           // Commission this month
           supabase
             .from('attributions')
-            .select('commission_amount_dkk')
+            .select('id, commission_amount_dkk, attribution_type, created_at, order_id')
             .eq('source_retailer_id', retailerId)
-            .gte('created_at', monthStart),
+            .gte('created_at', monthStart)
+            .order('created_at', { ascending: false }),
           // Active partnerships
           supabase
             .from('brand_retailer_partnerships')
@@ -124,10 +135,34 @@ export default function RetailerDashboardPage() {
             .eq('status', 'active'),
         ]);
 
-        // Calculate commission
-        const commissionTotal = (
-          (commissionRes.data ?? []) as { commission_amount_dkk: number | null }[]
-        ).reduce((sum, a) => sum + (a.commission_amount_dkk ?? 0), 0);
+        // Calculate commission and build detail list
+        type CommissionRow = { id: string; commission_amount_dkk: number | null; attribution_type: string; created_at: string; order_id: string };
+        const commissionRows = (commissionRes.data ?? []) as CommissionRow[];
+        const commissionTotal = commissionRows.reduce((sum, a) => sum + (a.commission_amount_dkk ?? 0), 0);
+
+        if (commissionRows.length > 0) {
+          const orderIds = Array.from(new Set(commissionRows.map((a) => a.order_id)));
+          const { data: orderItemsData } = await supabase
+            .from('order_items')
+            .select('order_id, product_name')
+            .in('order_id', orderIds);
+
+          const orderProductMap = new Map(
+            ((orderItemsData ?? []) as { order_id: string; product_name: string }[]).map((oi) => [oi.order_id, oi.product_name])
+          );
+
+          setCommissionDetails(
+            commissionRows
+              .filter((a) => a.commission_amount_dkk)
+              .map((a) => ({
+                id: a.id,
+                product_name: orderProductMap.get(a.order_id) ?? 'Ukendt produkt',
+                type: a.attribution_type,
+                amount_dkk: a.commission_amount_dkk!,
+                created_at: a.created_at,
+              }))
+          );
+        }
 
         setKpis({
           scansThisWeek: scansWeekRes.count ?? 0,
@@ -331,6 +366,40 @@ export default function RetailerDashboardPage() {
           )}
         </div>
       </div>
+      {/* Earned commission details */}
+      {commissionDetails.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Optjent kommission denne maaned</h2>
+            <span className="text-sm font-bold text-green-700 bg-green-50 px-3 py-1 rounded-full">
+              {formatDKK(kpis.commissionThisMonth)} total
+            </span>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {commissionDetails.map((c) => {
+              const typeLabel = c.type === 'direct' ? 'Direkte' : c.type === 'deferred' ? 'Udskudt' : 'Tier 2';
+              const typeColor = c.type === 'direct' ? 'bg-green-100 text-green-700' : c.type === 'deferred' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
+              return (
+                <div key={c.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="p-1.5 rounded-lg bg-green-50 text-green-600">
+                    <Coins className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900 truncate">{c.product_name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${typeColor}`}>{typeLabel}</span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(c.created_at).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900">{formatDKK(c.amount_dkk)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

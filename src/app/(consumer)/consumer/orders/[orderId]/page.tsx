@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
-import { ChevronLeft, ExternalLink, Package } from 'lucide-react';
+import { ChevronLeft, ExternalLink, Package, Share2, Download, QrCode } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
@@ -47,6 +47,7 @@ export default function OrderDetailPage() {
   const { user } = useAuth();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [peerQR, setPeerQR] = useState<{ product_id: string; url: string; qr_data_url: string }[] | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -73,6 +74,35 @@ export default function OrderDetailPage() {
         setLoading(false);
       });
   }, [user, orderId]);
+
+  useEffect(() => {
+    if (!order || order.status !== 'delivered') return;
+    fetch(`/api/orders/${orderId}/qr`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.qr_codes) setPeerQR(data.qr_codes);
+      })
+      .catch(() => {});
+  }, [order, orderId]);
+
+  function downloadQR(dataUrl: string) {
+    const link = document.createElement('a');
+    link.download = 'cirkle-share-qr.png';
+    link.href = dataUrl;
+    link.click();
+  }
+
+  async function shareQR(url: string) {
+    if (navigator.share) {
+      await navigator.share({
+        title: 'Del dit Cirkle-produkt',
+        text: 'Scan denne QR-kode for at opdage dette produkt!',
+        url,
+      });
+    } else {
+      await navigator.clipboard.writeText(url);
+    }
+  }
 
   if (loading) {
     return <div className="py-12 text-center text-gray-400 animate-pulse">Henter ordre...</div>;
@@ -129,6 +159,47 @@ export default function OrderDetailPage() {
               Spor pakke <ExternalLink className="h-3 w-3" />
             </a>
           )}
+        </div>
+      )}
+
+      {/* Peer discovery QR */}
+      {peerQR && peerQR.length > 0 && (
+        <div className="bg-gradient-to-br from-cirkle-50 to-blue-50 rounded-xl border border-cirkle-100 p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <QrCode className="h-5 w-5 text-cirkle-600" />
+            <h2 className="text-sm font-semibold text-cirkle-900">Del dit produkt</h2>
+          </div>
+          <p className="text-sm text-cirkle-700 mb-4">
+            Dine venner kan scanne koden og du optjener point!
+          </p>
+          {peerQR.map((qr) => (
+            <div key={qr.product_id} className="space-y-3">
+              <div className="flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={qr.qr_data_url}
+                  alt="Peer discovery QR code"
+                  className="w-48 h-48 rounded-xl bg-white p-2 shadow-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => shareQR(qr.url)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-cirkle-600 text-white text-sm font-medium rounded-lg hover:bg-cirkle-700 transition"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Del
+                </button>
+                <button
+                  onClick={() => downloadQR(qr.qr_data_url)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-cirkle-700 text-sm font-medium rounded-lg border border-cirkle-200 hover:bg-cirkle-50 transition"
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
