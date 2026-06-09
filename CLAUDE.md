@@ -47,6 +47,15 @@ Scans QR code (phone camera) → lands on public product page (no auth needed to
 - Points balance = SUM(amount) from points_ledger table
 - Points ledger is append-only (positive = earn, negative = spend)
 
+### Sample Deposits & Swaps
+- Retailers pay a deposit (set by brand per product) when they receive a sample
+- Deposit is typically the brand's wholesale/cost price
+- Samples can be swapped: retailer returns old sample, gets deposit back if undamaged, orders new sample with new deposit
+- Financial tracking via sample_transactions ledger (deposit_paid, deposit_refunded, deposit_forfeited)
+- Retailer dashboard shows total deposit capital tied up
+- Brand dashboard shows total deposits held
+- Swap flow: retailer requests swap → brand approves → retailer ships back → brand inspects → if OK, refund deposit + ship new sample → retailer pays new deposit
+
 ### Mock Checkout
 - No real payment processing
 - Consumer clicks "Buy now" → order is created with status "pending"
@@ -60,7 +69,7 @@ Scans QR code (phone camera) → lands on public product page (no auth needed to
 
 ## Database
 
-See `supabase/migrations/001_initial_schema.sql` for the complete schema. Key tables:
+See `supabase/migrations/001_initial_schema.sql` and `002_sample_deposits.sql` for the complete schema. Key tables:
 
 - `users` — extended via Supabase Auth, adds role + profile fields
 - `brand_profiles` — brand-specific data (name, logo, description)
@@ -76,6 +85,10 @@ See `supabase/migrations/001_initial_schema.sql` for the complete schema. Key ta
 - `points_ledger` — immutable earn/spend log
 - `saved_products` — wishlist with 90-day attribution window
 - `brand_retailer_partnerships` — contractual relationships with commission rates
+- `sample_requests` — retailer requests to order samples from a brand
+- `sample_request_items` — individual products/sizes within a sample request
+- `sample_transactions` — financial ledger for deposit payments, refunds, and forfeitures
+- `swap_requests` — retailer requests to swap underperforming samples for new ones
 
 ## File Structure
 

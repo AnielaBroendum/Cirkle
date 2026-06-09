@@ -83,7 +83,7 @@ export default function NewSamplePage() {
             withRetailer.map((p) => ({
               partnership_id: p.id,
               retailer_id: p.retailer_id,
-              retailer_name: retailerMap.get(p.retailer_id) ?? 'Ukendt',
+              retailer_name: retailerMap.get(p.retailer_id) ?? 'Unknown',
             }))
           );
         }
@@ -109,7 +109,7 @@ export default function NewSamplePage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? 'Noget gik galt');
+      setError(data.error ?? 'Something went wrong');
       setLoading(false);
       return;
     }
@@ -130,39 +130,39 @@ export default function NewSamplePage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Opret prøve</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Create sample</h1>
       </div>
 
       {products.length === 0 ? (
         <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
-          <p className="text-gray-500">Du skal oprette et produkt først.</p>
+          <p className="text-gray-500">You need to create a product first.</p>
           <Link
             href="/brand/products/new"
             className="mt-2 inline-block text-sm text-cirkle-600 font-medium hover:underline"
           >
-            Opret produkt
+            Create product
           </Link>
         </div>
       ) : retailers.length === 0 ? (
         <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
-          <p className="text-gray-500">Du har ingen aktive butikspartnerskaber endnu.</p>
+          <p className="text-gray-500">You have no active retail partnerships yet.</p>
           <Link
             href="/brand/partnerships"
             className="mt-2 inline-block text-sm text-cirkle-600 font-medium hover:underline"
           >
-            Administrer partnerskaber
+            Manage partnerships
           </Link>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Produkt *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Product *</label>
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none bg-white"
             >
-              <option value="">Vælg produkt</option>
+              <option value="">Select product</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} — {formatDKK(p.price_dkk)}
@@ -172,13 +172,13 @@ export default function NewSamplePage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Butik *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Store *</label>
             <select
               value={selectedRetailer}
               onChange={(e) => setSelectedRetailer(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none bg-white"
             >
-              <option value="">Vælg butik</option>
+              <option value="">Select store</option>
               {retailers.map((r) => (
                 <option key={r.retailer_id} value={r.retailer_id}>
                   {r.retailer_name}
@@ -197,10 +197,10 @@ export default function NewSamplePage() {
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
           >
             {loading ? (
-              'Opretter...'
+              'Creating...'
             ) : (
               <>
-                <QrCode className="h-4 w-4" /> Opret prøve & generer QR
+                <QrCode className="h-4 w-4" /> Create sample & generate QR
               </>
             )}
           </button>

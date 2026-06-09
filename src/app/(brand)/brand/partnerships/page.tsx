@@ -117,7 +117,7 @@ export default function BrandPartnershipsPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      setInviteError(data.error ?? 'Noget gik galt');
+      setInviteError(data.error ?? 'Something went wrong');
       setInviting(false);
       return;
     }
@@ -150,7 +150,23 @@ export default function BrandPartnershipsPage() {
   }
 
   if (loading) {
-    return <div className="animate-pulse text-gray-400">Henter partnerskaber...</div>;
+    return (
+      <div className="space-y-8">
+        <div>
+          <div className="animate-pulse bg-gray-200 rounded h-8 w-40" />
+          <div className="animate-pulse bg-gray-100 rounded h-4 w-56 mt-2" />
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="animate-pulse bg-gray-200 rounded h-6 w-32" />
+          <div className="animate-pulse bg-gray-100 rounded-lg h-12 w-full" />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="animate-pulse bg-gray-100 rounded-lg h-12" />
+            <div className="animate-pulse bg-gray-100 rounded-lg h-12" />
+            <div className="animate-pulse bg-gray-100 rounded-lg h-12" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Brand-initiated: status='invited' with a token. Retailer-initiated: status='invited' without a token.
@@ -164,17 +180,17 @@ export default function BrandPartnershipsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Partnerskaber</h1>
-        <p className="mt-1 text-gray-500">Inviter butikker og administrer partnerskaber</p>
+        <h1 className="text-2xl font-bold text-gray-900">Partnerships</h1>
+        <p className="mt-1 text-gray-500">Invite retailers and manage partnerships</p>
       </div>
 
       {/* Invite form */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Inviter butik</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Invite retailer</h2>
         <form onSubmit={handleInvite} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              E-mail adresse *
+              Email address *
             </label>
             <input
               type="email"
@@ -182,14 +198,14 @@ export default function BrandPartnershipsPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-              placeholder="butik@eksempel.dk"
+              placeholder="store@example.com"
             />
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Direkte (%)
+                Direct (%)
               </label>
               <input
                 type="number"
@@ -202,7 +218,7 @@ export default function BrandPartnershipsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Udskudt (%)
+                Deferred (%)
               </label>
               <input
                 type="number"
@@ -236,7 +252,7 @@ export default function BrandPartnershipsPage() {
 
           {inviteSuccess && (
             <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 space-y-2">
-              <p className="text-sm text-green-700 font-medium">Invitation sendt!</p>
+              <p className="text-sm text-green-700 font-medium">Invitation sent!</p>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -248,7 +264,7 @@ export default function BrandPartnershipsPage() {
                   type="button"
                   onClick={() => copyUrl(inviteSuccess)}
                   className="p-1.5 text-green-600 hover:text-green-700 rounded hover:bg-green-100"
-                  title="Kopier link"
+                  title="Copy link"
                 >
                   {copiedUrl ? (
                     <Check className="h-4 w-4" />
@@ -266,7 +282,7 @@ export default function BrandPartnershipsPage() {
             className="flex items-center gap-2 rounded-lg bg-cirkle-600 px-4 py-2.5 text-sm text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
           >
             <Send className="h-4 w-4" />
-            {inviting ? 'Sender...' : 'Send invitation'}
+            {inviting ? 'Sending...' : 'Send invitation'}
           </button>
         </form>
       </div>
@@ -275,7 +291,7 @@ export default function BrandPartnershipsPage() {
       {requested.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            Indkommende anmodninger
+            Incoming requests
           </h2>
           <div className="space-y-3">
             {requested.map((p) => (
@@ -285,22 +301,22 @@ export default function BrandPartnershipsPage() {
               >
                 <div>
                   <p className="font-medium text-gray-900">
-                    {p.retailer_name ?? 'Butik'}
+                    {p.retailer_name ?? 'Store'}
                   </p>
-                  <p className="text-sm text-gray-500">Ønsker partnerskab</p>
+                  <p className="text-sm text-gray-500">Wants to partner</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleUpdateStatus(p.id, 'active')}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition"
                   >
-                    <Check className="h-3.5 w-3.5" /> Godkend
+                    <Check className="h-3.5 w-3.5" /> Accept
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(p.id, 'declined')}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition"
                   >
-                    <X className="h-3.5 w-3.5" /> Afvis
+                    <X className="h-3.5 w-3.5" /> Decline
                   </button>
                 </div>
               </div>
@@ -313,7 +329,7 @@ export default function BrandPartnershipsPage() {
       {invited.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            Afventende invitationer
+            Pending invitations
           </h2>
           <div className="space-y-3">
             {invited.map((p) => (
@@ -323,11 +339,11 @@ export default function BrandPartnershipsPage() {
               >
                 <div>
                   <p className="font-medium text-gray-900">
-                    {p.invitation_email ?? 'Ukendt'}
+                    {p.invitation_email ?? 'Unknown'}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Clock className="h-3.5 w-3.5 text-amber-500" />
-                    <span className="text-xs text-amber-600">Afventer svar</span>
+                    <span className="text-xs text-amber-600">Awaiting response</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-gray-400">
@@ -342,7 +358,7 @@ export default function BrandPartnershipsPage() {
                         )
                       }
                       className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100"
-                      title="Kopier invitationslink"
+                      title="Copy invitation link"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                     </button>
@@ -357,12 +373,13 @@ export default function BrandPartnershipsPage() {
       {/* Active partnerships */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          Aktive partnerskaber
+          Active partnerships
         </h2>
         {active.length === 0 ? (
           <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
             <Handshake className="h-10 w-10 text-gray-300 mx-auto" />
-            <p className="mt-2 text-sm text-gray-500">Ingen aktive partnerskaber endnu</p>
+            <p className="mt-2 text-sm text-gray-500">No active partnerships yet</p>
+            <p className="text-xs text-gray-400 mt-1">Send an invitation above to get started</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -373,11 +390,11 @@ export default function BrandPartnershipsPage() {
               >
                 <div>
                   <p className="font-medium text-gray-900">
-                    {p.retailer_name ?? p.invitation_email ?? 'Butik'}
+                    {p.retailer_name ?? p.invitation_email ?? 'Store'}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Check className="h-3.5 w-3.5 text-green-500" />
-                    <span className="text-xs text-green-600">Aktiv</span>
+                    <span className="text-xs text-green-600">Active</span>
                   </div>
                 </div>
                 <span className="text-xs text-gray-400">
@@ -392,7 +409,7 @@ export default function BrandPartnershipsPage() {
       {/* Declined / Paused */}
       {other.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Inaktive</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Inactive</h2>
           <div className="space-y-3">
             {other.map((p) => (
               <div
@@ -401,7 +418,7 @@ export default function BrandPartnershipsPage() {
               >
                 <div>
                   <p className="font-medium text-gray-900">
-                    {p.retailer_name ?? p.invitation_email ?? 'Butik'}
+                    {p.retailer_name ?? p.invitation_email ?? 'Store'}
                   </p>
                   <span className="text-xs text-gray-500 capitalize">{p.status}</span>
                 </div>

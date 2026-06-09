@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Share2, ShoppingBag, MapPin, Users, ChevronLeft, Package, Check, Link as LinkIcon } from 'lucide-react';
+import { Heart, Share2, ShoppingBag, MapPin, Users, ChevronLeft, Package, Check, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { formatDKK } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
 
@@ -238,7 +238,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
         {/* Materials */}
         {product.materials && (
           <div className="mb-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Materialer</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Materials</h3>
             <p className="text-sm text-gray-700">{product.materials}</p>
           </div>
         )}
@@ -246,7 +246,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
         {/* Available sizes */}
         {product.sizes?.length > 0 && (
           <div className="mb-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Størrelser</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Sizes</h3>
             <div className="flex flex-wrap gap-2">
               {product.sizes.map((size) => (
                 <span key={size} className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg">
@@ -260,7 +260,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
         {/* Available colors */}
         {product.colors?.length > 0 && (
           <div className="mb-5">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Farver</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Colors</h3>
             <div className="flex flex-wrap gap-2">
               {product.colors.map((color) => (
                 <span key={color} className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg">
@@ -281,8 +281,8 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
           <div>
             <p className="text-sm font-medium text-gray-700">
               {attribution.type === 'retailer'
-                ? `Scannet hos ${attribution.name}`
-                : `Scannet via ${attribution.name}`}
+                ? `Scanned at ${attribution.name}`
+                : `Shared by ${attribution.name}`}
             </p>
             {attribution.peerPointsMessage && (
               <p className="text-xs text-cirkle-600 mt-0.5">{attribution.peerPointsMessage}</p>
@@ -293,9 +293,9 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
 
       {/* "Copied" toast */}
       {showCopied && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 animate-fade-in">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 animate-toast-in">
           <Check className="h-4 w-4 text-green-400" />
-          Link kopieret!
+          Link copied!
         </div>
       )}
 
@@ -311,7 +311,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
             className="flex-1 flex items-center justify-center gap-2 bg-cirkle-600 text-white font-semibold py-3.5 rounded-xl hover:bg-cirkle-700 active:bg-cirkle-800 transition no-underline"
           >
             <ShoppingBag className="h-4 w-4" />
-            Køb nu
+            Buy now
           </a>
           <button
             onClick={handleSave}
@@ -324,7 +324,11 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
                 : 'border-gray-200 text-gray-600 hover:bg-gray-50 active:bg-gray-100'
             }`}
           >
-            <Heart className={`h-5 w-5 ${saved ? 'fill-current' : ''}`} />
+            {saving ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Heart className={`h-5 w-5 ${saved ? 'fill-current' : ''}`} />
+            )}
           </button>
           <button
             onClick={handleShare}

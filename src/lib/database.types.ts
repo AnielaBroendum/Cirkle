@@ -119,6 +119,7 @@ export type Database = {
           name: string;
           description: string | null;
           price_dkk: number;
+          deposit_amount_dkk: number | null;
           images: string[];
           sizes: string[];
           colors: string[];
@@ -134,6 +135,7 @@ export type Database = {
           name: string;
           description?: string | null;
           price_dkk: number;
+          deposit_amount_dkk?: number | null;
           images?: string[];
           sizes?: string[];
           colors?: string[];
@@ -147,6 +149,7 @@ export type Database = {
           name?: string;
           description?: string | null;
           price_dkk?: number;
+          deposit_amount_dkk?: number | null;
           images?: string[];
           sizes?: string[];
           colors?: string[];
@@ -193,6 +196,10 @@ export type Database = {
           brand_id: string;
           qr_code_url: string | null;
           status: 'active' | 'returned' | 'damaged' | 'inactive';
+          deposit_amount_dkk: number | null;
+          deposit_status: string | null;
+          size: string | null;
+          color: string | null;
           activated_at: string | null;
           created_at: string;
           updated_at: string;
@@ -204,6 +211,10 @@ export type Database = {
           brand_id: string;
           qr_code_url?: string | null;
           status?: 'active' | 'returned' | 'damaged' | 'inactive';
+          deposit_amount_dkk?: number | null;
+          deposit_status?: string | null;
+          size?: string | null;
+          color?: string | null;
           activated_at?: string | null;
         };
         Update: {
@@ -213,6 +224,10 @@ export type Database = {
           brand_id?: string;
           qr_code_url?: string | null;
           status?: 'active' | 'returned' | 'damaged' | 'inactive';
+          deposit_amount_dkk?: number | null;
+          deposit_status?: string | null;
+          size?: string | null;
+          color?: string | null;
           activated_at?: string | null;
         };
         Relationships: [];
@@ -505,11 +520,168 @@ export type Database = {
         };
         Relationships: [];
       };
+      sample_requests: {
+        Row: {
+          id: string;
+          retailer_id: string;
+          brand_id: string;
+          partnership_id: string;
+          status: 'pending' | 'approved' | 'shipped' | 'received' | 'rejected';
+          note: string | null;
+          reviewed_at: string | null;
+          review_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          retailer_id: string;
+          brand_id: string;
+          partnership_id: string;
+          status?: 'pending' | 'approved' | 'shipped' | 'received' | 'rejected';
+          note?: string | null;
+          review_note?: string | null;
+        };
+        Update: {
+          id?: string;
+          retailer_id?: string;
+          brand_id?: string;
+          partnership_id?: string;
+          status?: 'pending' | 'approved' | 'shipped' | 'received' | 'rejected';
+          note?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
+        };
+        Relationships: [];
+      };
+      sample_request_items: {
+        Row: {
+          id: string;
+          request_id: string;
+          product_id: string;
+          size: string;
+          color: string;
+          deposit_amount_dkk: number;
+          sample_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          request_id: string;
+          product_id: string;
+          size: string;
+          color: string;
+          deposit_amount_dkk: number;
+          sample_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          request_id?: string;
+          product_id?: string;
+          size?: string;
+          color?: string;
+          deposit_amount_dkk?: number;
+          sample_id?: string | null;
+        };
+        Relationships: [];
+      };
+      sample_transactions: {
+        Row: {
+          id: string;
+          sample_id: string;
+          retailer_id: string;
+          brand_id: string;
+          transaction_type: 'deposit_paid' | 'deposit_refunded' | 'deposit_forfeited' | 'swap_out' | 'swap_in';
+          amount_dkk: number;
+          note: string | null;
+          swap_request_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          sample_id: string;
+          retailer_id: string;
+          brand_id: string;
+          transaction_type: 'deposit_paid' | 'deposit_refunded' | 'deposit_forfeited' | 'swap_out' | 'swap_in';
+          amount_dkk: number;
+          note?: string | null;
+          swap_request_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          sample_id?: string;
+          retailer_id?: string;
+          brand_id?: string;
+          transaction_type?: 'deposit_paid' | 'deposit_refunded' | 'deposit_forfeited' | 'swap_out' | 'swap_in';
+          amount_dkk?: number;
+          note?: string | null;
+          swap_request_id?: string | null;
+        };
+        Relationships: [];
+      };
+      swap_requests: {
+        Row: {
+          id: string;
+          retailer_id: string;
+          brand_id: string;
+          return_sample_id: string;
+          new_product_id: string;
+          new_size: string;
+          new_color: string;
+          new_sample_id: string | null;
+          status: 'requested' | 'approved' | 'return_shipped' | 'return_received' | 'inspected_ok' | 'inspected_damaged' | 'new_shipped' | 'completed' | 'cancelled';
+          reason: string | null;
+          inspection_note: string | null;
+          return_tracking_number: string | null;
+          new_tracking_number: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          retailer_id: string;
+          brand_id: string;
+          return_sample_id: string;
+          new_product_id: string;
+          new_size: string;
+          new_color: string;
+          new_sample_id?: string | null;
+          status?: 'requested' | 'approved' | 'return_shipped' | 'return_received' | 'inspected_ok' | 'inspected_damaged' | 'new_shipped' | 'completed' | 'cancelled';
+          reason?: string | null;
+          inspection_note?: string | null;
+          return_tracking_number?: string | null;
+          new_tracking_number?: string | null;
+        };
+        Update: {
+          id?: string;
+          retailer_id?: string;
+          brand_id?: string;
+          return_sample_id?: string;
+          new_product_id?: string;
+          new_size?: string;
+          new_color?: string;
+          new_sample_id?: string | null;
+          status?: 'requested' | 'approved' | 'return_shipped' | 'return_received' | 'inspected_ok' | 'inspected_damaged' | 'new_shipped' | 'completed' | 'cancelled';
+          reason?: string | null;
+          inspection_note?: string | null;
+          return_tracking_number?: string | null;
+          new_tracking_number?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       get_points_balance: {
         Args: { p_user_id: string };
+        Returns: number;
+      };
+      get_retailer_deposit_total: {
+        Args: { p_retailer_id: string };
+        Returns: number;
+      };
+      get_brand_deposits_held: {
+        Args: { p_brand_id: string };
         Returns: number;
       };
     };

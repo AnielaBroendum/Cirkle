@@ -52,12 +52,12 @@ type Order = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; color: string; bg: string }> = {
-  pending: { label: 'Afventer', icon: Clock, color: 'text-yellow-700', bg: 'bg-yellow-100' },
-  confirmed: { label: 'Bekraeftet', icon: Check, color: 'text-blue-700', bg: 'bg-blue-100' },
-  packed: { label: 'Pakket', icon: Package, color: 'text-purple-700', bg: 'bg-purple-100' },
-  shipped: { label: 'Afsendt', icon: Truck, color: 'text-cirkle-700', bg: 'bg-cirkle-100' },
-  delivered: { label: 'Leveret', icon: Home, color: 'text-green-700', bg: 'bg-green-100' },
-  cancelled: { label: 'Annulleret', icon: X, color: 'text-red-700', bg: 'bg-red-100' },
+  pending: { label: 'Pending', icon: Clock, color: 'text-yellow-700', bg: 'bg-yellow-100' },
+  confirmed: { label: 'Confirmed', icon: Check, color: 'text-blue-700', bg: 'bg-blue-100' },
+  packed: { label: 'Packed', icon: Package, color: 'text-purple-700', bg: 'bg-purple-100' },
+  shipped: { label: 'Shipped', icon: Truck, color: 'text-cirkle-700', bg: 'bg-cirkle-100' },
+  delivered: { label: 'Delivered', icon: Home, color: 'text-green-700', bg: 'bg-green-100' },
+  cancelled: { label: 'Cancelled', icon: X, color: 'text-red-700', bg: 'bg-red-100' },
 };
 
 const STATUS_SORT_ORDER: Record<string, number> = {
@@ -70,10 +70,10 @@ const STATUS_SORT_ORDER: Record<string, number> = {
 };
 
 const NEXT_STATUS: Record<string, { status: string; label: string; needsTracking?: boolean }> = {
-  pending: { status: 'confirmed', label: 'Bekraeft' },
-  confirmed: { status: 'packed', label: 'Marker som pakket' },
-  packed: { status: 'shipped', label: 'Marker som afsendt', needsTracking: true },
-  shipped: { status: 'delivered', label: 'Marker som leveret' },
+  pending: { status: 'confirmed', label: 'Confirm' },
+  confirmed: { status: 'packed', label: 'Mark as packed' },
+  packed: { status: 'shipped', label: 'Mark as shipped', needsTracking: true },
+  shipped: { status: 'delivered', label: 'Mark as delivered' },
 };
 
 type FilterStatus = 'all' | 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered';
@@ -166,23 +166,46 @@ export default function BrandOrdersPage() {
   );
 
   if (loading) {
-    return <div className="animate-pulse text-gray-400">Henter ordrer...</div>;
+    return (
+      <div className="space-y-6">
+        <div>
+          <div className="animate-pulse bg-gray-200 rounded h-8 w-24" />
+          <div className="animate-pulse bg-gray-100 rounded h-4 w-48 mt-2" />
+        </div>
+        <div className="flex gap-2">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="animate-pulse bg-gray-200 rounded-full h-8 w-24" />
+          ))}
+        </div>
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
+              <div className="animate-pulse bg-gray-200 rounded-lg h-10 w-10" />
+              <div className="flex-1 space-y-2">
+                <div className="animate-pulse bg-gray-200 rounded h-4 w-32" />
+                <div className="animate-pulse bg-gray-100 rounded h-3 w-48" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const FILTER_TABS: { key: FilterStatus; label: string }[] = [
-    { key: 'all', label: `Alle (${orders.length})` },
-    { key: 'pending', label: `Afventer (${counts.pending || 0})` },
-    { key: 'confirmed', label: `Bekraeftet (${counts.confirmed || 0})` },
-    { key: 'packed', label: `Pakket (${counts.packed || 0})` },
-    { key: 'shipped', label: `Afsendt (${counts.shipped || 0})` },
-    { key: 'delivered', label: `Leveret (${counts.delivered || 0})` },
+    { key: 'all', label: `All (${orders.length})` },
+    { key: 'pending', label: `Pending (${counts.pending || 0})` },
+    { key: 'confirmed', label: `Confirmed (${counts.confirmed || 0})` },
+    { key: 'packed', label: `Packed (${counts.packed || 0})` },
+    { key: 'shipped', label: `Shipped (${counts.shipped || 0})` },
+    { key: 'delivered', label: `Delivered (${counts.delivered || 0})` },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Ordrer</h1>
-        <p className="mt-1 text-gray-500">Administrer og send dine ordrer</p>
+        <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+        <p className="mt-1 text-gray-500">Manage and fulfill your orders</p>
       </div>
 
       {/* Filter tabs */}
@@ -203,9 +226,10 @@ export default function BrandOrdersPage() {
       </div>
 
       {filteredOrders.length === 0 ? (
-        <div className="text-center py-16">
+        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <ShoppingBag className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 text-gray-500">Ingen ordrer</p>
+          <p className="mt-3 font-medium text-gray-700">No orders yet</p>
+          <p className="text-sm text-gray-400 mt-1">Orders will appear here when customers purchase through QR scans</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -261,7 +285,7 @@ export default function BrandOrdersPage() {
                     {/* Items */}
                     <div>
                       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        Produkter
+                        Products
                       </h3>
                       <div className="space-y-2">
                         {order.order_items.map((item) => (
@@ -287,7 +311,7 @@ export default function BrandOrdersPage() {
                     <div>
                       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                         <MapPin className="h-3 w-3 inline mr-1" />
-                        Leveringsadresse
+                        Shipping address
                       </h3>
                       <div className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">
                         <p className="font-medium">{order.shipping_name}</p>
@@ -308,7 +332,7 @@ export default function BrandOrdersPage() {
                     {/* Timeline */}
                     <div>
                       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        Historik
+                        History
                       </h3>
                       <div className="space-y-1">
                         {order.order_events
@@ -340,14 +364,14 @@ export default function BrandOrdersPage() {
                           <div className="space-y-2">
                             <input
                               type="text"
-                              placeholder="Tracking nummer"
+                              placeholder="Tracking number"
                               value={trackingInput}
                               onChange={(e) => setTrackingInput(e.target.value)}
                               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cirkle-500"
                             />
                             <input
                               type="url"
-                              placeholder="Tracking URL (valgfrit)"
+                              placeholder="Tracking URL (optional)"
                               value={trackingUrlInput}
                               onChange={(e) => setTrackingUrlInput(e.target.value)}
                               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cirkle-500"
@@ -360,7 +384,7 @@ export default function BrandOrdersPage() {
                             disabled={isUpdating || (nextAction.needsTracking && !trackingInput)}
                             className="flex-1 px-4 py-2.5 bg-cirkle-600 text-white text-sm font-medium rounded-lg hover:bg-cirkle-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                           >
-                            {isUpdating ? 'Opdaterer...' : nextAction.label}
+                            {isUpdating ? 'Updating...' : nextAction.label}
                           </button>
                           {order.status === 'pending' && (
                             <button
@@ -368,7 +392,7 @@ export default function BrandOrdersPage() {
                               disabled={isUpdating}
                               className="px-4 py-2.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg hover:bg-red-100 disabled:opacity-50 transition"
                             >
-                              Annuller
+                              Cancel
                             </button>
                           )}
                         </div>

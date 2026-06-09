@@ -12,7 +12,9 @@ import {
   Clock,
   Handshake,
   Coins,
+  Wallet,
 } from 'lucide-react';
+import { KPISkeleton, ListSkeleton } from '@/components/ui/skeleton';
 import type { Database } from '@/lib/database.types';
 
 type Sample = Database['public']['Tables']['samples']['Row'];
@@ -62,6 +64,8 @@ export default function RetailerDashboardPage() {
   const [recentScans, setRecentScans] = useState<ScanFeedItem[]>([]);
   const [partnerships, setPartnerships] = useState<PartnershipItem[]>([]);
   const [commissionDetails, setCommissionDetails] = useState<CommissionDetail[]>([]);
+  const [depositTotal, setDepositTotal] = useState(0);
+  const [depositByBrand, setDepositByBrand] = useState<{ brand_name: string; total: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [storeName, setStoreName] = useState('');
 
@@ -156,7 +160,7 @@ export default function RetailerDashboardPage() {
               .filter((a) => a.commission_amount_dkk)
               .map((a) => ({
                 id: a.id,
-                product_name: orderProductMap.get(a.order_id) ?? 'Ukendt produkt',
+                product_name: orderProductMap.get(a.order_id) ?? 'Unknown product',
                 type: a.attribution_type,
                 amount_dkk: a.commission_amount_dkk!,
                 created_at: a.created_at,
@@ -187,7 +191,7 @@ export default function RetailerDashboardPage() {
           setRecentScans(
             scansData.map((s) => ({
               id: s.id,
-              product_name: productMap.get(s.product_id) ?? 'Ukendt produkt',
+              product_name: productMap.get(s.product_id) ?? 'Unknown product',
               scanned_at: s.scanned_at,
             }))
           );
@@ -217,12 +221,40 @@ export default function RetailerDashboardPage() {
               const brand = brandMap.get(p.brand_id);
               return {
                 id: p.id,
-                brand_name: brand?.name ?? 'Ukendt brand',
+                brand_name: brand?.name ?? 'Unknown brand',
                 brand_logo: brand?.logo_url ?? null,
                 commission_direct: p.commission_direct,
                 status: p.status,
               };
             })
+          );
+        }
+
+        // Deposit data
+        const { data: heldSamples } = await supabase
+          .from('samples')
+          .select('deposit_amount_dkk, brand_id')
+          .eq('retailer_id', retailerId)
+          .eq('deposit_status', 'held');
+
+        if (heldSamples?.length) {
+          const total = heldSamples.reduce((sum: number, s: { deposit_amount_dkk: number | null }) => sum + (s.deposit_amount_dkk ?? 0), 0);
+          setDepositTotal(total);
+
+          const byBrand = new Map<string, number>();
+          for (const s of heldSamples as { deposit_amount_dkk: number | null; brand_id: string }[]) {
+            byBrand.set(s.brand_id, (byBrand.get(s.brand_id) ?? 0) + (s.deposit_amount_dkk ?? 0));
+          }
+
+          const brandIdsForDeposits = Array.from(byBrand.keys());
+          const { data: depositBrands } = await supabase.from('brand_profiles').select('id, name').in('id', brandIdsForDeposits);
+          const depositBrandMap = new Map((depositBrands ?? []).map((b: { id: string; name: string }) => [b.id, b.name]));
+
+          setDepositByBrand(
+            Array.from(byBrand.entries()).map(([bid, t]) => ({
+              brand_name: (depositBrandMap.get(bid) as string | undefined) ?? 'Unknown',
+              total: t,
+            })).sort((a, b) => b.total - a.total)
           );
         }
 
@@ -233,39 +265,51 @@ export default function RetailerDashboardPage() {
   function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Lige nu';
-    if (mins < 60) return `${mins} min. siden`;
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours} t. siden`;
+    if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
-    return `${days} d. siden`;
+    return `${days}d ago`;
   }
 
   if (loading) {
-    return <div className="animate-pulse text-gray-400">Henter data...</div>;
+    return (
+      <div className="space-y-8">
+        <div>
+          <div className="animate-pulse bg-gray-200 rounded h-8 w-48" />
+          <div className="animate-pulse bg-gray-100 rounded h-4 w-32 mt-2" />
+        </div>
+        <KPISkeleton />
+        <div className="grid lg:grid-cols-2 gap-6">
+          <ListSkeleton rows={4} />
+          <ListSkeleton rows={3} />
+        </div>
+      </div>
+    );
   }
 
   const KPI_CARDS = [
     {
-      label: 'Scanninger denne uge',
+      label: 'Scans this week',
       value: kpis.scansThisWeek,
       icon: ScanLine,
       color: 'text-blue-600 bg-blue-50',
     },
     {
-      label: 'Tilskrevne salg',
+      label: 'Attributed sales',
       value: kpis.salesAttributed,
       icon: ShoppingBag,
       color: 'text-amber-600 bg-amber-50',
     },
     {
-      label: 'Kommission denne måned',
+      label: 'Commission this month',
       value: formatDKK(kpis.commissionThisMonth),
       icon: TrendingUp,
       color: 'text-green-600 bg-green-50',
     },
     {
-      label: 'Aktive prøver',
+      label: 'Active samples',
       value: kpis.activeSamples,
       icon: QrCode,
       color: 'text-purple-600 bg-purple-50',
@@ -276,9 +320,9 @@ export default function RetailerDashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Velkommen, {storeName}
+          Welcome, {storeName}
         </h1>
-        <p className="text-gray-500 mt-1">Her er dit overblik</p>
+        <p className="text-gray-500 mt-1">Here is your overview</p>
       </div>
 
       {/* KPI Cards */}
@@ -299,11 +343,12 @@ export default function RetailerDashboardPage() {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Recent scans feed */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Seneste scanninger</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent scans</h2>
           {recentScans.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 py-8 text-center">
               <Clock className="h-8 w-8 text-gray-300 mx-auto" />
-              <p className="mt-2 text-sm text-gray-500">Ingen scanninger endnu</p>
+              <p className="mt-2 text-sm text-gray-500">No scans yet</p>
+              <p className="text-xs text-gray-400 mt-1">Place samples in visible spots to attract scans</p>
             </div>
           ) : (
             <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
@@ -326,11 +371,12 @@ export default function RetailerDashboardPage() {
 
         {/* Active partnerships */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Aktive partnerskaber</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Active partnerships</h2>
           {partnerships.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 py-8 text-center">
               <Handshake className="h-8 w-8 text-gray-300 mx-auto" />
-              <p className="mt-2 text-sm text-gray-500">Ingen aktive partnerskaber</p>
+              <p className="mt-2 text-sm text-gray-500">No active partnerships</p>
+              <p className="text-xs text-gray-400 mt-1">Accept brand invitations to get started</p>
             </div>
           ) : (
             <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
@@ -357,7 +403,7 @@ export default function RetailerDashboardPage() {
                       {p.brand_name}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {formatCommission(p.commission_direct)} kommission
+                      {formatCommission(p.commission_direct)} commission
                     </p>
                   </div>
                 </div>
@@ -366,18 +412,43 @@ export default function RetailerDashboardPage() {
           )}
         </div>
       </div>
+      {/* Deposit capital */}
+      {depositTotal > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Deposit capital</h2>
+            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full">
+              {formatDKK(depositTotal)} held
+            </span>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {depositByBrand.map((b) => (
+              <div key={b.brand_name} className="flex items-center gap-3 px-4 py-3">
+                <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
+                  <Wallet className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-900">{b.brand_name}</p>
+                </div>
+                <span className="text-sm font-bold text-gray-900">{formatDKK(b.total)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Earned commission details */}
       {commissionDetails.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Optjent kommission denne maaned</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Commission earned this month</h2>
             <span className="text-sm font-bold text-green-700 bg-green-50 px-3 py-1 rounded-full">
               {formatDKK(kpis.commissionThisMonth)} total
             </span>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
             {commissionDetails.map((c) => {
-              const typeLabel = c.type === 'direct' ? 'Direkte' : c.type === 'deferred' ? 'Udskudt' : 'Tier 2';
+              const typeLabel = c.type === 'direct' ? 'Direct' : c.type === 'deferred' ? 'Deferred' : 'Tier 2';
               const typeColor = c.type === 'direct' ? 'bg-green-100 text-green-700' : c.type === 'deferred' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
               return (
                 <div key={c.id} className="flex items-center gap-3 px-4 py-3">

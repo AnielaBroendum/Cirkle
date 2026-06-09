@@ -24,6 +24,9 @@ export function ProductForm({ brandProfileId, product, existingVariants = [] }: 
   const [name, setName] = useState(product?.name ?? '');
   const [description, setDescription] = useState(product?.description ?? '');
   const [priceKr, setPriceKr] = useState(product ? String(product.price_dkk / 100) : '');
+  const [depositKr, setDepositKr] = useState(
+    product?.deposit_amount_dkk ? String(product.deposit_amount_dkk / 100) : ''
+  );
   const [images, setImages] = useState<string[]>(product?.images ?? []);
   const [sizesText, setSizesText] = useState(product?.sizes?.join(', ') ?? '');
   const [colorsText, setColorsText] = useState(product?.colors?.join(', ') ?? '');
@@ -71,11 +74,14 @@ export function ProductForm({ brandProfileId, product, existingVariants = [] }: 
     const supabase = createClient();
     const priceOre = parseDKKtoOre(parseFloat(priceKr));
 
+    const depositOre = depositKr ? parseDKKtoOre(parseFloat(depositKr)) : null;
+
     const productData = {
       brand_id: brandProfileId,
       name: name.trim(),
       description: description.trim() || null,
       price_dkk: priceOre,
+      deposit_amount_dkk: depositOre,
       images,
       sizes,
       colors,
@@ -156,31 +162,31 @@ export function ProductForm({ brandProfileId, product, existingVariants = [] }: 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Produkt navn *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Product name *</label>
         <input
           type="text"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          placeholder="F.eks. Classic T-Shirt"
+          placeholder="e.g. Classic T-Shirt"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Beskrivelse</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
         <textarea
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none resize-none"
-          placeholder="Beskriv produktet"
+          placeholder="Describe the product"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Pris (kr) *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Price (kr) *</label>
           <input
             type="number"
             required
@@ -193,32 +199,48 @@ export function ProductForm({ brandProfileId, product, existingVariants = [] }: 
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
           <input
             type="text"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-            placeholder="T-shirts, Kjoler, etc."
+            placeholder="T-shirts, Dresses, etc."
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Produktbilleder</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Deposit amount (kr)</label>
+        <p className="text-xs text-gray-400 mb-2">
+          What retailers pay per sample of this product. Leave empty for no deposit.
+        </p>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value={depositKr}
+          onChange={(e) => setDepositKr(e.target.value)}
+          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
+          placeholder="150"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Product images</label>
         <ImageUpload
           bucket="brand-assets"
           folder="products"
           value={images}
           onChange={setImages}
           max={5}
-          label="Upload billeder"
+          label="Upload images"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Størrelser</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Sizes</label>
           <input
             type="text"
             value={sizesText}
@@ -228,25 +250,25 @@ export function ProductForm({ brandProfileId, product, existingVariants = [] }: 
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Farver</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Colors</label>
           <input
             type="text"
             value={colorsText}
             onChange={(e) => setColorsText(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-            placeholder="Sort, Hvid, Navy"
+            placeholder="Black, White, Navy"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Materialer</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Materials</label>
         <input
           type="text"
           value={materials}
           onChange={(e) => setMaterials(e.target.value)}
           className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          placeholder="100% økologisk bomuld"
+          placeholder="100% organic cotton"
         />
       </div>
 
@@ -254,15 +276,15 @@ export function ProductForm({ brandProfileId, product, existingVariants = [] }: 
       {variants.length > 0 && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            Lagerbeholdning per variant
+            Stock per variant
           </label>
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="text-left px-4 py-2 font-medium text-gray-600">Størrelse</th>
-                  <th className="text-left px-4 py-2 font-medium text-gray-600">Farve</th>
-                  <th className="text-center px-4 py-2 font-medium text-gray-600">Antal</th>
+                  <th className="text-left px-4 py-2 font-medium text-gray-600">Size</th>
+                  <th className="text-left px-4 py-2 font-medium text-gray-600">Color</th>
+                  <th className="text-center px-4 py-2 font-medium text-gray-600">Quantity</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -311,14 +333,14 @@ export function ProductForm({ brandProfileId, product, existingVariants = [] }: 
           disabled={loading || !name.trim() || !priceKr}
           className="rounded-lg bg-cirkle-600 px-6 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
         >
-          {loading ? 'Gemmer...' : isEditing ? 'Gem ændringer' : 'Opret produkt'}
+          {loading ? 'Saving...' : isEditing ? 'Save changes' : 'Create product'}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
           className="rounded-lg border border-gray-300 px-6 py-3 text-gray-700 font-medium hover:bg-gray-50 transition"
         >
-          Annuller
+          Cancel
         </button>
       </div>
     </form>

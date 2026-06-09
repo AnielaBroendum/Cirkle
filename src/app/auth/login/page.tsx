@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
+import { Loader2 } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -31,7 +32,7 @@ function LoginForm() {
     if (signInError) {
       setError(
         signInError.message === 'Invalid login credentials'
-          ? 'Forkert e-mail eller adgangskode'
+          ? 'Invalid email or password'
           : signInError.message
       );
       setLoading(false);
@@ -71,7 +72,7 @@ function LoginForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          E-mail
+          Email
         </label>
         <input
           id="email"
@@ -80,13 +81,13 @@ function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          placeholder="dig@eksempel.dk"
+          placeholder="you@example.com"
         />
       </div>
 
       <div>
         <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-          Adgangskode
+          Password
         </label>
         <input
           id="password"
@@ -95,7 +96,7 @@ function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          placeholder="Din adgangskode"
+          placeholder="Your password"
         />
       </div>
 
@@ -108,9 +109,16 @@ function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        {loading ? 'Logger ind...' : 'Log ind'}
+        {loading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Signing in...
+          </>
+        ) : (
+          'Sign in'
+        )}
       </button>
     </form>
   );
@@ -125,10 +133,10 @@ export default function LoginPage() {
             Cirkle
           </Link>
           <h1 className="mt-4 text-2xl font-semibold text-gray-900">
-            Log ind
+            Sign in
           </h1>
           <p className="mt-2 text-sm text-gray-500">
-            Velkommen tilbage
+            Welcome back
           </p>
         </div>
 
@@ -137,9 +145,9 @@ export default function LoginPage() {
         </Suspense>
 
         <p className="text-center text-sm text-gray-500">
-          Har du ikke en konto?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/auth/signup" className="text-cirkle-600 hover:underline font-medium">
-            Opret konto
+            Create account
           </Link>
         </p>
       </div>

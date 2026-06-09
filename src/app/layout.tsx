@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/components/providers/auth-provider';
+import { ToastProvider } from '@/components/ui/toast';
 import ServiceWorkerRegister from '@/components/pwa/sw-register';
 import './globals.css';
 
@@ -33,7 +34,9 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body className="font-sans antialiased bg-white text-gray-900">
         <AuthProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
           <ServiceWorkerRegister />
         </AuthProvider>
       </body>

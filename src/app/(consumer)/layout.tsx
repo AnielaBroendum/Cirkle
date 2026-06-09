@@ -12,10 +12,10 @@ import InstallPrompt from '@/components/pwa/install-prompt';
 import PageTransition from '@/components/pwa/page-transition';
 
 const TAB_ITEMS = [
-  { href: '/consumer/home', label: 'Hjem', icon: Home },
-  { href: '/consumer/saved', label: 'Gemt', icon: Heart },
-  { href: '/consumer/orders', label: 'Ordrer', icon: ShoppingBag },
-  { href: '/consumer/profile', label: 'Profil', icon: User },
+  { href: '/consumer/home', label: 'Home', icon: Home },
+  { href: '/consumer/saved', label: 'Saved', icon: Heart },
+  { href: '/consumer/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/consumer/profile', label: 'Profile', icon: User },
 ];
 
 export default function ConsumerLayout({ children }: { children: React.ReactNode }) {

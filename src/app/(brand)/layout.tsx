@@ -13,6 +13,9 @@ import {
   LogOut,
   Menu,
   X,
+  Inbox,
+  ArrowLeftRight,
+  Receipt,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Database } from '@/lib/database.types';
@@ -20,11 +23,14 @@ import type { Database } from '@/lib/database.types';
 type BrandProfile = Database['public']['Tables']['brand_profiles']['Row'];
 
 const NAV_ITEMS = [
-  { href: '/brand/dashboard', label: 'Oversigt', icon: LayoutDashboard },
-  { href: '/brand/products', label: 'Produkter', icon: Package },
-  { href: '/brand/samples', label: 'Prøver', icon: QrCode },
-  { href: '/brand/partnerships', label: 'Partnerskaber', icon: Handshake },
-  { href: '/brand/orders', label: 'Ordrer', icon: ShoppingBag },
+  { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/brand/products', label: 'Products', icon: Package },
+  { href: '/brand/samples', label: 'Samples', icon: QrCode },
+  { href: '/brand/samples/requests', label: 'Sample requests', icon: Inbox },
+  { href: '/brand/samples/swaps', label: 'Swap requests', icon: ArrowLeftRight },
+  { href: '/brand/samples/transactions', label: 'Transactions', icon: Receipt },
+  { href: '/brand/partnerships', label: 'Partnerships', icon: Handshake },
+  { href: '/brand/orders', label: 'Orders', icon: ShoppingBag },
 ];
 
 export default function BrandLayout({ children }: { children: React.ReactNode }) {
@@ -146,7 +152,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
           >
             <LogOut className="h-5 w-5" />
-            Log ud
+            Sign out
           </button>
         </div>
       </aside>

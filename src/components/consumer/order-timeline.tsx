@@ -10,12 +10,12 @@ type OrderEvent = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; icon: typeof Check; color: string }> = {
-  pending: { label: 'Ordre modtaget', icon: Clock, color: 'text-yellow-600 bg-yellow-100' },
-  confirmed: { label: 'Bekræftet', icon: Check, color: 'text-blue-600 bg-blue-100' },
-  packed: { label: 'Pakket', icon: Package, color: 'text-purple-600 bg-purple-100' },
-  shipped: { label: 'Afsendt', icon: Truck, color: 'text-cirkle-600 bg-cirkle-100' },
-  delivered: { label: 'Leveret', icon: Home, color: 'text-green-600 bg-green-100' },
-  cancelled: { label: 'Annulleret', icon: X, color: 'text-red-600 bg-red-100' },
+  pending: { label: 'Order received', icon: Clock, color: 'text-yellow-600 bg-yellow-100' },
+  confirmed: { label: 'Confirmed', icon: Check, color: 'text-blue-600 bg-blue-100' },
+  packed: { label: 'Packed', icon: Package, color: 'text-purple-600 bg-purple-100' },
+  shipped: { label: 'Shipped', icon: Truck, color: 'text-cirkle-600 bg-cirkle-100' },
+  delivered: { label: 'Delivered', icon: Home, color: 'text-green-600 bg-green-100' },
+  cancelled: { label: 'Cancelled', icon: X, color: 'text-red-600 bg-red-100' },
 };
 
 const STATUS_ORDER = ['pending', 'confirmed', 'packed', 'shipped', 'delivered'];
@@ -61,7 +61,7 @@ export default function OrderTimeline({ events }: { events: OrderEvent[] }) {
               </p>
               {event && (
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {new Date(event.created_at).toLocaleDateString('da-DK', {
+                  {new Date(event.created_at).toLocaleDateString('en-GB', {
                     day: 'numeric',
                     month: 'short',
                     hour: '2-digit',

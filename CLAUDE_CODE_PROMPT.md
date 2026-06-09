@@ -246,3 +246,58 @@ Read CLAUDE.md for context. All features are built. Now polish and add test data
 
 Run the app and test the full flow: brand signup → upload product → create sample → invite retailer → retailer accepts → consumer scans QR → browses → buys → brand fulfills → consumer gets peer QR → share with friend.
 ```
+
+---
+
+## Phase 7: Sample Deposits & Swaps (paste after Phase 6)
+
+```
+Read CLAUDE.md for context. The app is working with all core features. Now add the sample deposit and swap system.
+
+First, run the SQL from supabase/migrations/002_sample_deposits.sql in Supabase SQL Editor. This adds: sample_requests, sample_request_items, sample_transactions, swap_requests tables, plus deposit fields on samples and products.
+
+1. Brand sets deposit amount per product:
+   - Add a "Deposit amount (DKK)" field to the product create/edit form
+   - This is what the retailer pays per sample of this product
+   - Display it on the product card and in the brand's product list
+
+2. Retailer requests samples at /(retailer)/samples/request:
+   - Retailer browses products from their active brand partnerships
+   - Selects products, picks size + color for each
+   - Sees deposit amount per item and total deposit before submitting
+   - Submits request → creates sample_request with sample_request_items
+   - Brand gets notification of incoming request
+
+3. Brand reviews sample requests at /(brand)/samples/requests:
+   - List of incoming requests with status
+   - Per request: retailer name, items requested, total deposit
+   - "Approve" or "Reject" buttons (with optional note)
+   - On approve: creates sample records (with deposit_amount_dkk and deposit_status='held'), creates sample_transaction records (type: deposit_paid), generates QR codes
+   - Updates request status through: pending → approved → shipped (brand enters tracking) → received (retailer confirms)
+
+4. Retailer requests sample swap at /(retailer)/samples:
+   - On each active sample, add a "Swap" button
+   - Swap flow: select which sample to return → pick replacement product/size/color → add reason (dropdown: "Not performing", "Wrong size", "Seasonal change", "Other") → submit
+   - Creates swap_request record
+   - Shows pending swaps in a "Swap requests" tab
+
+5. Brand handles swap requests at /(brand)/samples/swaps:
+   - List of swap requests with status
+   - "Approve" button → retailer gets return shipping instructions
+   - Retailer ships back → enters tracking number → brand receives
+   - Brand inspects: "Condition OK" or "Damaged"
+     - OK: refund old deposit (sample_transaction: deposit_refunded), ship new sample, charge new deposit (sample_transaction: deposit_paid)
+     - Damaged: forfeit old deposit (sample_transaction: deposit_forfeited), ship new sample, charge new deposit
+   - Status flow: requested → approved → return_shipped → return_received → inspected_ok/inspected_damaged → new_shipped → completed
+
+6. Deposit dashboard widgets:
+   - Retailer dashboard: "Deposit capital" card showing total deposits held, number of active samples, and a breakdown by brand
+   - Brand dashboard: "Deposits held" card showing total deposits from all retailers, with drill-down per retailer
+   - Sample list should show deposit amount and status per sample
+
+7. Transaction history:
+   - Retailer: /(retailer)/samples/transactions — ledger showing all deposit payments, refunds, and forfeitures with dates and amounts
+   - Brand: /(brand)/samples/transactions — same view from brand perspective
+
+All amounts in øre, displayed as "X kr". All text in English.
+```

@@ -100,7 +100,7 @@ export default function RetailerBrandsPage() {
     setPartnerships(
       typedPartnerships.map((p) => ({
         ...p,
-        brand_name: brandMap.get(p.brand_id)?.name ?? 'Ukendt brand',
+        brand_name: brandMap.get(p.brand_id)?.name ?? 'Unknown brand',
         brand_logo: brandMap.get(p.brand_id)?.logo_url ?? null,
       }))
     );
@@ -120,7 +120,7 @@ export default function RetailerBrandsPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? 'Noget gik galt');
+      setError(data.error ?? 'Something went wrong');
       setRequesting(null);
       return;
     }
@@ -130,7 +130,7 @@ export default function RetailerBrandsPage() {
   }
 
   if (loading) {
-    return <div className="animate-pulse text-gray-400">Henter brands...</div>;
+    return <div className="space-y-4"><div className="animate-pulse bg-gray-200 rounded h-6 w-32" /><div className="animate-pulse bg-gray-100 rounded-xl h-48 w-full" /></div>;
   }
 
   const activePartnerships = partnerships.filter((p) => p.status === 'active');
@@ -141,7 +141,7 @@ export default function RetailerBrandsPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Brands</h1>
         <p className="mt-1 text-gray-500">
-          Dine partnerskaber og tilgængelige brands
+          Your partnerships and available brands
         </p>
       </div>
 
@@ -149,7 +149,7 @@ export default function RetailerBrandsPage() {
       {activePartnerships.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            Aktive partnerskaber
+            Active partnerships
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {activePartnerships.map((p) => (
@@ -178,7 +178,7 @@ export default function RetailerBrandsPage() {
                   <p className="font-medium text-gray-900 truncate">{p.brand_name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Check className="h-3.5 w-3.5 text-green-500" />
-                    <span className="text-xs text-green-600">Aktiv</span>
+                    <span className="text-xs text-green-600">Active</span>
                     <span className="text-xs text-gray-400 ml-1">
                       {formatCommission(p.commission_direct)} direkte
                     </span>
@@ -193,7 +193,7 @@ export default function RetailerBrandsPage() {
       {/* Pending */}
       {pendingPartnerships.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Afventer</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {pendingPartnerships.map((p) => (
               <div
@@ -242,8 +242,8 @@ export default function RetailerBrandsPage() {
             <Handshake className="h-10 w-10 text-gray-300 mx-auto" />
             <p className="mt-2 text-sm text-gray-500">
               {partnerships.length > 0
-                ? 'Du har partnerskaber med alle brands på platformen'
-                : 'Ingen brands på platformen endnu'}
+                ? 'You have partnerships with all brands on the platform'
+                : 'No brands on the platform yet'}
             </p>
           </div>
         ) : (
@@ -289,7 +289,7 @@ export default function RetailerBrandsPage() {
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-cirkle-600 px-3 py-2 text-sm text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
                 >
                   <Store className="h-4 w-4" />
-                  {requesting === brand.id ? 'Sender...' : 'Anmod om partnerskab'}
+                  {requesting === brand.id ? 'Sending...' : 'Request partnership'}
                 </button>
               </div>
             ))}

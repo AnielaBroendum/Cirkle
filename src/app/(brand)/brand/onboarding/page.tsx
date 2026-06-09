@@ -105,7 +105,7 @@ export default function BrandOnboardingPage() {
       <div className="w-full max-w-lg space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-cirkle-950">Cirkle</h1>
-          <p className="mt-2 text-gray-500">Set dit brand op</p>
+          <p className="mt-2 text-gray-500">Set up your brand</p>
         </div>
 
         {/* Progress */}
@@ -122,11 +122,11 @@ export default function BrandOnboardingPage() {
             }}
             className="space-y-5"
           >
-            <h2 className="text-xl font-semibold text-gray-900">Brand profil</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Brand profile</h2>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Brand navn *
+                Brand name *
               </label>
               <input
                 type="text"
@@ -134,20 +134,20 @@ export default function BrandOnboardingPage() {
                 value={brandName}
                 onChange={(e) => setBrandName(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-                placeholder="Dit brand navn"
+                placeholder="Your brand name"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Beskrivelse
+                Description
               </label>
               <textarea
                 rows={3}
                 value={brandDescription}
                 onChange={(e) => setBrandDescription(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none resize-none"
-                placeholder="Fortæl om dit brand"
+                placeholder="Tell us about your brand"
               />
             </div>
 
@@ -174,7 +174,7 @@ export default function BrandOnboardingPage() {
                 value={brandWebsite}
                 onChange={(e) => setBrandWebsite(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-                placeholder="https://ditbrand.dk"
+                placeholder="https://yourbrand.com"
               />
             </div>
 
@@ -187,7 +187,7 @@ export default function BrandOnboardingPage() {
               disabled={loading || !brandName.trim()}
               className="w-full flex items-center justify-center gap-2 rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
             >
-              {loading ? 'Gemmer...' : 'Næste: Upload produkt'}
+              {loading ? 'Saving...' : 'Next: Upload product'}
               {!loading && <ArrowRight className="h-4 w-4" />}
             </button>
           </form>
@@ -202,19 +202,19 @@ export default function BrandOnboardingPage() {
             className="space-y-5"
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">Dit første produkt</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Your first product</h2>
               <button
                 type="button"
                 onClick={() => setStep(1)}
                 className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
               >
-                <ArrowLeft className="h-3 w-3" /> Tilbage
+                <ArrowLeft className="h-3 w-3" /> Back
               </button>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Produkt navn *
+                Product name *
               </label>
               <input
                 type="text"
@@ -222,26 +222,26 @@ export default function BrandOnboardingPage() {
                 value={productName}
                 onChange={(e) => setProductName(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-                placeholder="F.eks. Classic T-Shirt"
+                placeholder="e.g. Classic T-Shirt"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Beskrivelse
+                Description
               </label>
               <textarea
                 rows={3}
                 value={productDescription}
                 onChange={(e) => setProductDescription(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none resize-none"
-                placeholder="Beskriv produktet"
+                placeholder="Describe the product"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Pris (kr) *
+                Price (kr) *
               </label>
               <input
                 type="number"
@@ -257,7 +257,7 @@ export default function BrandOnboardingPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Produktbilleder
+                Product images
               </label>
               <ImageUpload
                 bucket="brand-assets"
@@ -265,14 +265,14 @@ export default function BrandOnboardingPage() {
                 value={productImages}
                 onChange={setProductImages}
                 max={5}
-                label="Upload billeder"
+                label="Upload images"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Størrelser
+                  Sizes
                 </label>
                 <input
                   type="text"
@@ -284,28 +284,28 @@ export default function BrandOnboardingPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Farver
+                  Colors
                 </label>
                 <input
                   type="text"
                   value={productColors}
                   onChange={(e) => setProductColors(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-                  placeholder="Sort, Hvid, Navy"
+                  placeholder="Black, White, Navy"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Materialer
+                Materials
               </label>
               <input
                 type="text"
                 value={productMaterials}
                 onChange={(e) => setProductMaterials(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-                placeholder="100% økologisk bomuld"
+                placeholder="100% organic cotton"
               />
             </div>
 
@@ -318,7 +318,7 @@ export default function BrandOnboardingPage() {
               disabled={loading || !productName.trim() || !productPriceKr}
               className="w-full flex items-center justify-center gap-2 rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
             >
-              {loading ? 'Gemmer...' : 'Fuldfør opsætning'}
+              {loading ? 'Saving...' : 'Complete setup'}
               {!loading && <Check className="h-4 w-4" />}
             </button>
           </form>

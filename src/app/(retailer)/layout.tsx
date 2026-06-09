@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   X,
+  Receipt,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Database } from '@/lib/database.types';
@@ -18,8 +19,9 @@ import type { Database } from '@/lib/database.types';
 type RetailerProfile = Database['public']['Tables']['retailer_profiles']['Row'];
 
 const NAV_ITEMS = [
-  { href: '/retailer/dashboard', label: 'Oversigt', icon: LayoutDashboard },
-  { href: '/retailer/samples', label: 'Prøver', icon: QrCode },
+  { href: '/retailer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/retailer/samples', label: 'Samples', icon: QrCode },
+  { href: '/retailer/samples/transactions', label: 'Transactions', icon: Receipt },
   { href: '/retailer/brands', label: 'Brands', icon: Store },
 ];
 
@@ -111,7 +113,7 @@ export default function RetailerLayout({ children }: { children: React.ReactNode
             <p className="text-sm font-medium text-gray-900 truncate">
               {retailerProfile?.name || profile?.name}
             </p>
-            <p className="text-xs text-gray-500">Butik</p>
+            <p className="text-xs text-gray-500">Retailer</p>
           </div>
         )}
 
@@ -142,7 +144,7 @@ export default function RetailerLayout({ children }: { children: React.ReactNode
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
           >
             <LogOut className="h-5 w-5" />
-            Log ud
+            Sign out
           </button>
         </div>
       </aside>

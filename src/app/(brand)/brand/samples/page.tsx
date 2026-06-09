@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
+import { formatDKK } from '@/lib/utils';
 import { Plus, QrCode, Download, ExternalLink } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 
@@ -92,7 +93,28 @@ export default function BrandSamplesPage() {
   }
 
   if (loading) {
-    return <div className="animate-pulse text-gray-400">Henter prøver...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="animate-pulse bg-gray-200 rounded h-8 w-28" />
+          <div className="animate-pulse bg-gray-200 rounded-lg h-10 w-32" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="animate-pulse bg-gray-200 rounded-lg h-10 w-10" />
+                <div className="space-y-2">
+                  <div className="animate-pulse bg-gray-200 rounded h-4 w-28" />
+                  <div className="animate-pulse bg-gray-100 rounded h-3 w-16" />
+                </div>
+              </div>
+              <div className="animate-pulse bg-gray-100 rounded h-[120px] w-[120px] mx-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const grouped = new Map<string, { retailerName: string; samples: SampleWithDetails[] }>();
@@ -100,7 +122,7 @@ export default function BrandSamplesPage() {
     const key = sample.retailer_id;
     if (!grouped.has(key)) {
       grouped.set(key, {
-        retailerName: sample.retailer?.name ?? 'Ukendt butik',
+        retailerName: sample.retailer?.name ?? 'Unknown store',
         samples: [],
       });
     }
@@ -110,21 +132,21 @@ export default function BrandSamplesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Prøver</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Samples</h1>
         <Link
           href="/brand/samples/new"
           className="flex items-center gap-2 rounded-lg bg-cirkle-600 px-4 py-2.5 text-sm text-white font-medium hover:bg-cirkle-700 transition"
         >
-          <Plus className="h-4 w-4" /> Ny prøve
+          <Plus className="h-4 w-4" /> New sample
         </Link>
       </div>
 
       {samples.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
           <QrCode className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 text-gray-500">Ingen prøver oprettet endnu</p>
+          <p className="mt-3 font-medium text-gray-700">No samples yet</p>
           <p className="mt-1 text-sm text-gray-400">
-            Opret prøver for at generere QR-koder til dine butikspartnere
+            Create samples to generate QR codes for your retail partners
           </p>
         </div>
       ) : (
@@ -157,23 +179,30 @@ export default function BrandSamplesPage() {
                         )}
                         <div>
                           <p className="font-medium text-gray-900 text-sm">
-                            {sample.product?.name ?? 'Ukendt produkt'}
+                            {sample.product?.name ?? 'Unknown product'}
                           </p>
-                          <span
-                            className={`inline-block mt-0.5 text-xs px-2 py-0.5 rounded-full ${
-                              sample.status === 'active'
-                                ? 'bg-green-50 text-green-700'
-                                : 'bg-gray-100 text-gray-500'
-                            }`}
-                          >
-                            {sample.status === 'active' ? 'Aktiv' : sample.status}
-                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <span
+                              className={`inline-block text-xs px-2 py-0.5 rounded-full ${
+                                sample.status === 'active'
+                                  ? 'bg-green-50 text-green-700'
+                                  : 'bg-gray-100 text-gray-500'
+                              }`}
+                            >
+                              {sample.status === 'active' ? 'Active' : sample.status}
+                            </span>
+                            {sample.deposit_status === 'held' && sample.deposit_amount_dkk && (
+                              <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                {formatDKK(sample.deposit_amount_dkk)} held
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>{sample.scan_count} scanninger</span>
+                      <span>{sample.scan_count} scans</span>
                       <div className="flex items-center gap-1">
                         {sample.qr_code_url && (
                           <button
@@ -193,7 +222,7 @@ export default function BrandSamplesPage() {
                           href={`${process.env.NEXT_PUBLIC_QR_BASE_URL}/p/${sample.id}`}
                           target="_blank"
                           className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-                          title="Åbn scan-side"
+                          title="Open scan page"
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Link>

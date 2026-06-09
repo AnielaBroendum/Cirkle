@@ -31,7 +31,7 @@ export default async function PeerDiscoveryPage({
 
   const brand = product.brand_profiles as any;
 
-  let peerName = 'en ven';
+  let peerName = 'a friend';
   if (refUserId) {
     const { data: peer } = await supabase
       .from('profiles')
@@ -48,7 +48,7 @@ export default async function PeerDiscoveryPage({
       attribution={{
         type: 'peer',
         name: peerName,
-        peerPointsMessage: `${peerName} får 50 point, hvis du køber`,
+        peerPointsMessage: `${peerName} gets 50 points if you buy`,
       }}
       scanData={{
         product_id: product.id,

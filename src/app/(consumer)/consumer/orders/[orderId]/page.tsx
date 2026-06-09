@@ -105,13 +105,13 @@ export default function OrderDetailPage() {
   }
 
   if (loading) {
-    return <div className="py-12 text-center text-gray-400 animate-pulse">Henter ordre...</div>;
+    return <div className="space-y-4"><div className="animate-pulse bg-gray-200 rounded h-6 w-32" /><div className="animate-pulse bg-gray-100 rounded-xl h-48 w-full" /></div>;
   }
 
   if (!order) {
     return (
       <div className="py-12 text-center">
-        <p className="text-gray-500">Ordre ikke fundet</p>
+        <p className="text-gray-500">Order not found</p>
       </div>
     );
   }
@@ -123,7 +123,7 @@ export default function OrderDetailPage() {
           <ChevronLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Ordre #{order.order_number}</h1>
+          <h1 className="text-xl font-bold text-gray-900">Order #{order.order_number}</h1>
           <p className="text-xs text-gray-400">
             {new Date(order.created_at).toLocaleDateString('da-DK', {
               day: 'numeric',
@@ -167,10 +167,10 @@ export default function OrderDetailPage() {
         <div className="bg-gradient-to-br from-cirkle-50 to-blue-50 rounded-xl border border-cirkle-100 p-5">
           <div className="flex items-center gap-2 mb-2">
             <QrCode className="h-5 w-5 text-cirkle-600" />
-            <h2 className="text-sm font-semibold text-cirkle-900">Del dit produkt</h2>
+            <h2 className="text-sm font-semibold text-cirkle-900">Share your product</h2>
           </div>
           <p className="text-sm text-cirkle-700 mb-4">
-            Dine venner kan scanne koden og du optjener point!
+            Your friends can scan the code and you earn points!
           </p>
           {peerQR.map((qr) => (
             <div key={qr.product_id} className="space-y-3">
@@ -205,7 +205,7 @@ export default function OrderDetailPage() {
 
       {/* Items */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Produkter</h2>
+        <h2 className="text-sm font-semibold text-gray-900 mb-3">Products</h2>
         <div className="space-y-3">
           {order.order_items.map((item) => {
             const imageUrl = item.products?.images?.[0];
@@ -245,13 +245,13 @@ export default function OrderDetailPage() {
         </div>
         {order.points_used > 0 && (
           <div className="flex justify-between text-sm text-cirkle-600">
-            <span>Point rabat ({order.points_used} point)</span>
+            <span>Points discount ({order.points_used} points)</span>
             <span>-{formatDKK(order.discount_dkk)}</span>
           </div>
         )}
         <div className="flex justify-between text-sm text-gray-600">
           <span>Levering</span>
-          <span className="text-green-600">Gratis</span>
+          <span className="text-green-600">Free</span>
         </div>
         <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-100">
           <span>Total</span>
@@ -261,7 +261,7 @@ export default function OrderDetailPage() {
 
       {/* Shipping */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">Leveringsadresse</h2>
+        <h2 className="text-sm font-semibold text-gray-900 mb-2">Shipping address</h2>
         <div className="text-sm text-gray-600 bg-gray-50 rounded-xl p-4">
           <p className="font-medium text-gray-900">{order.shipping_name}</p>
           <p>{order.shipping_address}</p>
@@ -272,7 +272,7 @@ export default function OrderDetailPage() {
       {/* Brand */}
       <div className="text-center py-4">
         <p className="text-xs text-gray-400">
-          Pakket og afsendt af <span className="font-medium">{order.brand_profiles.name}</span>
+          Packed and shipped by <span className="font-medium">{order.brand_profiles.name}</span>
         </p>
       </div>
     </div>

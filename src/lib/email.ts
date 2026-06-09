@@ -47,16 +47,16 @@ export async function sendOrderConfirmation(
 
   await sendEmail(
     consumerEmail,
-    `Ordrebekraeftelse #${order.order_number}`,
+    `Order confirmation #${order.order_number}`,
     wrapHtml(`
-      <h2 style="font-size: 20px; color: #111827;">Tak for din ordre!</h2>
-      <p style="color: #4b5563;">Din ordre #${order.order_number} er modtaget og vil blive behandlet af <strong>${brandName}</strong>.</p>
+      <h2 style="font-size: 20px; color: #111827;">Thank you for your order!</h2>
+      <p style="color: #4b5563;">Your order #${order.order_number} has been received and will be processed by <strong>${brandName}</strong>.</p>
       <div style="background: #f9fafb; border-radius: 12px; padding: 16px; margin: 20px 0;">
-        <p style="font-size: 14px; font-weight: 600; color: #111827; margin: 0 0 8px;">Produkter:</p>
+        <p style="font-size: 14px; font-weight: 600; color: #111827; margin: 0 0 8px;">Products:</p>
         <ul style="color: #4b5563; font-size: 14px; margin: 0; padding-left: 20px;">${itemsList}</ul>
         <p style="font-size: 16px; font-weight: 700; color: #111827; margin: 12px 0 0;">Total: ${formatDKK(order.total_dkk)}</p>
       </div>
-      <p style="color: #6b7280; font-size: 14px;">Du modtager en email, naar din ordre skifter status.</p>
+      <p style="color: #6b7280; font-size: 14px;">You will receive an email when your order status changes.</p>
     `),
   );
 }
@@ -69,26 +69,26 @@ export async function sendNewOrderToBrand(
 
   await sendEmail(
     brandEmail,
-    `Ny ordre #${order.order_number}`,
+    `New order #${order.order_number}`,
     wrapHtml(`
-      <h2 style="font-size: 20px; color: #111827;">Ny ordre modtaget!</h2>
-      <p style="color: #4b5563;">Du har modtaget en ny ordre fra <strong>${order.consumer_name}</strong>.</p>
+      <h2 style="font-size: 20px; color: #111827;">New order received!</h2>
+      <p style="color: #4b5563;">You have received a new order from <strong>${order.consumer_name}</strong>.</p>
       <div style="background: #f9fafb; border-radius: 12px; padding: 16px; margin: 20px 0;">
-        <p style="font-size: 14px; color: #4b5563;">Ordre #${order.order_number}</p>
+        <p style="font-size: 14px; color: #4b5563;">Order #${order.order_number}</p>
         <ul style="color: #4b5563; font-size: 14px; margin: 8px 0; padding-left: 20px;">${itemsList}</ul>
         <p style="font-size: 16px; font-weight: 700; color: #111827; margin: 12px 0 0;">Total: ${formatDKK(order.total_dkk)}</p>
       </div>
-      <p style="color: #6b7280; font-size: 14px;">Log ind paa Cirkle for at behandle ordren.</p>
+      <p style="color: #6b7280; font-size: 14px;">Sign in to Cirkle to process the order.</p>
     `),
   );
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  confirmed: 'bekraeftet',
-  packed: 'pakket',
-  shipped: 'afsendt',
-  delivered: 'leveret',
-  cancelled: 'annulleret',
+  confirmed: 'confirmed',
+  packed: 'packed',
+  shipped: 'shipped',
+  delivered: 'delivered',
+  cancelled: 'cancelled',
 };
 
 export async function sendOrderStatusUpdate(
@@ -101,16 +101,16 @@ export async function sendOrderStatusUpdate(
     order.tracking_number
       ? `<div style="background: #ecfdf5; border-radius: 12px; padding: 16px; margin: 20px 0;">
           <p style="font-size: 14px; font-weight: 600; color: #065f46; margin: 0;">Tracking: ${order.tracking_number}</p>
-          ${order.tracking_url ? `<a href="${order.tracking_url}" style="font-size: 14px; color: #0c93e9; margin-top: 8px; display: inline-block;">Spor din pakke</a>` : ''}
+          ${order.tracking_url ? `<a href="${order.tracking_url}" style="font-size: 14px; color: #0c93e9; margin-top: 8px; display: inline-block;">Track your package</a>` : ''}
         </div>`
       : '';
 
   await sendEmail(
     consumerEmail,
-    `Ordre #${order.order_number} er ${statusLabel}`,
+    `Order #${order.order_number} is now ${statusLabel}`,
     wrapHtml(`
-      <h2 style="font-size: 20px; color: #111827;">Din ordre er ${statusLabel}</h2>
-      <p style="color: #4b5563;">Ordre #${order.order_number} fra <strong>${brandName}</strong> har faet ny status: <strong>${statusLabel}</strong>.</p>
+      <h2 style="font-size: 20px; color: #111827;">Your order has been updated</h2>
+      <p style="color: #4b5563;">Order #${order.order_number} from <strong>${brandName}</strong> has been updated to: <strong>${statusLabel}</strong>.</p>
       ${trackingHtml}
     `),
   );
@@ -123,14 +123,14 @@ export async function sendRetailerInvitation(
 ) {
   await sendEmail(
     email,
-    `${brandName} inviterer dig til Cirkle`,
+    `${brandName} invites you to Cirkle`,
     wrapHtml(`
-      <h2 style="font-size: 20px; color: #111827;">Du er inviteret!</h2>
-      <p style="color: #4b5563;"><strong>${brandName}</strong> vil gerne samarbejde med dig paa Cirkle — en platform hvor dine kunder kan scanne og koebe produkter direkte fra din butik.</p>
+      <h2 style="font-size: 20px; color: #111827;">You are invited!</h2>
+      <p style="color: #4b5563;"><strong>${brandName}</strong> wants to partner with you on Cirkle — a platform where your customers can scan and buy products directly from your store.</p>
       <div style="text-align: center; margin: 28px 0;">
-        <a href="${inviteUrl}" style="background: #0c93e9; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Accepter invitation</a>
+        <a href="${inviteUrl}" style="background: #0c93e9; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Accept invitation</a>
       </div>
-      <p style="color: #9ca3af; font-size: 12px;">Linket er gyldigt i 30 dage.</p>
+      <p style="color: #9ca3af; font-size: 12px;">This link is valid for 30 days.</p>
     `),
   );
 }

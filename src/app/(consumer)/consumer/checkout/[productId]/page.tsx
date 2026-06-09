@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
-import { ChevronLeft, Minus, Plus, Package, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Package, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
@@ -83,11 +83,11 @@ export default function CheckoutPage() {
     if (!product) return;
 
     if (product.sizes?.length > 0 && !selectedSize) {
-      setError('Vælg en størrelse');
+      setError('Please select a size');
       return;
     }
     if (product.colors?.length > 0 && !selectedColor) {
-      setError('Vælg en farve');
+      setError('Please select a color');
       return;
     }
 
@@ -113,14 +113,14 @@ export default function CheckoutPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Noget gik galt');
+        setError(data.error || 'Something went wrong');
         setSubmitting(false);
         return;
       }
 
       setOrderResult(data);
     } catch {
-      setError('Netværksfejl — prøv igen');
+      setError('Network error — please try again');
       setSubmitting(false);
     }
   }
@@ -136,27 +136,27 @@ export default function CheckoutPage() {
         <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-5">
           <CheckCircle2 className="h-8 w-8 text-green-600" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Ordre bekræftet!</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Order confirmed!</h1>
         <p className="text-gray-600 mb-1">
-          Din <span className="font-medium">{orderResult.product_name}</span> bliver pakket hos{' '}
-          <span className="font-medium">{orderResult.brand_name}</span>&apos;s studie.
+          Your <span className="font-medium">{orderResult.product_name}</span> is being packed at{' '}
+          <span className="font-medium">{orderResult.brand_name}</span>&apos;s studio.
         </p>
         <p className="text-sm text-gray-500 mb-6">
-          Forventet levering: 3-5 hverdage
+          Expected delivery: 3-5 business days
         </p>
-        <p className="text-xs text-gray-400 mb-8">Ordre #{orderResult.order_number}</p>
+        <p className="text-xs text-gray-400 mb-8">Order #{orderResult.order_number}</p>
         <div className="flex gap-3 w-full max-w-xs">
           <button
             onClick={() => router.push(`/consumer/orders/${orderResult.order_id}`)}
             className="flex-1 bg-cirkle-600 text-white font-medium py-3 rounded-xl hover:bg-cirkle-700 transition"
           >
-            Se ordre
+            View order
           </button>
           <button
             onClick={() => router.push('/consumer/home')}
             className="flex-1 border border-gray-200 text-gray-700 font-medium py-3 rounded-xl hover:bg-gray-50 transition"
           >
-            Hjem
+            Home
           </button>
         </div>
       </div>
@@ -164,7 +164,22 @@ export default function CheckoutPage() {
   }
 
   if (loading || !product) {
-    return <div className="py-12 text-center text-gray-400 animate-pulse">Henter produkt...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="animate-pulse bg-gray-200 rounded h-5 w-5" />
+          <div className="animate-pulse bg-gray-200 rounded h-6 w-24" />
+        </div>
+        <div className="flex gap-4 p-4 bg-gray-50 rounded-xl">
+          <div className="animate-pulse bg-gray-200 rounded-lg h-20 w-20" />
+          <div className="flex-1 space-y-2">
+            <div className="animate-pulse bg-gray-200 rounded h-3 w-16" />
+            <div className="animate-pulse bg-gray-200 rounded h-5 w-32" />
+            <div className="animate-pulse bg-gray-100 rounded h-4 w-20" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -198,7 +213,7 @@ export default function CheckoutPage() {
         {/* Size selector */}
         {product.sizes?.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Størrelse</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
             <div className="flex flex-wrap gap-2">
               {product.sizes.map((size) => (
                 <button
@@ -221,7 +236,7 @@ export default function CheckoutPage() {
         {/* Color selector */}
         {product.colors?.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Farve</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
             <div className="flex flex-wrap gap-2">
               {product.colors.map((color) => (
                 <button
@@ -243,11 +258,11 @@ export default function CheckoutPage() {
 
         {/* Shipping */}
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-900">Leveringsadresse</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Shipping address</h2>
           <input
             type="text"
             required
-            placeholder="Fulde navn"
+            placeholder="Full name"
             value={shippingName}
             onChange={(e) => setShippingName(e.target.value)}
             className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
@@ -255,7 +270,7 @@ export default function CheckoutPage() {
           <input
             type="text"
             required
-            placeholder="Adresse"
+            placeholder="Address"
             value={shippingAddress}
             onChange={(e) => setShippingAddress(e.target.value)}
             className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
@@ -264,7 +279,7 @@ export default function CheckoutPage() {
             <input
               type="text"
               required
-              placeholder="Postnummer"
+              placeholder="Postal code"
               value={shippingPostalCode}
               onChange={(e) => setShippingPostalCode(e.target.value)}
               className="w-1/3 rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
@@ -272,7 +287,7 @@ export default function CheckoutPage() {
             <input
               type="text"
               required
-              placeholder="By"
+              placeholder="City"
               value={shippingCity}
               onChange={(e) => setShippingCity(e.target.value)}
               className="flex-1 rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
@@ -284,10 +299,10 @@ export default function CheckoutPage() {
         {pointsBalance > 0 && (
           <div className="p-4 bg-cirkle-50 rounded-xl border border-cirkle-100">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-cirkle-900">Brug Cirkle Points</h3>
-              <span className="text-xs text-cirkle-600">{pointsBalance} point tilgængelige</span>
+              <h3 className="text-sm font-semibold text-cirkle-900">Use Cirkle Points</h3>
+              <span className="text-xs text-cirkle-600">{pointsBalance} points available</span>
             </div>
-            <p className="text-xs text-cirkle-700 mb-3">1 point = 1 kr rabat</p>
+            <p className="text-xs text-cirkle-700 mb-3">1 point = 1 kr discount</p>
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -299,7 +314,7 @@ export default function CheckoutPage() {
               </button>
               <div className="flex-1 text-center">
                 <span className="text-2xl font-bold text-cirkle-900">{pointsToUse}</span>
-                <span className="text-sm text-cirkle-600 ml-1">point</span>
+                <span className="text-sm text-cirkle-600 ml-1">points</span>
               </div>
               <button
                 type="button"
@@ -312,7 +327,7 @@ export default function CheckoutPage() {
             </div>
             {pointsToUse > 0 && (
               <p className="text-center text-sm text-cirkle-700 mt-2 font-medium">
-                -{formatDKK(discountOre)} rabat
+                -{formatDKK(discountOre)} discount
               </p>
             )}
           </div>
@@ -321,18 +336,18 @@ export default function CheckoutPage() {
         {/* Order summary */}
         <div className="border-t border-gray-200 pt-4 space-y-2">
           <div className="flex justify-between text-sm text-gray-600">
-            <span>Produkt</span>
+            <span>Product</span>
             <span>{formatDKK(product.price_dkk)}</span>
           </div>
           {pointsToUse > 0 && (
             <div className="flex justify-between text-sm text-cirkle-600">
-              <span>Point rabat</span>
+              <span>Points discount</span>
               <span>-{formatDKK(discountOre)}</span>
             </div>
           )}
           <div className="flex justify-between text-sm text-gray-600">
-            <span>Levering</span>
-            <span className="text-green-600">Gratis</span>
+            <span>Shipping</span>
+            <span className="text-green-600">Free</span>
           </div>
           <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-100">
             <span>Total</span>
@@ -349,7 +364,14 @@ export default function CheckoutPage() {
           disabled={submitting}
           className="w-full bg-cirkle-600 text-white font-semibold py-3.5 rounded-xl hover:bg-cirkle-700 transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
         >
-          {submitting ? 'Behandler...' : `Bekræft ordre — ${formatDKK(totalOre)}`}
+          {submitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Processing...
+            </span>
+          ) : (
+            `Confirm order — ${formatDKK(totalOre)}`
+          )}
         </button>
       </form>
     </div>

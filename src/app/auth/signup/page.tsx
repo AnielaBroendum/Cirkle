@@ -4,21 +4,22 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
+import { Loader2 } from 'lucide-react';
 
 type Role = 'brand' | 'retailer' | 'consumer';
 
 const ROLE_CONFIG: Record<Role, { label: string; description: string }> = {
   brand: {
     label: 'Brand',
-    description: 'Jeg sælger produkter og vil nå nye kunder',
+    description: 'I sell products and want to reach new customers',
   },
   retailer: {
-    label: 'Butik',
-    description: 'Jeg vil udstille prøver og tjene kommission',
+    label: 'Retailer',
+    description: 'I want to display samples and earn commission',
   },
   consumer: {
     label: 'Shopper',
-    description: 'Jeg vil opdage og købe mode',
+    description: 'I want to discover and buy fashion',
   },
 };
 
@@ -37,7 +38,7 @@ function SignUpForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!role) {
-      setError('Vælg venligst en rolle');
+      setError('Please select a role');
       return;
     }
 
@@ -85,7 +86,7 @@ function SignUpForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-700">
-          Jeg er...
+          I am a...
         </label>
         <div className="grid grid-cols-3 gap-3">
           {(Object.entries(ROLE_CONFIG) as [Role, typeof ROLE_CONFIG[Role]][]).map(
@@ -112,7 +113,7 @@ function SignUpForm() {
 
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-          Navn
+          Name
         </label>
         <input
           id="name"
@@ -121,13 +122,13 @@ function SignUpForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          placeholder="Dit navn"
+          placeholder="Your name"
         />
       </div>
 
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          E-mail
+          Email
         </label>
         <input
           id="email"
@@ -136,13 +137,13 @@ function SignUpForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          placeholder="dig@eksempel.dk"
+          placeholder="you@example.com"
         />
       </div>
 
       <div>
         <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-          Adgangskode
+          Password
         </label>
         <input
           id="password"
@@ -152,7 +153,7 @@ function SignUpForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          placeholder="Mindst 6 tegn"
+          placeholder="At least 6 characters"
         />
       </div>
 
@@ -165,9 +166,16 @@ function SignUpForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        {loading ? 'Opretter konto...' : 'Opret konto'}
+        {loading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Creating account...
+          </>
+        ) : (
+          'Create account'
+        )}
       </button>
     </form>
   );
@@ -182,10 +190,10 @@ export default function SignUpPage() {
             Cirkle
           </Link>
           <h1 className="mt-4 text-2xl font-semibold text-gray-900">
-            Opret konto
+            Create account
           </h1>
           <p className="mt-2 text-sm text-gray-500">
-            Kom i gang med Cirkle
+            Get started with Cirkle
           </p>
         </div>
 
@@ -194,9 +202,9 @@ export default function SignUpPage() {
         </Suspense>
 
         <p className="text-center text-sm text-gray-500">
-          Har du allerede en konto?{' '}
+          Already have an account?{' '}
           <Link href="/auth/login" className="text-cirkle-600 hover:underline font-medium">
-            Log ind
+            Sign in
           </Link>
         </p>
       </div>

@@ -40,7 +40,7 @@ export default function InvitePage() {
       .single()
       .then(async ({ data, error: fetchError }: { data: Record<string, unknown> | null; error: { message: string } | null }) => {
         if (fetchError || !data) {
-          setError('Invitation ikke fundet eller udløbet.');
+          setError('Invitation not found or expired.');
           setLoading(false);
           return;
         }
@@ -87,7 +87,7 @@ export default function InvitePage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? 'Noget gik galt');
+      setError(data.error ?? 'Something went wrong');
       setAccepting(false);
       return;
     }
@@ -110,7 +110,7 @@ export default function InvitePage() {
         <div className="text-center space-y-4">
           <p className="text-gray-500">{error}</p>
           <Link href="/" className="text-cirkle-600 hover:underline text-sm font-medium">
-            Gå til forsiden
+            Go to homepage
           </Link>
         </div>
       </main>
@@ -123,9 +123,9 @@ export default function InvitePage() {
     return (
       <main className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
         <div className="text-center space-y-4">
-          <p className="text-gray-500">Denne invitation er allerede brugt.</p>
+          <p className="text-gray-500">This invitation has already been used.</p>
           <Link href="/" className="text-cirkle-600 hover:underline text-sm font-medium">
-            Gå til forsiden
+            Go to homepage
           </Link>
         </div>
       </main>
@@ -162,25 +162,25 @@ export default function InvitePage() {
             )}
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
-                {invitation.brand_name} inviterer dig
+                {invitation.brand_name} invites you
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Bliv butikspartner og tjen kommission på salg
+                Become a retail partner and earn commission on sales
               </p>
             </div>
           </div>
 
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-            <h2 className="text-sm font-medium text-gray-700">Kommissionssatser</h2>
+            <h2 className="text-sm font-medium text-gray-700">Commission rates</h2>
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Direkte salg</span>
+                <span className="text-gray-600">Direct sale</span>
                 <span className="font-medium text-gray-900">
                   {formatCommission(invitation.commission_direct)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Udskudt salg (90 dage)</span>
+                <span className="text-gray-600">Deferred sale (90 days)</span>
                 <span className="font-medium text-gray-900">
                   {formatCommission(invitation.commission_deferred)}
                 </span>
@@ -197,7 +197,7 @@ export default function InvitePage() {
           {accepted ? (
             <div className="flex items-center justify-center gap-2 text-green-600 py-3">
               <Check className="h-5 w-5" />
-              <span className="font-medium">Invitation accepteret!</span>
+              <span className="font-medium">Invitation accepted!</span>
             </div>
           ) : user ? (
             <>
@@ -209,7 +209,7 @@ export default function InvitePage() {
                 disabled={accepting}
                 className="w-full rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
               >
-                {accepting ? 'Accepterer...' : 'Accepter invitation'}
+                {accepting ? 'Accepting...' : 'Accept invitation'}
               </button>
             </>
           ) : (
@@ -218,15 +218,15 @@ export default function InvitePage() {
                 href={`/auth/signup?role=retailer&redirect=/invite/${token}`}
                 className="block w-full rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium text-center hover:bg-cirkle-700 transition"
               >
-                Opret konto som butik
+                Create retailer account
               </Link>
               <p className="text-center text-sm text-gray-500">
-                Har du allerede en konto?{' '}
+                Already have an account?{' '}
                 <Link
                   href={`/auth/login?redirect=/invite/${token}`}
                   className="text-cirkle-600 hover:underline font-medium"
                 >
-                  Log ind
+                  Sign in
                 </Link>
               </p>
             </div>

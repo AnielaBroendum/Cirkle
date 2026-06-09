@@ -65,18 +65,33 @@ export default function ConsumerSavedPage() {
   }
 
   if (loading) {
-    return <div className="py-12 text-center text-gray-400 animate-pulse">Henter gemte...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse bg-gray-200 rounded h-8 w-44" />
+        <div className="grid grid-cols-2 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="animate-pulse bg-gray-200 aspect-square" />
+              <div className="p-3 space-y-2">
+                <div className="animate-pulse bg-gray-200 rounded h-4 w-24" />
+                <div className="animate-pulse bg-gray-100 rounded h-3 w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Gemte produkter</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Saved products</h1>
 
       {items.length === 0 ? (
         <div className="text-center py-16">
           <Heart className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 text-gray-500">Ingen gemte produkter</p>
-          <p className="text-sm text-gray-400 mt-1">Scan en QR-kode og tryk på hjertet</p>
+          <p className="mt-3 font-medium text-gray-700">No saved products</p>
+          <p className="text-sm text-gray-400 mt-1">Scan a QR code and tap the heart to save products</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -123,7 +138,7 @@ export default function ConsumerSavedPage() {
 
                   <div className="flex items-center justify-between mt-2">
                     <span className={`text-[10px] font-medium ${expired ? 'text-red-500' : 'text-gray-400'}`}>
-                      {expired ? 'Udløbet' : `${days} dage tilbage`}
+                      {expired ? 'Expired' : `${days} days left`}
                     </span>
                   </div>
 

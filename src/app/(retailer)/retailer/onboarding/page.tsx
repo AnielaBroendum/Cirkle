@@ -11,10 +11,10 @@ const STORE_TYPES = [
   { value: 'boutique', label: 'Boutique' },
   { value: 'cafe', label: 'Café' },
   { value: 'museum', label: 'Museum' },
-  { value: 'flower_shop', label: 'Blomsterbutik' },
+  { value: 'flower_shop', label: 'Flower shop' },
   { value: 'salon', label: 'Salon' },
-  { value: 'gallery', label: 'Galleri' },
-  { value: 'other', label: 'Andet' },
+  { value: 'gallery', label: 'Gallery' },
+  { value: 'other', label: 'Other' },
 ];
 
 export default function RetailerOnboardingPage() {
@@ -87,17 +87,17 @@ export default function RetailerOnboardingPage() {
       <div className="w-full max-w-lg space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-cirkle-950">Cirkle</h1>
-          <p className="mt-2 text-gray-500">Set din butik op</p>
+          <p className="mt-2 text-gray-500">Set up your store</p>
         </div>
 
         <div className="h-1.5 rounded-full bg-cirkle-500" />
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <h2 className="text-xl font-semibold text-gray-900">Butiksprofil</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Store profile</h2>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Butiksnavn *
+              Store name *
             </label>
             <input
               type="text"
@@ -105,33 +105,33 @@ export default function RetailerOnboardingPage() {
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-              placeholder="Min Butik"
+              placeholder="My Store"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Beskrivelse
+              Description
             </label>
             <textarea
               rows={3}
               value={storeDescription}
               onChange={(e) => setStoreDescription(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none resize-none"
-              placeholder="Fortæl om din butik"
+              placeholder="Tell us about your store"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Butikstype
+              Store type
             </label>
             <select
               value={storeType}
               onChange={(e) => setStoreType(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none bg-white"
             >
-              <option value="">Vælg type</option>
+              <option value="">Select type</option>
               {STORE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
@@ -142,33 +142,33 @@ export default function RetailerOnboardingPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Adresse
+              Address
             </label>
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-              placeholder="Gadegade 12"
+              placeholder="123 Main Street"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                By
+                City
               </label>
               <input
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-                placeholder="København"
+                placeholder="Copenhagen"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Postnummer
+                Postal code
               </label>
               <input
                 type="text"
@@ -194,7 +194,7 @@ export default function RetailerOnboardingPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Butiksbilleder
+              Store photos
             </label>
             <ImageUpload
               bucket="brand-assets"
@@ -215,7 +215,7 @@ export default function RetailerOnboardingPage() {
             disabled={loading || !storeName.trim()}
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
           >
-            {loading ? 'Gemmer...' : 'Fuldfør opsætning'}
+            {loading ? 'Saving...' : 'Complete setup'}
             {!loading && <Check className="h-4 w-4" />}
           </button>
         </form>

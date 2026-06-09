@@ -35,16 +35,16 @@ export default function EditProductPage() {
   }, [user, id]);
 
   if (loading || !brandProfileId) {
-    return <div className="animate-pulse text-gray-400">Henter produkt...</div>;
+    return <div className="animate-pulse h-8 w-48 bg-gray-200 rounded" />;
   }
 
   if (!product) {
-    return <p className="text-gray-500">Produkt ikke fundet.</p>;
+    return <p className="text-gray-500">Product not found.</p>;
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Rediger produkt</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Edit product</h1>
       <ProductForm
         brandProfileId={brandProfileId}
         product={product}

@@ -13,9 +13,9 @@ type PointsEntry = {
 };
 
 const REASON_LABELS: Record<string, string> = {
-  welcome_bonus: 'Velkomstbonus',
-  peer_referral: 'Ven-anbefaling',
-  redeemed: 'Indløst ved køb',
+  welcome_bonus: 'Welcome bonus',
+  peer_referral: 'Friend referral',
+  redeemed: 'Redeemed on purchase',
 };
 
 export default function ConsumerProfilePage() {
@@ -63,7 +63,7 @@ export default function ConsumerProfilePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Min profil</h1>
+      <h1 className="text-2xl font-bold text-gray-900">My profile</h1>
 
       {/* Points card */}
       <div className="bg-gradient-to-br from-cirkle-600 to-cirkle-700 rounded-2xl p-5 text-white">
@@ -72,14 +72,14 @@ export default function ConsumerProfilePage() {
           <span className="text-sm font-medium opacity-80">Cirkle Points</span>
         </div>
         <p className="text-4xl font-bold">{pointsBalance}</p>
-        <p className="text-xs opacity-70 mt-1">1 point = 1 kr rabat</p>
+        <p className="text-xs opacity-70 mt-1">1 point = 1 kr discount</p>
       </div>
 
       {/* Points history */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Point historik</h2>
+        <h2 className="text-sm font-semibold text-gray-900 mb-3">Points history</h2>
         {pointsHistory.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-6">Ingen point endnu</p>
+          <p className="text-sm text-gray-400 text-center py-6">No points yet</p>
         ) : (
           <div className="space-y-2">
             {pointsHistory.map((entry) => (
@@ -118,14 +118,14 @@ export default function ConsumerProfilePage() {
           onClick={() => setShowSettings(!showSettings)}
           className="w-full flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
         >
-          <span className="text-sm font-medium text-gray-900">Kontoindstillinger</span>
+          <span className="text-sm font-medium text-gray-900">Account settings</span>
           <ChevronRight className={`h-4 w-4 text-gray-400 transition-transform ${showSettings ? 'rotate-90' : ''}`} />
         </button>
 
         {showSettings && (
           <form onSubmit={handleSaveSettings} className="mt-3 space-y-3 px-1">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Navn</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
               <input
                 type="text"
                 value={name}
@@ -134,7 +134,7 @@ export default function ConsumerProfilePage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">E-mail</label>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
               <input
                 type="email"
                 value={email}
@@ -147,7 +147,7 @@ export default function ConsumerProfilePage() {
               disabled={saving}
               className="w-full bg-cirkle-600 text-white text-sm font-medium py-3 rounded-xl hover:bg-cirkle-700 transition disabled:opacity-50"
             >
-              {saving ? 'Gemmer...' : 'Gem ændringer'}
+              {saving ? 'Saving...' : 'Save changes'}
             </button>
           </form>
         )}
@@ -159,7 +159,7 @@ export default function ConsumerProfilePage() {
         className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
       >
         <LogOut className="h-4 w-4" />
-        Log ud
+        Sign out
       </button>
     </div>
   );

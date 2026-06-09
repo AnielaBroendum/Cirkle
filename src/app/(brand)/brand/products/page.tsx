@@ -51,37 +51,56 @@ export default function BrandProductsPage() {
   }
 
   async function deleteProduct(id: string) {
-    if (!confirm('Er du sikker på at du vil slette dette produkt?')) return;
+    if (!confirm('Are you sure you want to delete this product?')) return;
     const supabase = createClient();
     await supabase.from('products').delete().eq('id', id);
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }
 
   if (loading) {
-    return <div className="animate-pulse text-gray-400">Henter produkter...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="animate-pulse bg-gray-200 rounded h-8 w-32" />
+          <div className="animate-pulse bg-gray-200 rounded-lg h-10 w-36" />
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <div className="animate-pulse bg-gray-200 rounded-lg h-10 w-10" />
+              <div className="flex-1 space-y-2">
+                <div className="animate-pulse bg-gray-200 rounded h-4 w-40" />
+                <div className="animate-pulse bg-gray-100 rounded h-3 w-24" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Produkter</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Products</h1>
         <Link
           href="/brand/products/new"
           className="flex items-center gap-2 rounded-lg bg-cirkle-600 px-4 py-2.5 text-sm text-white font-medium hover:bg-cirkle-700 transition"
         >
-          <Plus className="h-4 w-4" /> Nyt produkt
+          <Plus className="h-4 w-4" /> New product
         </Link>
       </div>
 
       {products.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
           <Package className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 text-gray-500">Ingen produkter endnu</p>
+          <p className="mt-3 font-medium text-gray-700">No products yet</p>
+          <p className="text-sm text-gray-400 mt-1">Add your first product to start creating samples and QR codes</p>
           <Link
             href="/brand/products/new"
-            className="mt-4 inline-flex items-center gap-2 text-sm text-cirkle-600 font-medium hover:underline"
+            className="mt-4 inline-flex items-center gap-2 bg-cirkle-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-cirkle-700 transition"
           >
-            <Plus className="h-4 w-4" /> Opret dit første produkt
+            <Plus className="h-4 w-4" /> Add first product
           </Link>
         </div>
       ) : (
@@ -90,11 +109,12 @@ export default function BrandProductsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Produkt</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Pris</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Størrelser</th>
-                  <th className="text-center px-4 py-3 font-medium text-gray-600">Aktiv</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-600">Handlinger</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Product</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">Price</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">Deposit</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">Sizes</th>
+                  <th className="text-center px-4 py-3 font-medium text-gray-600">Active</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -120,8 +140,11 @@ export default function BrandProductsPage() {
                         <span className="font-medium text-gray-900">{product.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{formatDKK(product.price_dkk)}</td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{formatDKK(product.price_dkk)}</td>
+                    <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">
+                      {product.deposit_amount_dkk ? formatDKK(product.deposit_amount_dkk) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 hidden md:table-cell">
                       {product.sizes?.length ? product.sizes.join(', ') : '—'}
                     </td>
                     <td className="px-4 py-3 text-center">

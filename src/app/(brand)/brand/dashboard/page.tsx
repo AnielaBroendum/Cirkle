@@ -13,7 +13,9 @@ import {
   ArrowRight,
   Clock,
   Coins,
+  Wallet,
 } from 'lucide-react';
+import { KPISkeleton, ListSkeleton } from '@/components/ui/skeleton';
 import type { Database } from '@/lib/database.types';
 
 type Order = Database['public']['Tables']['orders']['Row'];
@@ -53,6 +55,8 @@ export default function BrandDashboardPage() {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [commissions, setCommissions] = useState<CommissionItem[]>([]);
   const [totalCommissionOwed, setTotalCommissionOwed] = useState(0);
+  const [depositsHeld, setDepositsHeld] = useState(0);
+  const [depositsByRetailer, setDepositsByRetailer] = useState<{ retailer_name: string; total: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [brandName, setBrandName] = useState('');
 
@@ -143,7 +147,7 @@ export default function BrandDashboardPage() {
           items.push({
             id: scan.id,
             type: 'scan',
-            description: 'Nyt scan registreret',
+            description: 'New scan recorded',
             time: scan.scanned_at,
           });
         }
@@ -152,7 +156,7 @@ export default function BrandDashboardPage() {
           items.push({
             id: order.id,
             type: 'order',
-            description: `Ordre #${order.order_number ?? '—'} — ${formatDKK(order.total_dkk)}`,
+            description: `Order #${order.order_number ?? '—'} — ${formatDKK(order.total_dkk)}`,
             time: order.created_at,
           });
         }
@@ -183,7 +187,7 @@ export default function BrandDashboardPage() {
             .filter((a) => a.commission_amount_dkk && a.source_retailer_id)
             .map((a) => ({
               id: a.id,
-              retailer_name: retailerMap.get(a.source_retailer_id!) ?? 'Ukendt',
+              retailer_name: retailerMap.get(a.source_retailer_id!) ?? 'Unknown',
               amount_dkk: a.commission_amount_dkk!,
               type: a.attribution_type,
               order_number: orderNumMap.get(a.order_id) ?? null,
@@ -194,6 +198,34 @@ export default function BrandDashboardPage() {
           setTotalCommissionOwed(commissionItems.reduce((sum, c) => sum + c.amount_dkk, 0));
         }
 
+        // Deposit data
+        const { data: heldSamples } = await supabase
+          .from('samples')
+          .select('deposit_amount_dkk, retailer_id')
+          .eq('brand_id', brandId)
+          .eq('deposit_status', 'held');
+
+        if (heldSamples?.length) {
+          const total = heldSamples.reduce((sum: number, s: { deposit_amount_dkk: number | null }) => sum + (s.deposit_amount_dkk ?? 0), 0);
+          setDepositsHeld(total);
+
+          const byRetailer = new Map<string, number>();
+          for (const s of heldSamples as { deposit_amount_dkk: number | null; retailer_id: string }[]) {
+            byRetailer.set(s.retailer_id, (byRetailer.get(s.retailer_id) ?? 0) + (s.deposit_amount_dkk ?? 0));
+          }
+
+          const rIds = Array.from(byRetailer.keys());
+          const { data: depRetailers } = await supabase.from('retailer_profiles').select('id, name').in('id', rIds);
+          const depRetailerMap = new Map((depRetailers ?? []).map((r: { id: string; name: string }) => [r.id, r.name]));
+
+          setDepositsByRetailer(
+            Array.from(byRetailer.entries()).map(([rid, t]) => ({
+              retailer_name: (depRetailerMap.get(rid) as string | undefined) ?? 'Unknown',
+              total: t,
+            })).sort((a, b) => b.total - a.total)
+          );
+        }
+
         setLoading(false);
       });
   }, [user]);
@@ -201,39 +233,48 @@ export default function BrandDashboardPage() {
   function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Lige nu';
-    if (mins < 60) return `${mins} min. siden`;
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours} t. siden`;
+    if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
-    return `${days} d. siden`;
+    return `${days}d ago`;
   }
 
   if (loading) {
-    return <div className="animate-pulse text-gray-400">Henter data...</div>;
+    return (
+      <div className="space-y-8">
+        <div>
+          <div className="animate-pulse bg-gray-200 rounded h-8 w-48" />
+          <div className="animate-pulse bg-gray-100 rounded h-4 w-32 mt-2" />
+        </div>
+        <KPISkeleton />
+        <ListSkeleton rows={4} />
+      </div>
+    );
   }
 
   const KPI_CARDS = [
     {
-      label: 'Scanninger denne uge',
+      label: 'Scans this week',
       value: kpis.scansThisWeek,
       icon: ScanLine,
       color: 'text-blue-600 bg-blue-50',
     },
     {
-      label: 'Afventende ordrer',
+      label: 'Pending orders',
       value: kpis.pendingOrders,
       icon: ShoppingBag,
       color: 'text-amber-600 bg-amber-50',
     },
     {
-      label: 'Omsætning denne måned',
+      label: 'Revenue this month',
       value: formatDKK(kpis.revenueThisMonth),
       icon: TrendingUp,
       color: 'text-green-600 bg-green-50',
     },
     {
-      label: 'Aktive prøver',
+      label: 'Active samples',
       value: kpis.activeSamples,
       icon: QrCode,
       color: 'text-purple-600 bg-purple-50',
@@ -244,9 +285,9 @@ export default function BrandDashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Velkommen, {brandName}
+          Welcome, {brandName}
         </h1>
-        <p className="text-gray-500 mt-1">Her er dit overblik</p>
+        <p className="text-gray-500 mt-1">Here is your overview</p>
       </div>
 
       {/* KPI Cards */}
@@ -273,26 +314,51 @@ export default function BrandDashboardPage() {
           <div className="flex items-center gap-3">
             <ShoppingBag className="h-5 w-5 text-amber-600" />
             <span className="text-sm font-medium text-amber-800">
-              Du har {kpis.pendingOrders} ordre{kpis.pendingOrders !== 1 ? 'r' : ''} der venter
-              på behandling
+              You have {kpis.pendingOrders} order{kpis.pendingOrders !== 1 ? 's' : ''} awaiting
+              fulfillment
             </span>
           </div>
           <ArrowRight className="h-4 w-4 text-amber-600 group-hover:translate-x-1 transition-transform" />
         </Link>
       )}
 
+      {/* Deposits held */}
+      {depositsHeld > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Deposits held</h2>
+            <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
+              {formatDKK(depositsHeld)} total
+            </span>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {depositsByRetailer.map((r) => (
+              <div key={r.retailer_name} className="flex items-center gap-3 px-4 py-3">
+                <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+                  <Wallet className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-900">{r.retailer_name}</p>
+                </div>
+                <span className="text-sm font-bold text-gray-900">{formatDKK(r.total)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Commission owed */}
       {commissions.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Kommission denne maaned</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Commission this month</h2>
             <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full">
-              {formatDKK(totalCommissionOwed)} skyldig
+              {formatDKK(totalCommissionOwed)} owed
             </span>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
             {commissions.map((c) => {
-              const typeLabel = c.type === 'direct' ? 'Direkte' : c.type === 'deferred' ? 'Udskudt' : 'Tier 2';
+              const typeLabel = c.type === 'direct' ? 'Direct' : c.type === 'deferred' ? 'Deferred' : 'Tier 2';
               const typeColor = c.type === 'direct' ? 'bg-green-100 text-green-700' : c.type === 'deferred' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
               return (
                 <div key={c.id} className="flex items-center gap-3 px-4 py-3">
@@ -303,7 +369,7 @@ export default function BrandDashboardPage() {
                     <p className="text-sm text-gray-900">{c.retailer_name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${typeColor}`}>{typeLabel}</span>
-                      {c.order_number && <span className="text-xs text-gray-400">Ordre #{c.order_number}</span>}
+                      {c.order_number && <span className="text-xs text-gray-400">Order #{c.order_number}</span>}
                     </div>
                   </div>
                   <span className="text-sm font-bold text-gray-900">{formatDKK(c.amount_dkk)}</span>
@@ -316,11 +382,12 @@ export default function BrandDashboardPage() {
 
       {/* Activity feed */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Seneste aktivitet</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent activity</h2>
         {activity.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 py-8 text-center">
             <Clock className="h-8 w-8 text-gray-300 mx-auto" />
-            <p className="mt-2 text-sm text-gray-500">Ingen aktivitet endnu</p>
+            <p className="mt-2 text-sm text-gray-500">No activity yet</p>
+            <p className="text-xs text-gray-400 mt-1">Scans and orders will appear here</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
