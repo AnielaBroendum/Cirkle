@@ -12,6 +12,9 @@ import {
   Clock,
   Copy,
   ExternalLink,
+  Store,
+  MapPin,
+  Loader2,
 } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 
@@ -22,10 +25,17 @@ type PartnershipWithRetailer = Partnership & {
   retailer_name: string | null;
 };
 
+type AvailableRetailer = Pick<
+  RetailerProfile,
+  'id' | 'name' | 'description' | 'city' | 'store_type' | 'logo_url'
+>;
+
 export default function BrandPartnershipsPage() {
   const { user } = useAuth();
   const [brandProfileId, setBrandProfileId] = useState<string | null>(null);
   const [partnerships, setPartnerships] = useState<PartnershipWithRetailer[]>([]);
+  const [availableRetailers, setAvailableRetailers] = useState<AvailableRetailer[]>([]);
+  const [requestingId, setRequestingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [email, setEmail] = useState('');
@@ -92,7 +102,37 @@ export default function BrandPartnershipsPage() {
         retailer_name: p.retailer_id ? (retailerMap.get(p.retailer_id) ?? null) : null,
       }))
     );
+
+    // Retailers available to partner with (onboarded, not already connected).
+    const partneredIds = new Set(
+      typed.map((p) => p.retailer_id).filter((id): id is string => id !== null)
+    );
+    const { data: retailers } = await supabase
+      .from('retailer_profiles')
+      .select('id, name, description, city, store_type, logo_url')
+      .eq('onboarding_complete', true)
+      .order('name');
+    setAvailableRetailers(
+      ((retailers ?? []) as AvailableRetailer[]).filter((r) => !partneredIds.has(r.id))
+    );
+
     setLoading(false);
+  }
+
+  async function handleRequestRetailer(retailerId: string) {
+    setRequestingId(retailerId);
+    await fetch('/api/partnerships/request-retailer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        retailer_id: retailerId,
+        commission_direct: commDirect * 100,
+        commission_deferred: commDeferred * 100,
+        commission_tier2: commTier2 * 100,
+      }),
+    });
+    setRequestingId(null);
+    loadPartnerships();
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -287,6 +327,70 @@ export default function BrandPartnershipsPage() {
         </form>
       </div>
 
+      {/* Discover retailers */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Available retailers</h2>
+        <p className="text-sm text-gray-500 mb-3">
+          Browse stores on Cirkle and request a partnership directly.
+        </p>
+        {availableRetailers.length === 0 ? (
+          <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
+            <Store className="h-10 w-10 text-gray-300 mx-auto" />
+            <p className="mt-2 text-sm text-gray-500">
+              {partnerships.length > 0
+                ? "You've connected with every retailer on the platform"
+                : 'No retailers on the platform yet'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {availableRetailers.map((r) => (
+              <div key={r.id} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col">
+                <div className="flex items-center gap-3">
+                  {r.logo_url ? (
+                    <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.logo_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-cirkle-50 flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg font-bold text-cirkle-600">{r.name.charAt(0)}</span>
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{r.name}</p>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
+                      {r.store_type && <span className="capitalize">{r.store_type.replace('_', ' ')}</span>}
+                      {r.city && (
+                        <>
+                          <MapPin className="h-3 w-3" />
+                          <span>{r.city}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {r.description && (
+                  <p className="text-xs text-gray-500 mt-3 line-clamp-2 flex-1">{r.description}</p>
+                )}
+                <button
+                  onClick={() => handleRequestRetailer(r.id)}
+                  disabled={requestingId === r.id}
+                  className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-cirkle-600 px-4 py-2.5 text-sm text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
+                >
+                  {requestingId === r.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Handshake className="h-4 w-4" />
+                  )}
+                  Request partnership
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Incoming requests from retailers */}
       {requested.length > 0 && (
         <div>
@@ -339,7 +443,7 @@ export default function BrandPartnershipsPage() {
               >
                 <div>
                   <p className="font-medium text-gray-900">
-                    {p.invitation_email ?? 'Unknown'}
+                    {p.retailer_name ?? p.invitation_email ?? 'Unknown'}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Clock className="h-3.5 w-3.5 text-amber-500" />

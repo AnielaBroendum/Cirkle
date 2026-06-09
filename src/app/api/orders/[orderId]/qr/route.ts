@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { createAdminClient } from '@/lib/supabase-admin';
+import { getBaseUrl } from '@/lib/base-url';
 import QRCode from 'qrcode';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { orderId: string } },
 ) {
   const supabase = await createServerSupabaseClient();
@@ -39,14 +40,14 @@ export async function GET(
     return NextResponse.json({ error: 'No items' }, { status: 404 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = getBaseUrl(request);
   const qrCodes = await Promise.all(
     items.map(async (item: { product_id: string }) => {
       const url = `${appUrl}/d/${item.product_id}?ref=${user.id}`;
       const dataUrl = await QRCode.toDataURL(url, {
         width: 512,
         margin: 2,
-        color: { dark: '#111827', light: '#ffffff' },
+        color: { dark: '#1A0F08', light: '#F3EADE' },
       });
       return { product_id: item.product_id, url, qr_data_url: dataUrl };
     }),

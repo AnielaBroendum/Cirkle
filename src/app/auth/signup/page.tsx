@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
@@ -35,6 +35,11 @@ function SignUpForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Drop any persisted session on arrival so a new account starts clean.
+  useEffect(() => {
+    createClient().auth.signOut();
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!role) {
@@ -46,6 +51,8 @@ function SignUpForm() {
     setLoading(true);
 
     const supabase = createClient();
+    // Ensure no leftover session interferes with creating the new account.
+    await supabase.auth.signOut();
 
     const { error: signUpError } = await supabase.auth.signUp({
       email,

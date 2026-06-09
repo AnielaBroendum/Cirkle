@@ -96,7 +96,7 @@ export default function OrderDetailPage() {
     if (navigator.share) {
       await navigator.share({
         title: 'Del dit Cirkle-produkt',
-        text: 'Scan denne QR-kode for at opdage dette produkt!',
+        text: 'Scan this QR code to discover this product!',
         url,
       });
     } else {
@@ -125,7 +125,7 @@ export default function OrderDetailPage() {
         <div>
           <h1 className="text-xl font-bold text-gray-900">Order #{order.order_number}</h1>
           <p className="text-xs text-gray-400">
-            {new Date(order.created_at).toLocaleDateString('da-DK', {
+            {new Date(order.created_at).toLocaleDateString('en-GB', {
               day: 'numeric',
               month: 'long',
               year: 'numeric',

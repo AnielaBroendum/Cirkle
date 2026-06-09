@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { Heart, Share2, ShoppingBag, MapPin, Users, ChevronLeft, Package, Check, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Heart, Share2, ShoppingBag, MapPin, Users, ChevronLeft, Package, Check, Link as LinkIcon, Loader2, Sparkles } from 'lucide-react';
 import { formatDKK } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
 
@@ -26,7 +26,7 @@ type ProductPageProps = {
     logo_url: string | null;
   };
   attribution: {
-    type: 'retailer' | 'peer';
+    type: 'retailer' | 'peer' | 'app';
     name: string;
     peerPointsMessage?: string;
   };
@@ -37,11 +37,15 @@ type ProductPageProps = {
     source_retailer_id?: string;
     source_user_id?: string;
   };
+  /** When false, the view is in-app browsing and records no scan. */
+  recordScan?: boolean;
 };
 
-export default function ProductPageClient({ product, brand, attribution, scanData }: ProductPageProps) {
+export default function ProductPageClient({ product, brand, attribution, scanData, recordScan = true }: ProductPageProps) {
+  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [currentImage, setCurrentImage] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -55,8 +59,9 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
     setHydrated(true);
   }, []);
 
-  // Record the scan
+  // Record the scan (skip for in-app browsing, which isn't a scan).
   useEffect(() => {
+    if (!recordScan) return;
     if (scanRecorded.current) return;
     scanRecorded.current = true;
 
@@ -160,110 +165,145 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
       setTimeout(() => setShowCopied(false), 2000);
     } catch {
       // Absolute last resort: prompt the user to copy manually
-      window.prompt('Kopiér dette link:', url);
+      window.prompt('Copy this link:', url);
     }
   }
 
   const images = product.images?.length > 0 ? product.images : [];
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-lg mx-auto flex items-center justify-between h-12 px-4">
-          <Link href="/" className="p-1 -ml-1 text-gray-600">
-            <ChevronLeft className="h-5 w-5" />
-          </Link>
-          <span className="font-bold text-base text-cirkle-950">Cirkle</span>
-          <div className="w-7" />
-        </div>
-      </header>
-
-      {/* Image carousel */}
-      {images.length > 0 ? (
-        <div className="relative bg-gray-50">
+    <div className="relative mx-auto min-h-screen max-w-lg bg-espresso-bg text-espresso-cream">
+      {/* Image carousel with overlaid chrome */}
+      <div className="relative bg-espresso-surface">
+        {images.length > 0 ? (
           <div
             ref={carouselRef}
             onScroll={handleScroll}
-            className="flex overflow-x-auto snap-x snap-mandatory"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+            className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto"
           >
-            <style>{`.carousel-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
             {images.map((src, i) => (
-              <div key={i} className="w-full flex-shrink-0 snap-center aspect-[4/5] relative">
+              <div key={i} className="relative aspect-[4/5] w-full flex-shrink-0 snap-center">
                 <Image src={src} alt={`${product.name} ${i + 1}`} fill className="object-cover" sizes="100vw" priority={i === 0} />
               </div>
             ))}
           </div>
-          {images.length > 1 && (
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-              {images.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 rounded-full transition-all ${
-                    i === currentImage ? 'w-6 bg-cirkle-600' : 'w-1.5 bg-white/70'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="aspect-[4/5] bg-gray-100 flex items-center justify-center">
-          <Package className="h-16 w-16 text-gray-300" />
-        </div>
-      )}
+        ) : (
+          <div
+            className="flex aspect-[4/5] items-center justify-center"
+            style={{ background: 'linear-gradient(160deg,#E0915C 0%,#7a3f1f 70%,#2a1308 100%)' }}
+          >
+            <Package className="h-16 w-16 text-white/30" />
+          </div>
+        )}
 
-      {/* Product info */}
-      <div className="max-w-lg mx-auto px-5 pt-5 pb-36">
+        {/* Top glass controls */}
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-12">
+          <a
+            href={user ? '/consumer/home' : '/'}
+            onClick={(e) => {
+              // Prefer going back in history (e.g. to the feed); fall back to the href.
+              if (hydrated && typeof window !== 'undefined' && window.history.length > 1) {
+                e.preventDefault();
+                router.back();
+              }
+            }}
+            className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-espresso-bg/50 text-white backdrop-blur transition active:scale-90"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </a>
+          <button
+            onClick={handleShare}
+            disabled={!hydrated}
+            className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-espresso-bg/50 text-white backdrop-blur transition active:scale-90 disabled:opacity-60"
+          >
+            {showCopied ? <LinkIcon className="h-[18px] w-[18px]" /> : <Share2 className="h-[18px] w-[18px]" />}
+          </button>
+        </div>
+
+        {/* Scan attribution chip */}
+        <div className="absolute bottom-[18px] left-4 flex items-center gap-2 rounded-full border border-white/15 bg-espresso-bg/60 px-3 py-2 text-[11.5px] font-semibold text-espresso-cream backdrop-blur">
+          {attribution.type === 'retailer' ? (
+            <MapPin className="h-[13px] w-[13px] text-terracotta" />
+          ) : attribution.type === 'peer' ? (
+            <Users className="h-[13px] w-[13px] text-terracotta" />
+          ) : (
+            <Sparkles className="h-[13px] w-[13px] text-terracotta" />
+          )}
+          {attribution.type === 'retailer'
+            ? `Scanned at ${attribution.name}`
+            : attribution.type === 'peer'
+            ? `Shared by ${attribution.name}`
+            : 'Discovered in Cirkle'}
+        </div>
+
+        {/* Carousel dots */}
+        {images.length > 1 && (
+          <div className="absolute bottom-5 right-4 flex gap-1.5">
+            {images.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${i === currentImage ? 'w-4 bg-white' : 'w-1.5 bg-white/40'}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Pulled-up sheet */}
+      <div className="relative -mt-7 rounded-t-[28px] bg-espresso-bg px-5 pb-40 pt-6">
+        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-espresso-line" />
+
         {/* Brand */}
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2">
           {brand.logo_url && (
             <Image src={brand.logo_url} alt={brand.name} width={20} height={20} className="rounded-full" />
           )}
-          <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">{brand.name}</span>
+          <span className="text-[10.5px] font-bold uppercase tracking-[2.2px] text-terracotta">{brand.name}</span>
         </div>
 
         {/* Name + Price */}
-        <div className="flex items-start justify-between gap-4 mb-4">
-          <h1 className="text-2xl font-bold text-gray-900 leading-tight">{product.name}</h1>
-          <span className="text-xl font-bold text-gray-900 whitespace-nowrap">{formatDKK(product.price_dkk)}</span>
+        <div className="mt-2 flex items-start justify-between gap-4">
+          <h1 className="font-display text-[28px] italic leading-tight text-espresso-cream">{product.name}</h1>
+          <span className="whitespace-nowrap text-[22px] font-bold text-espresso-cream">{formatDKK(product.price_dkk)}</span>
         </div>
 
         {/* Description */}
         {product.description && (
-          <p className="text-sm text-gray-600 leading-relaxed mb-4">{product.description}</p>
+          <p className="mt-3.5 text-[13px] leading-relaxed text-espresso-muted">{product.description}</p>
         )}
 
-        {/* Materials */}
-        {product.materials && (
-          <div className="mb-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Materials</h3>
-            <p className="text-sm text-gray-700">{product.materials}</p>
-          </div>
-        )}
-
-        {/* Available sizes */}
+        {/* Sizes */}
         {product.sizes?.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Sizes</h3>
-            <div className="flex flex-wrap gap-2">
-              {product.sizes.map((size) => (
-                <span key={size} className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg">
-                  {size}
-                </span>
-              ))}
+          <div className="mt-5">
+            <h3 className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Size</h3>
+            <div className="flex flex-wrap gap-2.5">
+              {product.sizes.map((size) => {
+                const on = selectedSize === size;
+                return (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`min-w-[46px] rounded-[13px] border px-3.5 py-3 text-sm font-semibold transition active:scale-95 ${
+                      on
+                        ? 'border-espresso-cream bg-espresso-cream text-espresso-bg'
+                        : 'border-espresso-line bg-espresso-surface text-espresso-cream'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* Available colors */}
+        {/* Colors */}
         {product.colors?.length > 0 && (
-          <div className="mb-5">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Colors</h3>
-            <div className="flex flex-wrap gap-2">
+          <div className="mt-5">
+            <h3 className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Colour</h3>
+            <div className="flex flex-wrap gap-2.5">
               {product.colors.map((color) => (
-                <span key={color} className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg">
+                <span key={color} className="rounded-[13px] border border-espresso-line bg-espresso-surface px-3.5 py-2.5 text-xs font-medium text-espresso-cream">
                   {color}
                 </span>
               ))}
@@ -271,78 +311,87 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
           </div>
         )}
 
-        {/* Attribution */}
-        <div className="flex items-center gap-2 py-3 px-4 bg-gray-50 rounded-xl mb-2">
-          {attribution.type === 'retailer' ? (
-            <MapPin className="h-4 w-4 text-cirkle-500 flex-shrink-0" />
-          ) : (
-            <Users className="h-4 w-4 text-cirkle-500 flex-shrink-0" />
-          )}
-          <div>
-            <p className="text-sm font-medium text-gray-700">
-              {attribution.type === 'retailer'
-                ? `Scanned at ${attribution.name}`
-                : `Shared by ${attribution.name}`}
-            </p>
-            {attribution.peerPointsMessage && (
-              <p className="text-xs text-cirkle-600 mt-0.5">{attribution.peerPointsMessage}</p>
-            )}
+        {/* Materials */}
+        {product.materials && (
+          <div className="mt-5">
+            <h3 className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Materials</h3>
+            <p className="text-[13px] text-espresso-muted">{product.materials}</p>
           </div>
+        )}
+
+        {/* Maker / attribution context */}
+        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-espresso-line bg-espresso-surface p-3.5">
+          <span className="grid h-11 w-11 flex-none place-items-center rounded-full font-display text-lg italic text-white"
+            style={{ background: 'linear-gradient(135deg,#E0915C,#8b4f1f)' }}>
+            {brand.name?.[0] ?? 'C'}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-espresso-cream">{brand.name}</p>
+            <p className="text-xs text-espresso-muted">
+              {attribution.type === 'retailer'
+                ? `Discovered at ${attribution.name} · ✦ Emerging maker`
+                : attribution.type === 'peer'
+                ? `Shared by ${attribution.name}`
+                : '✦ Emerging maker'}
+            </p>
+          </div>
+        </div>
+
+        {/* Why you found this */}
+        <div className="mt-5">
+          <h3 className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Why you found this</h3>
+          <p className="text-[13px] leading-relaxed text-espresso-muted">
+            {attribution.type === 'retailer' ? (
+              <>You scanned a sample at <span className="text-espresso-cream">{attribution.name}</span>. Buy within 90 days and they earn for the introduction — that&rsquo;s how Cirkle keeps small spaces thriving.</>
+            ) : attribution.type === 'peer' ? (
+              attribution.peerPointsMessage || <>Shared by a friend. When you buy, they earn Cirkle Points.</>
+            ) : (
+              <>You found this while browsing Cirkle. If you scanned it at a shop first, that shop still earns when you buy.</>
+            )}
+          </p>
         </div>
       </div>
 
       {/* "Copied" toast */}
       {showCopied && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] bg-gray-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 animate-toast-in">
-          <Check className="h-4 w-4 text-green-400" />
+        <div className="fixed left-1/2 top-16 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-full bg-espresso-cream px-4 py-2.5 text-sm font-semibold text-espresso-bg shadow-lg animate-toast-in">
+          <Check className="h-4 w-4 text-sage" />
           Link copied!
         </div>
       )}
 
       {/* Fixed bottom CTAs — Buy is an <a> tag so it works before JS hydrates */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="fixed inset-x-0 bottom-0 z-50"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          background: 'linear-gradient(rgba(26,15,8,0), #1A0F08 28%)',
+        }}
       >
-        <div className="max-w-lg mx-auto px-5 py-3 flex items-center gap-3">
-          <a
-            href={buyHref}
-            onClick={handleBuyClick}
-            className="flex-1 flex items-center justify-center gap-2 bg-cirkle-600 text-white font-semibold py-3.5 rounded-xl hover:bg-cirkle-700 active:bg-cirkle-800 transition no-underline"
-          >
-            <ShoppingBag className="h-4 w-4" />
-            Buy now
-          </a>
+        <div className="mx-auto flex max-w-lg items-center gap-3 px-5 pb-6 pt-4">
           <button
             onClick={handleSave}
             disabled={saving || saved || !hydrated}
-            className={`flex items-center justify-center p-3.5 rounded-xl border transition ${
+            className={`grid h-14 w-14 flex-none place-items-center rounded-2xl border transition active:scale-90 ${
               saved
-                ? 'bg-pink-50 border-pink-200 text-pink-500'
-                : !hydrated
-                ? 'border-gray-100 text-gray-300'
-                : 'border-gray-200 text-gray-600 hover:bg-gray-50 active:bg-gray-100'
+                ? 'border-terracotta bg-terracotta text-espresso-bg'
+                : 'border-espresso-line bg-espresso-surface text-espresso-cream'
             }`}
           >
             {saving ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <Heart className={`h-5 w-5 ${saved ? 'fill-current' : ''}`} />
+              <Heart className={`h-[22px] w-[22px] ${saved ? 'fill-current' : ''}`} />
             )}
           </button>
-          <button
-            onClick={handleShare}
-            disabled={!hydrated}
-            className={`flex items-center justify-center p-3.5 rounded-xl border transition ${
-              showCopied
-                ? 'border-green-200 bg-green-50 text-green-600'
-                : !hydrated
-                ? 'border-gray-100 text-gray-300'
-                : 'border-gray-200 text-gray-600 hover:bg-gray-50 active:bg-gray-100'
-            }`}
+          <a
+            href={buyHref}
+            onClick={handleBuyClick}
+            className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-terracotta font-bold text-espresso-bg no-underline transition active:scale-[0.97]"
           >
-            {showCopied ? <LinkIcon className="h-5 w-5" /> : <Share2 className="h-5 w-5" />}
-          </button>
+            <ShoppingBag className="h-[18px] w-[18px]" />
+            Buy now · {formatDKK(product.price_dkk)}
+          </a>
         </div>
       </div>
     </div>

@@ -49,14 +49,14 @@ export default function InstallPrompt() {
           <Download className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900">Installer Cirkle</p>
-          <p className="text-xs text-gray-500">Hurtigere adgang fra din hjemmeskaerm</p>
+          <p className="text-sm font-semibold text-gray-900">Install Cirkle</p>
+          <p className="text-xs text-gray-500">Faster access from your home screen</p>
         </div>
         <button
           onClick={handleInstall}
           className="px-3 py-1.5 bg-cirkle-600 text-white text-xs font-medium rounded-lg hover:bg-cirkle-700 transition flex-shrink-0"
         >
-          Installer
+          Install
         </button>
         <button
           onClick={handleDismiss}

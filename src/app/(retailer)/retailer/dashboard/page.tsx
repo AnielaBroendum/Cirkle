@@ -460,7 +460,7 @@ export default function RetailerDashboardPage() {
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${typeColor}`}>{typeLabel}</span>
                       <span className="text-xs text-gray-400">
-                        {new Date(c.created_at).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}
+                        {new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
                   </div>

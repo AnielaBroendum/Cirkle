@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { Plus, QrCode, Download, ExternalLink } from 'lucide-react';
+import { Plus, QrCode, Download, ExternalLink, Trash2, Loader2 } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 
 type Sample = Database['public']['Tables']['samples']['Row'];
@@ -85,11 +85,25 @@ export default function BrandSamplesPage() {
       });
   }, [user]);
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   function downloadQr(url: string, productName: string) {
     const a = document.createElement('a');
     a.href = url;
     a.download = `qr-${productName.toLowerCase().replace(/\s+/g, '-')}.png`;
     a.click();
+  }
+
+  async function deleteSample(sampleId: string, productName: string) {
+    if (!window.confirm(`Delete the QR code for "${productName}"? This can't be undone.`)) return;
+    setDeletingId(sampleId);
+    const res = await fetch(`/api/samples?id=${sampleId}`, { method: 'DELETE' });
+    if (res.ok) {
+      setSamples((prev) => prev.filter((s) => s.id !== sampleId));
+    } else {
+      window.alert('Could not delete this QR code. Please try again.');
+    }
+    setDeletingId(null);
   }
 
   if (loading) {
@@ -219,13 +233,25 @@ export default function BrandSamplesPage() {
                           </button>
                         )}
                         <Link
-                          href={`${process.env.NEXT_PUBLIC_QR_BASE_URL}/p/${sample.id}`}
+                          href={`/p/${sample.id}`}
                           target="_blank"
                           className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
                           title="Open scan page"
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Link>
+                        <button
+                          onClick={() => deleteSample(sample.id, sample.product?.name ?? 'sample')}
+                          disabled={deletingId === sample.id}
+                          className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                          title="Delete QR code"
+                        >
+                          {deletingId === sample.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
                     </div>
 

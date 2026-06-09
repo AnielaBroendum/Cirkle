@@ -109,15 +109,23 @@ export async function POST(request: NextRequest) {
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-  const { data: recentScan } = await admin
+  const { data: scanRows } = await admin
     .from('scans')
     .select('*')
     .eq('product_id', product_id)
     .eq('scanner_user_id', user.id)
     .gte('scanned_at', ninetyDaysAgo.toISOString())
     .order('scanned_at', { ascending: false })
-    .limit(1)
-    .single();
+    .limit(10);
+
+  // Most recent scan that actually attributes a sale: a retailer scan, or a
+  // peer scan with a real referring user. Phantom browse scans are ignored.
+  const recentScan =
+    (scanRows ?? []).find(
+      (s: { source_type: string; source_retailer_id: string | null; source_user_id: string | null }) =>
+        (s.source_type === 'retailer' && s.source_retailer_id) ||
+        (s.source_type === 'peer' && s.source_user_id)
+    ) ?? null;
 
   if (recentScan) {
     const isPeer = recentScan.source_type === 'peer';

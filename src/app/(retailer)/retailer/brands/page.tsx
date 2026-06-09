@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatCommission } from '@/lib/utils';
-import { Store, Check, Clock, Handshake } from 'lucide-react';
+import { Store, Check, Clock, Handshake, X } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
 
 type BrandProfile = Database['public']['Tables']['brand_profiles']['Row'];
@@ -129,6 +129,18 @@ export default function RetailerBrandsPage() {
     loadData();
   }
 
+  async function respondToInvite(partnershipId: string, status: 'active' | 'declined') {
+    const supabase = createClient();
+    await supabase
+      .from('brand_retailer_partnerships')
+      .update({
+        status,
+        ...(status === 'active' ? { accepted_at: new Date().toISOString() } : {}),
+      })
+      .eq('id', partnershipId);
+    loadData();
+  }
+
   if (loading) {
     return <div className="space-y-4"><div className="animate-pulse bg-gray-200 rounded h-6 w-32" /><div className="animate-pulse bg-gray-100 rounded-xl h-48 w-full" /></div>;
   }
@@ -180,7 +192,7 @@ export default function RetailerBrandsPage() {
                     <Check className="h-3.5 w-3.5 text-green-500" />
                     <span className="text-xs text-green-600">Active</span>
                     <span className="text-xs text-gray-400 ml-1">
-                      {formatCommission(p.commission_direct)} direkte
+                      {formatCommission(p.commission_direct)} direct
                     </span>
                   </div>
                 </div>
@@ -195,39 +207,60 @@ export default function RetailerBrandsPage() {
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending</h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {pendingPartnerships.map((p) => (
-              <div
-                key={p.id}
-                className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 opacity-75"
-              >
-                {p.brand_logo ? (
-                  <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                    <Image
-                      src={p.brand_logo}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="48px"
-                    />
+            {pendingPartnerships.map((p) => {
+              // Brand-initiated requests carry a token → the retailer can accept.
+              const brandInvited = !!p.invitation_token;
+              return (
+                <div
+                  key={p.id}
+                  className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4"
+                >
+                  {p.brand_logo ? (
+                    <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
+                      <Image
+                        src={p.brand_logo}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg font-bold text-gray-400">
+                        {p.brand_name.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 truncate">{p.brand_name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Clock className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="text-xs text-amber-600">
+                        {brandInvited ? 'Wants to partner with you' : 'Request sent'}
+                      </span>
+                    </div>
                   </div>
-                ) : (
-                  <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-lg font-bold text-gray-400">
-                      {p.brand_name.charAt(0)}
-                    </span>
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-900 truncate">{p.brand_name}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <Clock className="h-3.5 w-3.5 text-amber-500" />
-                    <span className="text-xs text-amber-600">
-                      {p.invitation_token ? 'Invitation modtaget' : 'Anmodning sendt'}
-                    </span>
-                  </div>
+                  {brandInvited && (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => respondToInvite(p.id, 'active')}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition"
+                      >
+                        <Check className="h-3.5 w-3.5" /> Accept
+                      </button>
+                      <button
+                        onClick={() => respondToInvite(p.id, 'declined')}
+                        className="flex items-center justify-center p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
+                        title="Decline"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -235,7 +268,7 @@ export default function RetailerBrandsPage() {
       {/* Available brands catalog */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          Tilgængelige brands
+          Available brands
         </h2>
         {availableBrands.length === 0 ? (
           <div className="text-center py-8 bg-white rounded-xl border border-gray-200">

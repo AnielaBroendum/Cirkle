@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
-import { ChevronLeft, Minus, Plus, Package, CheckCircle2, Loader2 } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, Package, CheckCircle2, Loader2, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
@@ -28,7 +28,7 @@ type OrderResult = {
 export default function CheckoutPage() {
   const router = useRouter();
   const { productId } = useParams<{ productId: string }>();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,10 +73,13 @@ export default function CheckoutPage() {
       });
   }, [user, productId, router]);
 
-  if (!user) {
-    router.push(`/auth/signup?role=consumer&redirect=/consumer/checkout/${productId}`);
-    return null;
-  }
+  // Only redirect to signup once auth has actually resolved — otherwise we'd
+  // bounce logged-in users straight past checkout on the first render.
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push(`/auth/signup?role=consumer&redirect=/consumer/checkout/${productId}`);
+    }
+  }, [authLoading, user, productId, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -87,7 +90,7 @@ export default function CheckoutPage() {
       return;
     }
     if (product.colors?.length > 0 && !selectedColor) {
-      setError('Please select a color');
+      setError('Please select a colour');
       return;
     }
 
@@ -128,33 +131,33 @@ export default function CheckoutPage() {
   const maxPointsUsable = product ? Math.floor(product.price_dkk / 100) : 0;
   const pointsCapped = Math.min(pointsBalance, maxPointsUsable);
   const discountOre = pointsToUse * 100;
-  const totalOre = product ? Math.max(product.price_dkk - discountOre, 0) : 0;
+  const shippingOre = 4900;
+  const totalOre = product ? Math.max(product.price_dkk + shippingOre - discountOre, 0) : 0;
 
+  // ---- Success ----
   if (orderResult) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center text-center px-6">
-        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-5">
-          <CheckCircle2 className="h-8 w-8 text-green-600" />
+      <div className="flex min-h-[80vh] flex-col items-center justify-center px-6 text-center">
+        <div className="mb-5 grid h-16 w-16 place-items-center rounded-full bg-sage/20">
+          <CheckCircle2 className="h-8 w-8 text-sage" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Order confirmed!</h1>
-        <p className="text-gray-600 mb-1">
-          Your <span className="font-medium">{orderResult.product_name}</span> is being packed at{' '}
-          <span className="font-medium">{orderResult.brand_name}</span>&apos;s studio.
+        <h1 className="mb-2 font-display text-[26px] italic text-espresso-cream">Order confirmed</h1>
+        <p className="mb-1 text-espresso-muted">
+          Your <span className="text-espresso-cream">{orderResult.product_name}</span> is being packed at{' '}
+          <span className="text-espresso-cream">{orderResult.brand_name}</span>&apos;s studio.
         </p>
-        <p className="text-sm text-gray-500 mb-6">
-          Expected delivery: 3-5 business days
-        </p>
-        <p className="text-xs text-gray-400 mb-8">Order #{orderResult.order_number}</p>
-        <div className="flex gap-3 w-full max-w-xs">
+        <p className="mb-6 text-sm text-espresso-muted-2">Expected delivery: 3–5 business days</p>
+        <p className="mb-8 text-xs text-espresso-muted-2">Order #{orderResult.order_number}</p>
+        <div className="flex w-full max-w-xs gap-3">
           <button
             onClick={() => router.push(`/consumer/orders/${orderResult.order_id}`)}
-            className="flex-1 bg-cirkle-600 text-white font-medium py-3 rounded-xl hover:bg-cirkle-700 transition"
+            className="flex-1 rounded-2xl bg-terracotta py-3 font-bold text-espresso-bg transition active:scale-[0.98]"
           >
             View order
           </button>
           <button
             onClick={() => router.push('/consumer/home')}
-            className="flex-1 border border-gray-200 text-gray-700 font-medium py-3 rounded-xl hover:bg-gray-50 transition"
+            className="flex-1 rounded-2xl border border-espresso-line py-3 font-semibold text-espresso-cream transition hover:bg-espresso-surface"
           >
             Home
           </button>
@@ -163,69 +166,68 @@ export default function CheckoutPage() {
     );
   }
 
+  // ---- Loading ----
   if (loading || !product) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="animate-pulse bg-gray-200 rounded h-5 w-5" />
-          <div className="animate-pulse bg-gray-200 rounded h-6 w-24" />
-        </div>
-        <div className="flex gap-4 p-4 bg-gray-50 rounded-xl">
-          <div className="animate-pulse bg-gray-200 rounded-lg h-20 w-20" />
-          <div className="flex-1 space-y-2">
-            <div className="animate-pulse bg-gray-200 rounded h-3 w-16" />
-            <div className="animate-pulse bg-gray-200 rounded h-5 w-32" />
-            <div className="animate-pulse bg-gray-100 rounded h-4 w-20" />
-          </div>
-        </div>
+      <div className="space-y-5">
+        <div className="h-6 w-28 animate-pulse rounded bg-espresso-surface" />
+        <div className="h-24 animate-pulse rounded-2xl bg-espresso-surface" />
+        <div className="h-40 animate-pulse rounded-2xl bg-espresso-surface" />
       </div>
     );
   }
 
+  const chip = (active: boolean) =>
+    `min-w-[46px] rounded-[13px] border px-4 py-2.5 text-sm font-semibold transition active:scale-95 ${
+      active
+        ? 'border-espresso-cream bg-espresso-cream text-espresso-bg'
+        : 'border-espresso-line bg-espresso-surface text-espresso-cream'
+    }`;
+
+  const input =
+    'w-full rounded-xl border border-espresso-line bg-espresso-surface px-4 py-3 text-sm text-espresso-cream placeholder:text-espresso-muted-2 focus:border-terracotta focus:outline-none';
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="p-1 -ml-1 text-gray-600">
+        <button onClick={() => router.back()} className="-ml-1 p-1 text-espresso-cream">
           <ChevronLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-xl font-bold text-gray-900">Checkout</h1>
+        <h1 className="font-display text-[24px] italic text-espresso-cream">My bag</h1>
       </div>
 
-      {/* Product summary */}
-      <div className="flex gap-4 p-4 bg-gray-50 rounded-xl">
+      {/* Bag item */}
+      <div className="flex gap-3.5 rounded-2xl border border-espresso-line bg-espresso-surface p-3.5">
         {product.images?.[0] ? (
-          <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-            <Image src={product.images[0]} alt={product.name} fill className="object-cover" sizes="80px" />
+          <div className="relative h-[88px] w-[70px] flex-shrink-0 overflow-hidden rounded-xl">
+            <Image src={product.images[0]} alt={product.name} fill className="object-cover" sizes="70px" />
           </div>
         ) : (
-          <div className="w-20 h-20 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
-            <Package className="h-8 w-8 text-gray-400" />
+          <div className="grid h-[88px] w-[70px] flex-shrink-0 place-items-center rounded-xl bg-espresso-surface-2">
+            <Package className="h-7 w-7 text-espresso-muted-2" />
           </div>
         )}
-        <div className="min-w-0">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">{product.brand_profiles.name}</p>
-          <p className="font-semibold text-gray-900 truncate">{product.name}</p>
-          <p className="text-sm font-medium text-gray-700 mt-1">{formatDKK(product.price_dkk)}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-bold uppercase tracking-[1.3px] text-terracotta">
+            {product.brand_profiles.name}
+          </p>
+          <p className="mt-0.5 truncate font-display text-[15px] text-espresso-cream">{product.name}</p>
+          <p className="mt-0.5 text-[11.5px] text-espresso-muted">
+            {[selectedSize && `Size ${selectedSize}`, selectedColor].filter(Boolean).join(' · ') || 'Select options below'}
+          </p>
+          <p className="mt-1.5 text-sm font-bold text-espresso-cream">{formatDKK(product.price_dkk)}</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Size selector */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Size */}
         {product.sizes?.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Size</label>
-            <div className="flex flex-wrap gap-2">
+            <h3 className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Size</h3>
+            <div className="flex flex-wrap gap-2.5">
               {product.sizes.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => setSelectedSize(size)}
-                  className={`px-4 py-2.5 text-sm font-medium rounded-xl border-2 transition ${
-                    selectedSize === size
-                      ? 'border-cirkle-500 bg-cirkle-50 text-cirkle-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  }`}
-                >
+                <button key={size} type="button" onClick={() => setSelectedSize(size)} className={chip(selectedSize === size)}>
                   {size}
                 </button>
               ))}
@@ -233,22 +235,13 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        {/* Color selector */}
+        {/* Colour */}
         {product.colors?.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
-            <div className="flex flex-wrap gap-2">
+            <h3 className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Colour</h3>
+            <div className="flex flex-wrap gap-2.5">
               {product.colors.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setSelectedColor(color)}
-                  className={`px-4 py-2.5 text-sm font-medium rounded-xl border-2 transition ${
-                    selectedColor === color
-                      ? 'border-cirkle-500 bg-cirkle-50 text-cirkle-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  }`}
-                >
+                <button key={color} type="button" onClick={() => setSelectedColor(color)} className={chip(selectedColor === color)}>
                   {color}
                 </button>
               ))}
@@ -258,119 +251,90 @@ export default function CheckoutPage() {
 
         {/* Shipping */}
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-900">Shipping address</h2>
-          <input
-            type="text"
-            required
-            placeholder="Full name"
-            value={shippingName}
-            onChange={(e) => setShippingName(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          />
-          <input
-            type="text"
-            required
-            placeholder="Address"
-            value={shippingAddress}
-            onChange={(e) => setShippingAddress(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          />
+          <h3 className="text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Shipping address</h3>
+          <input type="text" required placeholder="Full name" value={shippingName} onChange={(e) => setShippingName(e.target.value)} className={input} />
+          <input type="text" required placeholder="Address" value={shippingAddress} onChange={(e) => setShippingAddress(e.target.value)} className={input} />
           <div className="flex gap-3">
-            <input
-              type="text"
-              required
-              placeholder="Postal code"
-              value={shippingPostalCode}
-              onChange={(e) => setShippingPostalCode(e.target.value)}
-              className="w-1/3 rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-            />
-            <input
-              type="text"
-              required
-              placeholder="City"
-              value={shippingCity}
-              onChange={(e) => setShippingCity(e.target.value)}
-              className="flex-1 rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-            />
+            <input type="text" required placeholder="Postal code" value={shippingPostalCode} onChange={(e) => setShippingPostalCode(e.target.value)} className={`${input} w-1/3`} />
+            <input type="text" required placeholder="City" value={shippingCity} onChange={(e) => setShippingCity(e.target.value)} className={`${input} flex-1`} />
           </div>
         </div>
 
-        {/* Points redemption */}
+        {/* Points */}
         {pointsBalance > 0 && (
-          <div className="p-4 bg-cirkle-50 rounded-xl border border-cirkle-100">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-cirkle-900">Use Cirkle Points</h3>
-              <span className="text-xs text-cirkle-600">{pointsBalance} points available</span>
+          <div className="rounded-2xl border border-espresso-line bg-espresso-surface p-4">
+            <div className="mb-1 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-espresso-cream">Use Cirkle Points</h3>
+              <span className="text-xs text-terracotta">{pointsBalance} available</span>
             </div>
-            <p className="text-xs text-cirkle-700 mb-3">1 point = 1 kr discount</p>
+            <p className="mb-3 text-xs text-espresso-muted">1 point = 1 kr discount</p>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setPointsToUse(Math.max(0, pointsToUse - 10))}
                 disabled={pointsToUse <= 0}
-                className="p-2 rounded-lg border border-cirkle-200 text-cirkle-600 hover:bg-cirkle-100 disabled:opacity-40 transition"
+                className="grid h-9 w-9 place-items-center rounded-lg border border-espresso-line text-espresso-cream transition disabled:opacity-40"
               >
                 <Minus className="h-4 w-4" />
               </button>
               <div className="flex-1 text-center">
-                <span className="text-2xl font-bold text-cirkle-900">{pointsToUse}</span>
-                <span className="text-sm text-cirkle-600 ml-1">points</span>
+                <span className="font-display text-2xl italic text-espresso-cream">{pointsToUse}</span>
+                <span className="ml-1 text-sm text-espresso-muted">points</span>
               </div>
               <button
                 type="button"
                 onClick={() => setPointsToUse(Math.min(pointsCapped, pointsToUse + 10))}
                 disabled={pointsToUse >= pointsCapped}
-                className="p-2 rounded-lg border border-cirkle-200 text-cirkle-600 hover:bg-cirkle-100 disabled:opacity-40 transition"
+                className="grid h-9 w-9 place-items-center rounded-lg border border-espresso-line text-espresso-cream transition disabled:opacity-40"
               >
                 <Plus className="h-4 w-4" />
               </button>
             </div>
             {pointsToUse > 0 && (
-              <p className="text-center text-sm text-cirkle-700 mt-2 font-medium">
-                -{formatDKK(discountOre)} discount
-              </p>
+              <p className="mt-2 text-center text-sm font-medium text-gold">−{formatDKK(discountOre)} discount</p>
             )}
           </div>
         )}
 
-        {/* Order summary */}
-        <div className="border-t border-gray-200 pt-4 space-y-2">
-          <div className="flex justify-between text-sm text-gray-600">
-            <span>Product</span>
-            <span>{formatDKK(product.price_dkk)}</span>
+        {/* Summary */}
+        <div className="rounded-2xl border border-espresso-line bg-espresso-surface p-4">
+          <div className="mb-2.5 flex justify-between text-[13px] text-espresso-muted">
+            <span>Subtotal</span>
+            <span className="font-semibold text-espresso-cream">{formatDKK(product.price_dkk)}</span>
+          </div>
+          <div className="mb-2.5 flex justify-between text-[13px] text-espresso-muted">
+            <span>Shipping</span>
+            <span className="font-semibold text-espresso-cream">{formatDKK(shippingOre)}</span>
           </div>
           {pointsToUse > 0 && (
-            <div className="flex justify-between text-sm text-cirkle-600">
-              <span>Points discount</span>
-              <span>-{formatDKK(discountOre)}</span>
+            <div className="mb-2.5 flex justify-between text-[13px] text-gold">
+              <span>Cirkle Points (−{pointsToUse})</span>
+              <span>−{formatDKK(discountOre)}</span>
             </div>
           )}
-          <div className="flex justify-between text-sm text-gray-600">
-            <span>Shipping</span>
-            <span className="text-green-600">Free</span>
-          </div>
-          <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-100">
-            <span>Total</span>
-            <span>{formatDKK(totalOre)}</span>
+          <div className="my-3 h-px bg-espresso-line" />
+          <div className="flex items-baseline justify-between">
+            <span className="text-[13px] text-espresso-muted">Total</span>
+            <span className="font-display text-[25px] italic text-terracotta">{formatDKK(totalOre)}</span>
           </div>
         </div>
 
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{error}</p>
-        )}
+        {error && <p className="rounded-xl bg-terracotta/15 px-4 py-3 text-sm text-terracotta">{error}</p>}
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-cirkle-600 text-white font-semibold py-3.5 rounded-xl hover:bg-cirkle-700 transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-terracotta py-4 font-bold text-espresso-bg transition active:scale-[0.98] disabled:opacity-50"
         >
           {submitting ? (
-            <span className="flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Processing...
-            </span>
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Processing…
+            </>
           ) : (
-            `Confirm order — ${formatDKK(totalOre)}`
+            <>
+              Proceed to checkout · {formatDKK(totalOre)}
+              <ChevronRight className="h-4 w-4" />
+            </>
           )}
         </button>
       </form>

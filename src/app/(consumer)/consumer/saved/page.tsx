@@ -150,7 +150,7 @@ export default function ConsumerSavedPage() {
                         className="flex-1 flex items-center justify-center gap-1.5 bg-cirkle-600 text-white text-xs font-medium py-2 rounded-lg hover:bg-cirkle-700 active:bg-cirkle-800 transition no-underline"
                       >
                         <ShoppingBag className="h-3 w-3" />
-                        Køb nu
+                        Buy now
                       </a>
                     )}
                     <span className="flex items-center justify-center gap-1 text-xs text-gray-400 py-2 px-2">

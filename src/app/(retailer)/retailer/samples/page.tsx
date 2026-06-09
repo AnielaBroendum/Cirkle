@@ -225,7 +225,7 @@ export default function RetailerSamplesPage() {
   }
 
   function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' });
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   }
 
   const selectedSwapProduct = brandProducts.find((p) => p.id === swapProductId);

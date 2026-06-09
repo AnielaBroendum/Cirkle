@@ -2,9 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Cirkle — Espresso theme base
+   Dark, warm-editorial foundation. Token meanings are defined in
+   tailwind.config.ts (inverted gray ramp + terracotta accent).
+   ============================================================ */
+@layer base {
+  :root {
+    --font-fraunces: 'Fraunces', Georgia, serif;
+    color-scheme: dark;
+  }
+
+  html {
+    background-color: #1A0F08;
+  }
+
+  body {
+    background-color: #1A0F08;
+    color: #F3EADE;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Editorial display type for headings + brand moments. */
+  h1, h2, h3, .font-display {
+    font-family: var(--font-fraunces);
+    font-optical-sizing: auto;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: #E0915C;
+    color: #1A0F08;
+  }
+
+  /* Warm, slim scrollbars to match the dark surfaces. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #3A281B transparent;
+  }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-thumb { background: #3A281B; border-radius: 999px; }
+}
+
 @layer utilities {
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Italic editorial brand mark — use on the "Cirkle" wordmark. */
+  .brand-mark {
+    font-family: var(--font-fraunces);
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  /* Hide scrollbars without rendering an in-JSX <style> tag (which breaks hydration). */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 

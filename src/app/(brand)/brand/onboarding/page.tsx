@@ -36,15 +36,20 @@ export default function BrandOnboardingPage() {
     setLoading(true);
 
     const supabase = createClient();
+    // Upsert on user_id so re-running onboarding updates the existing profile
+    // instead of colliding with the unique brand_profiles_user_id constraint.
     const { data, error: insertError } = await supabase
       .from('brand_profiles')
-      .insert({
-        user_id: user.id,
-        name: brandName.trim(),
-        description: brandDescription.trim() || null,
-        logo_url: brandLogo[0] || null,
-        website: brandWebsite.trim() || null,
-      })
+      .upsert(
+        {
+          user_id: user.id,
+          name: brandName.trim(),
+          description: brandDescription.trim() || null,
+          logo_url: brandLogo[0] || null,
+          website: brandWebsite.trim() || null,
+        },
+        { onConflict: 'user_id' }
+      )
       .select('id')
       .single();
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
@@ -18,6 +18,12 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Clear any persisted session so this page always starts clean — lets you
+  // sign in as a different account/role without being bounced to a dashboard.
+  useEffect(() => {
+    createClient().auth.signOut();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { createAdminClient } from '@/lib/supabase-admin';
+import { getBaseUrl } from '@/lib/base-url';
 import QRCode from 'qrcode';
 
 export async function PATCH(
@@ -95,7 +96,7 @@ export async function PATCH(
     if (newSample) {
       updateData.new_sample_id = newSample.id;
 
-      const qrBaseUrl = process.env.NEXT_PUBLIC_QR_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const qrBaseUrl = getBaseUrl(request);
       try {
         const qrBuffer = await QRCode.toBuffer(`${qrBaseUrl}/p/${newSample.id}`, {
           type: 'png', width: 400, margin: 2,

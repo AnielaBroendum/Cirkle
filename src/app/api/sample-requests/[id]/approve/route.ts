@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { createAdminClient } from '@/lib/supabase-admin';
+import { getBaseUrl } from '@/lib/base-url';
 import QRCode from 'qrcode';
 
 export async function POST(
@@ -43,7 +44,7 @@ export async function POST(
   }
 
   const admin = createAdminClient();
-  const qrBaseUrl = process.env.NEXT_PUBLIC_QR_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const qrBaseUrl = getBaseUrl(request);
 
   for (const item of items) {
     const { data: sample, error: sampleErr } = await admin

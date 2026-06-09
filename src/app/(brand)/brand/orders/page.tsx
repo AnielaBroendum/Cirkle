@@ -265,7 +265,7 @@ export default function BrandOrdersPage() {
                     </div>
                     <p className="text-sm text-gray-600 truncate mt-0.5">{customerName}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(order.created_at).toLocaleDateString('da-DK', {
+                      {new Date(order.created_at).toLocaleDateString('en-GB', {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',
@@ -344,7 +344,7 @@ export default function BrandOrdersPage() {
                                 <span className={`w-2 h-2 rounded-full ${evConfig?.bg || 'bg-gray-200'}`} />
                                 <span className="text-gray-700">{evConfig?.label || event.status}</span>
                                 <span className="text-gray-400 text-xs">
-                                  {new Date(event.created_at).toLocaleDateString('da-DK', {
+                                  {new Date(event.created_at).toLocaleDateString('en-GB', {
                                     day: 'numeric',
                                     month: 'short',
                                     hour: '2-digit',
