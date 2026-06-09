@@ -1,95 +1,102 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { Search, SlidersHorizontal, Plus, Check, Coins, ChevronRight } from 'lucide-react';
+import { Coins, ChevronRight, MapPin, Users, QrCode } from 'lucide-react';
 
-type ProductRow = {
+type ScanRow = {
+  product_id: string;
+  source_type: string;
+  scanned_at: string;
+  products: {
+    id: string;
+    name: string;
+    price_dkk: number;
+    images: string[] | null;
+    brand_profiles: { name: string; logo_url: string | null } | null;
+  } | null;
+  retailer_profiles: { name: string } | null;
+};
+
+type Discovery = {
   id: string;
   name: string;
   price_dkk: number;
-  images: string[] | null;
-  category: string | null;
-  brand_profiles: { name: string } | null;
+  image?: string;
+  brandName: string;
+  brandLogo?: string;
+  retailerName?: string;
+  scannedAt: string;
+  sourceType: string;
 };
 
-// Espresso gradient fallbacks for products without photography.
 const GRADIENTS = [
   'linear-gradient(160deg,#E0915C 0%,#7a3f1f 70%,#2a1308 100%)',
   'linear-gradient(160deg,#C9A06A 0%,#6f4c30 65%,#241509 100%)',
   'linear-gradient(160deg,#b97e63 0%,#5e3320 70%,#1c0f08 100%)',
   'linear-gradient(160deg,#caa57e 0%,#7a5c44 60%,#241509 100%)',
-  'linear-gradient(160deg,#d8a03a 0%,#7a531a 70%,#241509 100%)',
-  'linear-gradient(160deg,#a98b86 0%,#5b3b3b 70%,#1c0f0d 100%)',
 ];
+
+function timeAgo(iso: string): string {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days} day${days > 1 ? 's' : ''} ago`;
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 export default function ConsumerHomePage() {
   const { user, profile } = useAuth();
-  const [products, setProducts] = useState<ProductRow[]>([]);
+  const [discoveries, setDiscoveries] = useState<Discovery[]>([]);
   const [loading, setLoading] = useState(true);
   const [points, setPoints] = useState<number | null>(null);
-  const [activeCat, setActiveCat] = useState('All');
-  const [query, setQuery] = useState('');
-  const [saved, setSaved] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from('products')
-      .select('id, name, price_dkk, images, category, brand_profiles (name)')
-      .order('created_at', { ascending: false })
-      .limit(30)
-      .then(({ data }: { data: ProductRow[] | null }) => {
-        setProducts(data ?? []);
-        setLoading(false);
-      });
-  }, []);
 
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
+
+    supabase
+      .from('scans')
+      .select(
+        `product_id, source_type, scanned_at,
+         products ( id, name, price_dkk, images, brand_profiles ( name, logo_url ) ),
+         retailer_profiles:source_retailer_id ( name )`
+      )
+      .eq('scanner_user_id', user.id)
+      .order('scanned_at', { ascending: false })
+      .then(({ data }: { data: ScanRow[] | null }) => {
+        const seen = new Set<string>();
+        const list: Discovery[] = [];
+        for (const row of data ?? []) {
+          if (!row.products || seen.has(row.product_id)) continue;
+          seen.add(row.product_id);
+          list.push({
+            id: row.products.id,
+            name: row.products.name,
+            price_dkk: row.products.price_dkk,
+            image: row.products.images?.[0],
+            brandName: row.products.brand_profiles?.name ?? '',
+            brandLogo: row.products.brand_profiles?.logo_url ?? undefined,
+            retailerName: row.retailer_profiles?.name,
+            scannedAt: row.scanned_at,
+            sourceType: row.source_type,
+          });
+        }
+        setDiscoveries(list);
+        setLoading(false);
+      });
+
     supabase
       .rpc('get_points_balance', { p_user_id: user.id })
       .then(({ data }: { data: number | null }) => setPoints(data ?? 0));
   }, [user]);
-
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    products.forEach((p) => p.category && set.add(p.category));
-    return ['All', ...Array.from(set)];
-  }, [products]);
-
-  const visible = useMemo(() => {
-    return products.filter((p) => {
-      const catOk = activeCat === 'All' || p.category === activeCat;
-      const q = query.trim().toLowerCase();
-      const qOk =
-        !q ||
-        p.name.toLowerCase().includes(q) ||
-        (p.brand_profiles?.name ?? '').toLowerCase().includes(q);
-      return catOk && qOk;
-    });
-  }, [products, activeCat, query]);
-
-  async function handleSave(e: React.MouseEvent, productId: string) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (saved.has(productId)) return;
-    setSaved((prev) => new Set(prev).add(productId));
-    try {
-      await fetch('/api/saved-products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: productId }),
-      });
-    } catch {
-      /* optimistic — ignore network errors in the prototype flow */
-    }
-  }
 
   const firstName = (profile?.name ?? '').split(' ')[0];
 
@@ -97,11 +104,9 @@ export default function ConsumerHomePage() {
     <div className="space-y-5">
       {/* Greeting */}
       <div>
-        {firstName && (
-          <p className="text-sm text-espresso-muted">Welcome back, {firstName}</p>
-        )}
+        {firstName && <p className="text-sm text-espresso-muted">Welcome back, {firstName}</p>}
         <h1 className="text-[34px] leading-tight text-espresso-cream">
-          For <em className="italic">you</em>
+          Your <em className="italic">discoveries</em>
         </h1>
       </div>
 
@@ -119,104 +124,80 @@ export default function ConsumerHomePage() {
           <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[1.4px] text-terracotta">
             <Coins className="h-3.5 w-3.5" /> Cirkle Points
           </span>
-          <span className="mt-1 block font-display text-2xl text-espresso-cream">
-            {points ?? '—'}
-          </span>
+          <span className="mt-1 block font-display text-2xl text-espresso-cream">{points ?? '—'}</span>
         </span>
         <span className="relative flex items-center gap-1 text-xs text-espresso-cream/80">
           View rewards <ChevronRight className="h-4 w-4" />
         </span>
       </Link>
 
-      {/* Search */}
-      <div className="flex items-center gap-2.5 rounded-2xl border border-espresso-line bg-espresso-surface px-4 py-3">
-        <Search className="h-[18px] w-[18px] text-espresso-muted" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search makers, pieces…"
-          className="flex-1 bg-transparent text-sm text-espresso-cream placeholder:text-espresso-muted-2 focus:outline-none"
-        />
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-terracotta text-espresso-bg">
-          <SlidersHorizontal className="h-4 w-4" />
-        </span>
-      </div>
-
-      {/* Category tabs */}
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCat(cat)}
-            className={`whitespace-nowrap rounded-full border px-4 py-2 text-[13px] font-semibold capitalize transition ${
-              activeCat === cat
-                ? 'border-espresso-cream bg-espresso-cream text-espresso-bg'
-                : 'border-espresso-line text-espresso-muted'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Grid */}
+      {/* Discoveries grid */}
       {loading ? (
         <div className="grid grid-cols-2 gap-3.5">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="aspect-[3/4] animate-pulse rounded-2xl bg-espresso-surface" />
           ))}
         </div>
-      ) : visible.length === 0 ? (
-        <p className="py-16 text-center text-sm text-espresso-muted">
-          No pieces here yet.
-        </p>
+      ) : discoveries.length === 0 ? (
+        <div className="rounded-2xl border border-espresso-line bg-espresso-surface px-6 py-14 text-center">
+          <QrCode className="mx-auto h-12 w-12 text-espresso-muted-2" />
+          <p className="mt-3 font-medium text-espresso-cream">Nothing discovered yet</p>
+          <p className="mx-auto mt-1 max-w-[240px] text-sm text-espresso-muted">
+            Scan a Cirkle tag in a shop or café to discover the maker behind it.
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-3.5">
-          {visible.map((p, i) => {
-            const img = p.images?.[0];
-            const isSaved = saved.has(p.id);
-            return (
-              <Link
-                key={p.id}
-                href={`/d/${p.id}`}
-                className="group relative block overflow-hidden rounded-2xl no-underline active:scale-[0.98]"
-              >
-                {/* Image / gradient */}
-                <div
-                  className="relative aspect-[3/4]"
-                  style={img ? undefined : { background: GRADIENTS[i % GRADIENTS.length] }}
-                >
-                  {img && (
-                    <Image src={img} alt={p.name} fill className="object-cover" sizes="50vw" />
+          {discoveries.map((d, i) => (
+            <Link
+              key={d.id}
+              href={`/d/${d.id}`}
+              className="group block overflow-hidden rounded-2xl border border-espresso-line bg-espresso-surface no-underline active:scale-[0.98]"
+            >
+              {/* Image / brand-logo fallback */}
+              <div className="relative aspect-[3/4]" style={d.image ? undefined : { background: GRADIENTS[i % GRADIENTS.length] }}>
+                {d.image ? (
+                  <Image src={d.image} alt={d.name} fill className="object-cover" sizes="50vw" />
+                ) : d.brandLogo ? (
+                  <span className="absolute inset-0 grid place-items-center p-6">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={d.brandLogo} alt={d.brandName} className="max-h-16 max-w-[70%] object-contain opacity-90" />
+                  </span>
+                ) : (
+                  <span className="absolute inset-0 grid place-items-center font-display text-5xl italic text-white/25">
+                    {d.brandName.charAt(0)}
+                  </span>
+                )}
+              </div>
+
+              {/* Meta */}
+              <div className="p-3">
+                <div className="flex items-center gap-1.5">
+                  {d.brandLogo && (
+                    <span className="relative h-4 w-4 flex-none overflow-hidden rounded-full border border-espresso-line bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={d.brandLogo} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    </span>
                   )}
-                  {/* + save */}
-                  <button
-                    onClick={(e) => handleSave(e, p.id)}
-                    aria-label="Save"
-                    className={`absolute right-2.5 top-2.5 grid h-8 w-8 place-items-center rounded-full border backdrop-blur transition ${
-                      isSaved
-                        ? 'border-terracotta bg-terracotta text-espresso-bg'
-                        : 'border-white/20 bg-espresso-bg/55 text-white'
-                    }`}
-                  >
-                    {isSaved ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                  </button>
-                  {/* Overlay caption */}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-espresso-bg/85 to-transparent px-3 pb-3 pt-8">
-                    <p className="text-[9px] font-bold uppercase tracking-[1.4px] text-terracotta">
-                      {p.brand_profiles?.name}
-                    </p>
-                    <p className="mt-0.5 truncate font-display text-[15px] leading-tight text-espresso-cream">
-                      {p.name}
-                    </p>
-                    <p className="mt-1 text-[12.5px] font-semibold text-espresso-cream">
-                      {formatDKK(p.price_dkk)}
-                    </p>
-                  </div>
+                  <span className="truncate text-[9px] font-bold uppercase tracking-[1.2px] text-terracotta">
+                    {d.brandName}
+                  </span>
                 </div>
-              </Link>
-            );
-          })}
+                <p className="mt-1 truncate font-display text-[15px] leading-tight text-espresso-cream">{d.name}</p>
+                <p className="mt-0.5 text-[12.5px] font-semibold text-espresso-cream">{formatDKK(d.price_dkk)}</p>
+                <p className="mt-2 flex items-center gap-1 text-[10.5px] text-espresso-muted">
+                  {d.sourceType === 'retailer' ? (
+                    <MapPin className="h-3 w-3 flex-none text-espresso-muted-2" />
+                  ) : (
+                    <Users className="h-3 w-3 flex-none text-espresso-muted-2" />
+                  )}
+                  <span className="truncate">
+                    {d.retailerName ? `Scanned at ${d.retailerName}` : 'Shared with you'} · {timeAgo(d.scannedAt)}
+                  </span>
+                </p>
+              </div>
+            </Link>
+          ))}
         </div>
       )}
     </div>

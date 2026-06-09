@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import ProductPageClient from '@/components/consumer/product-page-client';
@@ -60,34 +60,41 @@ export default async function PeerDiscoveryPage({
     );
   }
 
-  // No ref → in-app browsing. Don't record a scan; instead surface the user's
-  // existing attribution (the retailer where they first scanned, if any).
-  let attribution: { type: 'retailer' | 'peer' | 'app'; name: string } = {
-    type: 'app',
-    name: 'Cirkle',
-  };
-
+  // No ref → opening a product you already discovered (e.g. from your Home or
+  // Saved). Surface where/when YOU scanned it; never invent attribution. If you
+  // never scanned this product, there's nothing to discover — go home.
   const sb = await createServerSupabaseClient();
   const {
     data: { user },
   } = await sb.auth.getUser();
 
-  if (user) {
-    const { data: lastRetailerScan } = await supabase
-      .from('scans')
-      .select('source_retailer_id, retailer_profiles:source_retailer_id ( name )')
-      .eq('product_id', product.id)
-      .eq('scanner_user_id', user.id)
-      .eq('source_type', 'retailer')
-      .order('scanned_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const retailerName = (lastRetailerScan as any)?.retailer_profiles?.name;
-    if (retailerName) {
-      attribution = { type: 'retailer', name: retailerName };
-    }
+  if (!user) {
+    redirect(`/auth/login?redirect=/d/${product.id}`);
   }
+
+  const { data: lastScan } = await supabase
+    .from('scans')
+    .select(
+      'source_type, scanned_at, retailer_profiles:source_retailer_id ( name ), profiles:source_user_id ( name )'
+    )
+    .eq('product_id', product.id)
+    .eq('scanner_user_id', user!.id)
+    .order('scanned_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!lastScan) {
+    redirect('/consumer/home');
+  }
+
+  const scan = lastScan as any;
+  const retailerName = scan.retailer_profiles?.name as string | undefined;
+  const peerName = scan.profiles?.name as string | undefined;
+
+  const attribution =
+    scan.source_type === 'retailer' && retailerName
+      ? { type: 'retailer' as const, name: retailerName, scannedAt: scan.scanned_at }
+      : { type: 'peer' as const, name: peerName ?? 'a friend', scannedAt: scan.scanned_at };
 
   return (
     <ProductPageClient

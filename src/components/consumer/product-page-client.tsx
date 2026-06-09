@@ -3,9 +3,22 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Heart, Share2, ShoppingBag, MapPin, Users, ChevronLeft, Package, Check, Link as LinkIcon, Loader2, Sparkles } from 'lucide-react';
+import { Heart, Share2, ShoppingBag, MapPin, Users, ChevronLeft, Package, Check, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { formatDKK } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
+
+function timeAgo(iso?: string): string {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days} day${days > 1 ? 's' : ''} ago`;
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 type ProductPageProps = {
   product: {
@@ -26,9 +39,10 @@ type ProductPageProps = {
     logo_url: string | null;
   };
   attribution: {
-    type: 'retailer' | 'peer' | 'app';
+    type: 'retailer' | 'peer';
     name: string;
     peerPointsMessage?: string;
+    scannedAt?: string;
   };
   scanData: {
     sample_id?: string;
@@ -221,19 +235,20 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
         </div>
 
         {/* Scan attribution chip */}
-        <div className="absolute bottom-[18px] left-4 flex items-center gap-2 rounded-full border border-white/15 bg-espresso-bg/60 px-3 py-2 text-[11.5px] font-semibold text-espresso-cream backdrop-blur">
+        <div className="absolute bottom-7 left-5 right-5 flex items-center gap-2 self-start rounded-full border border-white/15 bg-espresso-bg/65 px-4 py-2.5 text-[11.5px] font-semibold text-espresso-cream backdrop-blur w-fit max-w-[calc(100%-2.5rem)]">
           {attribution.type === 'retailer' ? (
-            <MapPin className="h-[13px] w-[13px] text-terracotta" />
-          ) : attribution.type === 'peer' ? (
-            <Users className="h-[13px] w-[13px] text-terracotta" />
+            <MapPin className="h-[14px] w-[14px] flex-none text-terracotta" />
           ) : (
-            <Sparkles className="h-[13px] w-[13px] text-terracotta" />
+            <Users className="h-[14px] w-[14px] flex-none text-terracotta" />
           )}
-          {attribution.type === 'retailer'
-            ? `Scanned at ${attribution.name}`
-            : attribution.type === 'peer'
-            ? `Shared by ${attribution.name}`
-            : 'Discovered in Cirkle'}
+          <span className="truncate">
+            {attribution.type === 'retailer'
+              ? `Scanned at ${attribution.name}`
+              : `Shared by ${attribution.name}`}
+          </span>
+          {attribution.scannedAt && (
+            <span className="flex-none text-espresso-muted">· {timeAgo(attribution.scannedAt)}</span>
+          )}
         </div>
 
         {/* Carousel dots */}
@@ -321,18 +336,22 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
 
         {/* Maker / attribution context */}
         <div className="mt-5 flex items-center gap-3 rounded-2xl border border-espresso-line bg-espresso-surface p-3.5">
-          <span className="grid h-11 w-11 flex-none place-items-center rounded-full font-display text-lg italic text-white"
-            style={{ background: 'linear-gradient(135deg,#E0915C,#8b4f1f)' }}>
-            {brand.name?.[0] ?? 'C'}
-          </span>
+          {brand.logo_url ? (
+            <span className="relative h-11 w-11 flex-none overflow-hidden rounded-full border border-espresso-line bg-white">
+              <Image src={brand.logo_url} alt={brand.name} fill className="object-cover" sizes="44px" />
+            </span>
+          ) : (
+            <span className="grid h-11 w-11 flex-none place-items-center rounded-full font-display text-lg italic text-white"
+              style={{ background: 'linear-gradient(135deg,#E0915C,#8b4f1f)' }}>
+              {brand.name?.[0] ?? 'C'}
+            </span>
+          )}
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-espresso-cream">{brand.name}</p>
             <p className="text-xs text-espresso-muted">
               {attribution.type === 'retailer'
                 ? `Discovered at ${attribution.name} · ✦ Emerging maker`
-                : attribution.type === 'peer'
-                ? `Shared by ${attribution.name}`
-                : '✦ Emerging maker'}
+                : `Shared by ${attribution.name}`}
             </p>
           </div>
         </div>
@@ -343,10 +362,8 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
           <p className="text-[13px] leading-relaxed text-espresso-muted">
             {attribution.type === 'retailer' ? (
               <>You scanned a sample at <span className="text-espresso-cream">{attribution.name}</span>. Buy within 90 days and they earn for the introduction — that&rsquo;s how Cirkle keeps small spaces thriving.</>
-            ) : attribution.type === 'peer' ? (
-              attribution.peerPointsMessage || <>Shared by a friend. When you buy, they earn Cirkle Points.</>
             ) : (
-              <>You found this while browsing Cirkle. If you scanned it at a shop first, that shop still earns when you buy.</>
+              attribution.peerPointsMessage || <>Shared by a friend. When you buy, they earn Cirkle Points.</>
             )}
           </p>
         </div>
