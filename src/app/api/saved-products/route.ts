@@ -15,18 +15,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing product_id' }, { status: 400 });
   }
 
+  // Attribute the save to the user's FIRST scan of this product, so a product
+  // displayed at several retailers stays tied to where it was first discovered.
+  const { data: firstScan } = await supabase
+    .from('scans')
+    .select('id')
+    .eq('product_id', product_id)
+    .eq('scanner_user_id', user.id)
+    .order('scanned_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const attributionScanId = (firstScan as { id: string } | null)?.id ?? scan_id ?? null;
+
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 90);
 
+  // ignoreDuplicates: never re-point an already-saved product to a newer scan.
   const { error } = await supabase.from('saved_products').upsert(
     {
       user_id: user.id,
       product_id,
-      scan_id: scan_id || null,
+      scan_id: attributionScanId,
       saved_at: new Date().toISOString(),
       expires_at: expiresAt.toISOString(),
     },
-    { onConflict: 'user_id,product_id' }
+    { onConflict: 'user_id,product_id', ignoreDuplicates: true }
   );
 
   if (error) {

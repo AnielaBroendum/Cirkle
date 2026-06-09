@@ -72,22 +72,24 @@ export default async function PeerDiscoveryPage({
     redirect(`/auth/login?redirect=/d/${product.id}`);
   }
 
-  const { data: lastScan } = await supabase
+  // First scan wins: show where the user FIRST discovered this product, even if
+  // it's displayed at several retailers and scanned more than once.
+  const { data: firstScan } = await supabase
     .from('scans')
     .select(
       'source_type, scanned_at, retailer_profiles:source_retailer_id ( name ), profiles:source_user_id ( name )'
     )
     .eq('product_id', product.id)
     .eq('scanner_user_id', user!.id)
-    .order('scanned_at', { ascending: false })
+    .order('scanned_at', { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  if (!lastScan) {
+  if (!firstScan) {
     redirect('/consumer/home');
   }
 
-  const scan = lastScan as any;
+  const scan = firstScan as any;
   const retailerName = scan.retailer_profiles?.name as string | undefined;
   const peerName = scan.profiles?.name as string | undefined;
 

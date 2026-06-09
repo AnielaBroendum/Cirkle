@@ -84,7 +84,7 @@ export default function ConsumerHomePage() {
              retailer_profiles:source_retailer_id ( name )`
           )
           .eq('scanner_user_id', user.id)
-          .order('scanned_at', { ascending: false }),
+          .order('scanned_at', { ascending: true }),
         supabase
           .from('saved_products')
           .select(
@@ -98,7 +98,8 @@ export default function ConsumerHomePage() {
       const seen = new Set<string>();
       const list: Discovery[] = [];
 
-      // Scanned discoveries first (they carry where/when you scanned).
+      // Scans come oldest-first, so the first one we keep per product is the
+      // FIRST place it was scanned — it stays pinned there.
       for (const row of (scanData as ScanRow[] | null) ?? []) {
         if (!row.products || seen.has(row.product_id)) continue;
         seen.add(row.product_id);
@@ -131,6 +132,8 @@ export default function ConsumerHomePage() {
         });
       }
 
+      // Show most-recently-discovered first.
+      list.sort((a, b) => new Date(b.when).getTime() - new Date(a.when).getTime());
       setDiscoveries(list);
       setLoading(false);
     })();
