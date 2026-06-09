@@ -74,8 +74,11 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
   }, []);
 
   // Record the scan (skip for in-app browsing, which isn't a scan).
+  // Wait for auth to resolve first, otherwise the scan is saved as anonymous
+  // (no scanner_user_id) and never shows up in the user's discoveries.
   useEffect(() => {
     if (!recordScan) return;
+    if (authLoading) return;
     if (scanRecorded.current) return;
     scanRecorded.current = true;
 
@@ -92,7 +95,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
         if (data.id) setScanId(data.id);
       })
       .catch(() => {});
-  }, [scanData, user?.id]);
+  }, [scanData, user?.id, authLoading, recordScan]);
 
   function handleScroll() {
     if (!carouselRef.current) return;

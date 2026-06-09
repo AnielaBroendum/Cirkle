@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { Coins, ChevronRight, MapPin, Users, QrCode } from 'lucide-react';
+import { Coins, ChevronRight, MapPin, Users, QrCode, Heart } from 'lucide-react';
 
 type ScanRow = {
   product_id: string;
@@ -22,6 +22,18 @@ type ScanRow = {
   retailer_profiles: { name: string } | null;
 };
 
+type SavedRow = {
+  product_id: string;
+  saved_at: string;
+  products: {
+    id: string;
+    name: string;
+    price_dkk: number;
+    images: string[] | null;
+    brand_profiles: { name: string; logo_url: string | null } | null;
+  } | null;
+};
+
 type Discovery = {
   id: string;
   name: string;
@@ -30,8 +42,8 @@ type Discovery = {
   brandName: string;
   brandLogo?: string;
   retailerName?: string;
-  scannedAt: string;
-  sourceType: string;
+  when: string;
+  via: 'scan-retailer' | 'scan-peer' | 'saved';
 };
 
 const GRADIENTS = [
@@ -62,36 +74,66 @@ export default function ConsumerHomePage() {
     if (!user) return;
     const supabase = createClient();
 
-    supabase
-      .from('scans')
-      .select(
-        `product_id, source_type, scanned_at,
-         products ( id, name, price_dkk, images, brand_profiles ( name, logo_url ) ),
-         retailer_profiles:source_retailer_id ( name )`
-      )
-      .eq('scanner_user_id', user.id)
-      .order('scanned_at', { ascending: false })
-      .then(({ data }: { data: ScanRow[] | null }) => {
-        const seen = new Set<string>();
-        const list: Discovery[] = [];
-        for (const row of data ?? []) {
-          if (!row.products || seen.has(row.product_id)) continue;
-          seen.add(row.product_id);
-          list.push({
-            id: row.products.id,
-            name: row.products.name,
-            price_dkk: row.products.price_dkk,
-            image: row.products.images?.[0],
-            brandName: row.products.brand_profiles?.name ?? '',
-            brandLogo: row.products.brand_profiles?.logo_url ?? undefined,
-            retailerName: row.retailer_profiles?.name,
-            scannedAt: row.scanned_at,
-            sourceType: row.source_type,
-          });
-        }
-        setDiscoveries(list);
-        setLoading(false);
-      });
+    (async () => {
+      const [{ data: scanData }, { data: savedData }] = await Promise.all([
+        supabase
+          .from('scans')
+          .select(
+            `product_id, source_type, scanned_at,
+             products ( id, name, price_dkk, images, brand_profiles ( name, logo_url ) ),
+             retailer_profiles:source_retailer_id ( name )`
+          )
+          .eq('scanner_user_id', user.id)
+          .order('scanned_at', { ascending: false }),
+        supabase
+          .from('saved_products')
+          .select(
+            `product_id, saved_at,
+             products ( id, name, price_dkk, images, brand_profiles ( name, logo_url ) )`
+          )
+          .eq('user_id', user.id)
+          .order('saved_at', { ascending: false }),
+      ]);
+
+      const seen = new Set<string>();
+      const list: Discovery[] = [];
+
+      // Scanned discoveries first (they carry where/when you scanned).
+      for (const row of (scanData as ScanRow[] | null) ?? []) {
+        if (!row.products || seen.has(row.product_id)) continue;
+        seen.add(row.product_id);
+        list.push({
+          id: row.products.id,
+          name: row.products.name,
+          price_dkk: row.products.price_dkk,
+          image: row.products.images?.[0],
+          brandName: row.products.brand_profiles?.name ?? '',
+          brandLogo: row.products.brand_profiles?.logo_url ?? undefined,
+          retailerName: row.retailer_profiles?.name,
+          when: row.scanned_at,
+          via: row.source_type === 'retailer' ? 'scan-retailer' : 'scan-peer',
+        });
+      }
+
+      // Saved products you haven't got a personal scan row for yet.
+      for (const row of (savedData as SavedRow[] | null) ?? []) {
+        if (!row.products || seen.has(row.product_id)) continue;
+        seen.add(row.product_id);
+        list.push({
+          id: row.products.id,
+          name: row.products.name,
+          price_dkk: row.products.price_dkk,
+          image: row.products.images?.[0],
+          brandName: row.products.brand_profiles?.name ?? '',
+          brandLogo: row.products.brand_profiles?.logo_url ?? undefined,
+          when: row.saved_at,
+          via: 'saved',
+        });
+      }
+
+      setDiscoveries(list);
+      setLoading(false);
+    })();
 
     supabase
       .rpc('get_points_balance', { p_user_id: user.id })
@@ -186,13 +228,20 @@ export default function ConsumerHomePage() {
                 <p className="mt-1 truncate font-display text-[15px] leading-tight text-espresso-cream">{d.name}</p>
                 <p className="mt-0.5 text-[12.5px] font-semibold text-espresso-cream">{formatDKK(d.price_dkk)}</p>
                 <p className="mt-2 flex items-center gap-1 text-[10.5px] text-espresso-muted">
-                  {d.sourceType === 'retailer' ? (
+                  {d.via === 'scan-retailer' ? (
                     <MapPin className="h-3 w-3 flex-none text-espresso-muted-2" />
-                  ) : (
+                  ) : d.via === 'scan-peer' ? (
                     <Users className="h-3 w-3 flex-none text-espresso-muted-2" />
+                  ) : (
+                    <Heart className="h-3 w-3 flex-none text-espresso-muted-2" />
                   )}
                   <span className="truncate">
-                    {d.retailerName ? `Scanned at ${d.retailerName}` : 'Shared with you'} · {timeAgo(d.scannedAt)}
+                    {d.via === 'scan-retailer'
+                      ? `Scanned at ${d.retailerName ?? 'a shop'}`
+                      : d.via === 'scan-peer'
+                      ? 'Shared with you'
+                      : 'Saved'}{' '}
+                    · {timeAgo(d.when)}
                   </span>
                 </p>
               </div>
