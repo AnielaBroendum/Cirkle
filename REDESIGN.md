@@ -113,29 +113,22 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 
 - `src/middleware.ts` handles auth plus role gating (`/brand`, `/retailer` and `/consumer` are locked to their role; `/`, `/auth`, `/p`, `/d` and `/invite` are public). Don't touch it.
 - CLAUDE.md mentions `src/lib/attribution.ts`, `points.ts` and `qr.ts`. **These files don't exist.** That logic lives inside the API routes listed above.
-- Auth pages are in `src/app/auth/`, not `(auth)/`.
+- Auth pages are in `src/app/auth/`, not in an `(auth)/` route group as CLAUDE.md says.
 - `tailwind.config.ts` remaps `gray`, `white`, `black` and `cirkle` into the dark "Espresso" theme. Add the new design tokens under new names so screens that haven't been redesigned yet don't change.
 - `src/components/ds/` doesn't exist yet. Build it first, from the Figma tokens and components.
 
 ---
 
-## Cleanup candidates (nothing deleted yet)
+## Cleanup
 
-All of the folders below are **empty and not tracked by git**. Next.js ignores empty folders, so **none of them is a live route**. They are probably leftovers from a `mkdir -p` with brace expansion that went wrong.
+**Done (2026-10-14):** removed the empty folders listed below. None of them was tracked by git or contained any files, and Next.js ignores empty folders, so no route or link changed.
 
-- Brace-expansion leftovers (literal `{}` in the names):
-  - `src/app/{(auth)}`
-  - `src/app/{(brand)}/{dashboard,products,samples,partnerships,orders}`
-  - `src/app/{(consumer)}/{profile,orders,saved}`
-  - `src/app/{(retailer)}/{dashboard,samples,brands}`
-- Empty duplicates of real routes:
-  - `src/app/(auth)/`: real is `src/app/auth/`
-  - `src/app/(consumer)/{saved,profile,orders}`: real is `(consumer)/consumer/*`
-  - `src/app/(retailer)/{dashboard,samples,brands,onboarding}`: real is `(retailer)/retailer/*`
-  - `src/app/(retailer)/invite/[token]`: real is `src/app/invite/[token]`
-  - `src/app/(brand)/{dashboard,products,samples,partnerships,orders,onboarding}`: real is `(brand)/brand/*`
-- Empty API folders: `src/app/api/{auth,brand,consumer,retailer,scan}` (the real scan route is `api/scans`)
-- Empty component folders: `src/components/shared`, `src/components/retailer`. Keep them if the redesign will use them.
+- Brace-expansion leftovers: `src/app/{(auth)}`, `{(brand)}/…`, `{(consumer)}/…`, `{(retailer)}/…`
+- Empty duplicates of real routes: `src/app/(auth)/`, `(consumer)/{saved,profile,orders}`, `(retailer)/{dashboard,samples,brands,onboarding,invite}`, `(brand)/{dashboard,products,samples,partnerships,orders,onboarding}`
+- Empty API folders: `src/app/api/{auth,brand,consumer,retailer,scan}`
+
+**Kept:**
+- `src/components/shared` and `src/components/retailer`: empty, but they match the folder structure in CLAUDE.md and the redesign may use them. Git doesn't track empty folders.
 - Other:
   - `tsconfig.tsbuildinfo`: build cache, already gitignored, harmless
   - `CLAUDE_CODE_PROMPT.md`: the old build-phase prompts, tracked in git; archive or delete as you like
