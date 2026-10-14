@@ -151,3 +151,17 @@ See `.env.example` for required variables. Key ones:
 - DPP fields are placeholder only (materials text field, no structured EU compliance)
 - Email notifications via Resend for: order confirmation, status updates, retailer invitations
 - The consumer experience should feel like a PWA — installable, fast, mobile-optimized
+
+## Redesign rules
+
+We are redesigning the full UI to match the new Figma design while keeping all functionality exactly as it is. See `REDESIGN.md` for the route inventory and the flow test checklist.
+
+- Never change API routes (`src/app/api`), `src/lib`, `supabase/`, database queries, auth logic, Resend emails, QR/attribution/points logic, or environment variables.
+  - `src/middleware.ts` (role gating) and `src/app/auth/callback` count as auth logic. Don't touch them.
+- Only change layout, markup and styling. Keep every data call, form submission, handler, state and redirect wired exactly as before.
+- If a page mixes data fetching and layout, keep the data fetching and only replace the layout and markup.
+- Use only the new design tokens and the components in `src/components/ds/` in redesigned screens.
+  - Add the new tokens under **new names** in `tailwind.config.ts`. Don't redefine `gray`, `white`, `black` or `cirkle`: the current "Espresso" theme remaps those, and every screen that hasn't been redesigned yet depends on them.
+- Only touch the portal named in the current task.
+- Commit after each finished screen with a clear message.
+- Mobile-first, Tailwind only, no custom CSS files.
