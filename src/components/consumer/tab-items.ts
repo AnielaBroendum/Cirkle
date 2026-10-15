@@ -11,7 +11,7 @@ export function consumerTabs({ scanMatch = [], profileMatch = [] }: { scanMatch?
       label: 'Profile',
       icon: User,
       // Saved, owned items (QR), orders and history live under Profile.
-      match: ['/consumer/saved', '/consumer/qr', '/consumer/orders', '/consumer/history', ...profileMatch],
+      match: ['/consumer/saved', '/consumer/qr', '/consumer/orders', '/consumer/history', '/consumer/owned', ...profileMatch],
     },
   ];
 }

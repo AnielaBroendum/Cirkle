@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { Heart, ShoppingBag, Eye, X, Package } from 'lucide-react';
+import { X } from 'lucide-react';
+import { cn } from '@/components/ds';
+import ProfileHeader from '@/components/consumer/profile-header';
+import { Thumb } from '@/components/consumer/checkout-parts';
 
 type SavedProduct = {
   id: string;
@@ -64,106 +66,70 @@ export default function ConsumerSavedPage() {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   }
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse bg-gray-200 rounded h-8 w-44" />
-        <div className="grid grid-cols-2 gap-3">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-              <div className="animate-pulse bg-gray-200 aspect-square" />
-              <div className="p-3 space-y-2">
-                <div className="animate-pulse bg-gray-200 rounded h-4 w-24" />
-                <div className="animate-pulse bg-gray-100 rounded h-3 w-16" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Saved products</h1>
+    <div className="pb-8">
+      <ProfileHeader />
 
-      {items.length === 0 ? (
-        <div className="text-center py-16">
-          <Heart className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 font-medium text-gray-700">No saved products</p>
-          <p className="text-sm text-gray-400 mt-1">Scan a QR code and tap the heart to save products</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {items.map((item) => {
-            const product = item.products;
-            const imageUrl = product?.images?.[0];
-            const days = daysLeft(item.expires_at);
-            const expired = days === 0;
+      <div className="px-5 pt-1.5">
+        {loading ? (
+          <div className="divide-y divide-line-dark" aria-busy>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3.5 py-3.5">
+                <div className="ml-1.5 h-20 w-16 animate-pulse bg-surface-dark" />
+                <div className="h-4 w-40 animate-pulse bg-surface-dark" />
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="mt-2 bg-surface-dark p-4">
+            <p className="text-body text-on-primary">Nothing saved yet</p>
+            <p className="mt-1 text-caption text-muted">Scan a Flaym tag and tap Save. The store still gets its cut if you buy within 90 days.</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-line-dark">
+            {items.map((item) => {
+              const product = item.products;
+              const days = daysLeft(item.expires_at);
+              const expired = days === 0;
 
-            return (
-              <Link
-                key={item.id}
-                href={`/d/${product.id}`}
-                className={`relative bg-white rounded-xl border overflow-hidden block no-underline ${
-                  expired ? 'opacity-50 border-gray-200' : 'border-gray-100 active:border-gray-300'
-                }`}
-              >
-                {/* Remove button */}
-                <button
-                  onClick={(e) => handleRemove(e, item.product_id)}
-                  className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-
-                {/* Image */}
-                {imageUrl ? (
-                  <div className="relative aspect-square">
-                    <Image src={imageUrl} alt={product.name} fill className="object-cover" sizes="50vw" />
-                  </div>
-                ) : (
-                  <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                    <Package className="h-8 w-8 text-gray-300" />
-                  </div>
-                )}
-
-                {/* Info */}
-                <div className="p-3">
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wider">
-                    {product?.brand_profiles?.name}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900 truncate mt-0.5">{product?.name}</p>
-                  <p className="text-sm font-semibold text-gray-700 mt-1">{formatDKK(product?.price_dkk || 0)}</p>
-
-                  <div className="flex items-center justify-between mt-2">
-                    <span className={`text-[10px] font-medium ${expired ? 'text-red-500' : 'text-gray-400'}`}>
-                      {expired ? 'Expired' : `${days} days left`}
-                    </span>
-                  </div>
-
-                  <div className="flex gap-2 mt-2">
+              return (
+                <li key={item.id} className={cn('flex items-center gap-3.5 py-3.5', expired && 'opacity-50')}>
+                  <Link href={`/d/${product.id}`} className="flex min-w-0 flex-1 items-center gap-3.5 pl-1.5">
+                    <Thumb src={product?.images?.[0] ?? null} alt={product.name} className="h-20 w-16" />
+                    <div className="min-w-0">
+                      <p className="truncate text-body text-on-primary">{product?.name}</p>
+                      <p className="truncate text-caption text-muted">
+                        {product?.brand_profiles?.name} · {formatDKK(product?.price_dkk || 0)}
+                      </p>
+                      <p className={cn('mt-1 text-label tracking-normal', expired ? 'text-accent' : 'text-muted')}>
+                        {expired ? 'Expired' : `${days} days left`}
+                      </p>
+                    </div>
+                  </Link>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
                     {!expired && (
                       <a
                         href={`/consumer/checkout/${product.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 flex items-center justify-center gap-1.5 bg-cirkle-600 text-white text-xs font-medium py-2 rounded-lg hover:bg-cirkle-700 active:bg-cirkle-800 transition no-underline"
+                        className="rounded-pill bg-accent px-2.5 py-0.5 text-caption font-medium text-on-primary hover:bg-accent/90"
                       >
-                        <ShoppingBag className="h-3 w-3" />
-                        Buy now
+                        Buy
                       </a>
                     )}
-                    <span className="flex items-center justify-center gap-1 text-xs text-gray-400 py-2 px-2">
-                      <Eye className="h-3 w-3" />
-                      Se
-                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleRemove(e, item.product_id)}
+                      aria-label={`Remove ${product?.name}`}
+                      className="grid h-6 w-6 place-items-center text-muted hover:text-on-primary"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
