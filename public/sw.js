@@ -1,4 +1,5 @@
-const CACHE_NAME = 'cirkle-v1';
+// Bump to drop old caches: the activate step deletes every other cache name.
+const CACHE_NAME = 'flaym-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
