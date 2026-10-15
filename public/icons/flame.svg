@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="12" height="17" viewBox="0 0 12 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="flame" clip-path="url(#clip0_0_4)">
+<path id="Vector" d="M6 0C6 0 0 7.5 0 11C0 12.5913 0.632141 14.1174 1.75736 15.2426C2.88258 16.3679 4.4087 17 6 17C7.5913 17 9.11742 16.3679 10.2426 15.2426C11.3679 14.1174 12 12.5913 12 11C12 7.5 6 0 6 0Z" fill="#FF5000"/>
+</g>
+<defs>
+<clipPath id="clip0_0_4">
+<rect width="12" height="17" fill="white"/>
+</clipPath>
+</defs>
+</svg>

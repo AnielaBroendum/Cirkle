@@ -18,6 +18,8 @@ export type BasketItem = {
   image: string | null;
   size: string | null;
   color: string | null;
+  /** Where the shopper found it, for display ("Size M · [Store]"). Attribution itself is server-side. */
+  foundVia?: { type: 'retailer' | 'peer'; name: string };
 };
 
 const STORAGE_KEY = 'flaym-basket';
@@ -82,4 +84,17 @@ export function clearBasket(keys?: string[]) {
 
 export function useBasket(): BasketItem[] {
   return useSyncExternalStore(subscribe, read, () => EMPTY);
+}
+
+// Same flat delivery fee the checkout has always shown, now per brand.
+export const DELIVERY_FEE_ORE = 4900;
+
+export function groupByBrand(items: BasketItem[]) {
+  const groups = new Map<string, { brandName: string; items: BasketItem[] }>();
+  for (const item of items) {
+    const g = groups.get(item.brandId) ?? { brandName: item.brandName, items: [] };
+    g.items.push(item);
+    groups.set(item.brandId, g);
+  }
+  return Array.from(groups.values());
 }

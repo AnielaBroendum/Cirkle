@@ -206,6 +206,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
       image: product.images?.[0] ?? null,
       size: selectedSize,
       color: selectedColor,
+      foundVia: { type: attribution.type, name: attribution.name },
     });
     if (authLoading || !user) {
       window.location.href = `/auth/signup?role=consumer&redirect=${encodeURIComponent('/consumer/basket')}`;
