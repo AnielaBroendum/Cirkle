@@ -13,7 +13,8 @@ const HIDE_NAV_PREFIXES = ['/consumer/checkout', '/consumer/basket'];
 
 export default function ConsumerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '';
-  const showNav = !HIDE_NAV_PREFIXES.some((p) => pathname.startsWith(p));
+  // Return requests (Figma 11) also end in their own bottom action.
+  const showNav = !HIDE_NAV_PREFIXES.some((p) => pathname.startsWith(p)) && !pathname.endsWith('/return');
 
   return (
     <div className={`min-h-screen bg-canvas-dark font-brand text-on-primary ${showNav ? 'pb-16' : ''}`}>

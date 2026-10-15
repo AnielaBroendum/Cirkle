@@ -264,6 +264,15 @@ export default function OrderDetailPage() {
           </ul>
         </section>
 
+        {delivered && (
+          <Link
+            href={`/consumer/orders/${order.id}/return${order.order_items.length === 1 ? `?item=${order.order_items[0].id}` : ''}`}
+            className="mt-3 block text-center text-caption text-line underline-offset-2 hover:underline"
+          >
+            Request a return
+          </Link>
+        )}
+
         {/* Summary */}
         <DarkCard className="mt-4 space-y-3 text-body">
           <div className="flex justify-between">
