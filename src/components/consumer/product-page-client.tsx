@@ -100,8 +100,15 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
       .then((data) => {
         if (data.id) setScanId(data.id);
       })
-      .catch(() => {});
-  }, [scanData, user?.id, authLoading, recordScan]);
+      .catch(() => {})
+      .finally(() => {
+        // Back from signup after tapping Buy (?then=basket): the scan is now
+        // recorded with the new account, so continue to the basket.
+        if (user && new URLSearchParams(window.location.search).get('then') === 'basket') {
+          router.replace('/consumer/basket');
+        }
+      });
+  }, [scanData, user?.id, authLoading, recordScan]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleScroll() {
     if (!carouselRef.current) return;
@@ -210,13 +217,21 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
       foundVia: { type: attribution.type, name: attribution.name },
     });
     if (authLoading || !user) {
-      window.location.href = `/auth/signup?role=consumer&redirect=${encodeURIComponent('/consumer/basket')}`;
+      // Come back to this product page first so the scan is recorded with the
+      // new account (that's what attributes the sale), then on to the basket.
+      const back = new URL(window.location.href);
+      back.searchParams.set('then', 'basket');
+      window.location.href = `/auth/signup?role=consumer&redirect=${encodeURIComponent(back.pathname + back.search)}`;
       return;
     }
     router.push('/consumer/basket');
   }
 
   const images = product.images?.length > 0 ? product.images : [];
+  // Swatches only after hydration (CSS.supports is browser-only), and only if
+  // the browser can paint every colour name.
+  const swatches =
+    hydrated && typeof CSS !== 'undefined' && (product.colors ?? []).every((c) => CSS.supports('color', c.toLowerCase()));
   const inApp = !recordScan; // opened from Saved / History rather than scanned
 
   return (
@@ -342,12 +357,17 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
           </div>
         )}
 
-        {/* Colours */}
+        {/* Colours: Figma swatches when every name is a CSS colour, otherwise
+            text chips (brands write names like "Sort" that a browser can't paint). */}
         {product.colors?.length > 0 && (
-          <div className="mt-3.5 flex items-center gap-2" role="radiogroup" aria-label="Colour">
+          <div className="mt-3.5 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Colour">
             {product.colors.map((color) => {
               const on = selectedColor === color;
-              return (
+              const pick = () => {
+                setSelectedColor(color);
+                setSelectionError('');
+              };
+              return swatches ? (
                 <button
                   key={color}
                   type="button"
@@ -355,20 +375,33 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
                   aria-checked={on}
                   aria-label={color}
                   title={color}
-                  onClick={() => {
-                    setSelectedColor(color);
-                    setSelectionError('');
-                  }}
+                  onClick={pick}
                   // Colour names come from the brand's product data.
                   style={{ backgroundColor: color.toLowerCase() }}
-                  className={cn('h-[22px] w-[22px] rounded-pill bg-muted', on && 'border-2 border-on-primary')}
+                  className={cn('h-[22px] w-[22px] rounded-pill', on && 'border-2 border-on-primary')}
                 />
+              ) : (
+                <button
+                  key={color}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={pick}
+                  className={cn(
+                    'h-8 px-3 text-caption transition-colors',
+                    on ? 'bg-on-primary text-primary' : 'border border-muted text-on-primary hover:border-on-primary'
+                  )}
+                >
+                  {color}
+                </button>
               );
             })}
-            <span className="ml-1.5 text-caption text-line">
-              {selectedColor ?? product.colors[0]}
-              {product.colors.length > 1 && ` · ${product.colors.length} colours`}
-            </span>
+            {swatches && (
+              <span className="ml-1.5 text-caption text-line">
+                {selectedColor ?? product.colors[0]}
+                {product.colors.length > 1 && ` · ${product.colors.length} colours`}
+              </span>
+            )}
           </div>
         )}
 
