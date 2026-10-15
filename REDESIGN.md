@@ -23,21 +23,33 @@ Legend: **C** = client component, **S** = server component. "Reads" = direct Sup
 
 ---
 
-## Consumer portal: `src/app/(consumer)/`
+## Consumer portal: `src/app/(consumer)/` (redesigned to Figma "App", Oct 2026)
 
-Layout `(consumer)/layout.tsx` (C): mobile bottom nav (Home, Saved, Orders, Profile), `InstallPrompt` and `PageTransition`.
+Layout `(consumer)/layout.tsx` (C): Figma tab bar (Scan, Flayms, Profile). Profile stays active on `/saved`, `/history`, `/qr`, `/orders`, `/owned`. The bar is hidden on checkout, basket and return screens. Also `InstallPrompt` and `PageTransition`.
 
-| Route | What it does | Reads | Calls |
-|---|---|---|---|
-| `/consumer/home` | "Discoveries" feed: recently scanned and saved products, points balance | `scans`, `saved_products`, RPC `get_points_balance` | — |
-| `/consumer/saved` | Wishlist (90-day attribution window), remove item | `saved_products` | `DELETE /api/saved-products` |
-| `/consumer/orders` | Order list | `orders` | — |
-| `/consumer/orders/[orderId]` | Order detail, Wolt-style status timeline (`OrderTimeline`), peer-discovery QR | `orders` | `GET /api/orders/[orderId]/qr` |
-| `/consumer/profile` | Profile, points balance plus points history, links (e.g. "My QR codes"), sign out | `profiles`, `points_ledger`, RPC `get_points_balance` | — |
-| `/consumer/qr` | "My QR codes": peer QR for every owned product | `orders` | `GET /api/orders/[id]/qr` |
-| `/consumer/checkout/[productId]` | Mock checkout: variant, address, redeem points. Logged-out users go to signup with a redirect; on success they go to `/consumer/orders/[id]` | `products`, RPC `get_points_balance` | `POST /api/checkout` |
+| Route | Figma | What it does | Reads | Calls |
+|---|---|---|---|---|
+| `/consumer/home` | 03 | Scan tab: in-app camera (`jsqr`), opens Flaym `/p` or `/d` links only | — | — |
+| `/consumer/flayms` | 08 | Passed on / Lit counts, latest feed, points balance and history | `points_ledger` | `GET /api/flayms` |
+| `/consumer/profile` | 09b | Profile header + Owned grid; orders, QR codes, settings, sign out | `orders`, `profiles` | `GET /api/flayms` |
+| `/consumer/saved` | 19 | Saved tab (90-day window), Buy, remove | `saved_products` | `DELETE /api/saved-products` |
+| `/consumer/history` | 20 | History tab: first scan per product + unscanned saves | `scans`, `saved_products` | — |
+| `/consumer/owned/[itemId]` | 18 | Owned item: passed on / lit, bought at, pass it on, return | `order_items`, `scans` | `GET /api/flayms` |
+| `/consumer/qr` | 10b | `?order=&product=`: one Pass it on code; otherwise all codes | `orders` | `GET /api/orders/[id]/qr` |
+| `/consumer/basket` | 05 | Client basket (localStorage), grouped by brand | — | — |
+| `/consumer/checkout` | 06, 14 | Basket checkout: one `POST /api/checkout` per item, mock payment picker | RPC `get_points_balance` | `POST /api/checkout` |
+| `/consumer/checkout/[productId]` | 06, 14 | Single-item checkout (unchanged logic, new look) | `products`, RPC `get_points_balance` | `POST /api/checkout` |
+| `/consumer/orders` | 07 | Order cards with steps, Arriving estimate | `orders` (+ brand, events) | — |
+| `/consumer/orders/[orderId]` | 15, 17 | Tracking timeline, or delivered hero + peer QR | `orders` | `GET /api/orders/[orderId]/qr` |
+| `/consumer/orders/[orderId]/return` | 11 | Request a return for a delivered item | `orders` | `GET`/`POST /api/returns` |
+| `/d/[productId]/about` (public) | 12 | DPP: real materials + description; marked placeholders | `products` | — |
 
-Product page (used by `/p` and `/d`): `src/components/consumer/product-page-client.tsx`. It records the scan (`POST /api/scans`), handles save/unsave (`/api/saved-products`) and links to "Buy now" → checkout.
+Product page (used by `/p` and `/d`, Figma 04b/04c): `src/components/consumer/product-page-client.tsx`. It records the scan (`POST /api/scans`) and saves (`/api/saved-products`) as before; **Buy** now adds the chosen size/colour to the basket and opens `/consumer/basket`.
+
+**New backend pieces (approved exceptions to the redesign rules):**
+- `GET /api/flayms`: read-only; checks the user, then reads peer scans and peer attributions with the admin client; returns counts and first names only.
+- `GET`/`POST /api/returns` + `supabase/migrations/003_returns.sql` (`returns` table, RLS). **The migration must be applied** (`supabase db push`) before returns work. No brand-side returns view or emails yet.
+- Dependency: `jsqr` 1.4.0.
 
 ---
 
