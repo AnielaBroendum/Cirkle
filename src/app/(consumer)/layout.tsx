@@ -1,23 +1,12 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Flame, ScanLine, User } from 'lucide-react';
-import { BottomNav, type NavItem } from '@/components/ds';
+import { BottomNav } from '@/components/ds';
+import { consumerTabs } from '@/components/consumer/tab-items';
 import InstallPrompt from '@/components/pwa/install-prompt';
 import PageTransition from '@/components/pwa/page-transition';
 
-// Figma "Tab bar": Scan · Flayms · Profile. Saved, owned items (QR) and orders
-// live under Profile, so they keep the Profile tab active.
-const TAB_ITEMS: NavItem[] = [
-  { href: '/consumer/home', label: 'Scan', icon: ScanLine },
-  { href: '/consumer/flayms', label: 'Flayms', icon: Flame },
-  {
-    href: '/consumer/profile',
-    label: 'Profile',
-    icon: User,
-    match: ['/consumer/saved', '/consumer/qr', '/consumer/orders', '/consumer/history'],
-  },
-];
+const TAB_ITEMS = consumerTabs();
 
 // Checkout has its own bottom action (Figma 06), so the tab bar is hidden there.
 const HIDE_NAV_PREFIXES = ['/consumer/checkout', '/consumer/basket'];
