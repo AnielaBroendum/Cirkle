@@ -137,6 +137,9 @@ const config: Config = {
       backgroundImage: {
         'flaym-gradient':
           'linear-gradient(180deg, #D5D1C8 0%, #EE9A6C 50%, #FF5000 70%, #7A2E12 100%)',
+        // Figma "App / 03 Scan": backdrop behind the camera view.
+        'flaym-scan':
+          'linear-gradient(180deg, #8A3414 0%, #C4501C 30%, #5A2A1C 70%, #2C2324 100%)',
       },
       borderRadius: {
         xl: '1rem',

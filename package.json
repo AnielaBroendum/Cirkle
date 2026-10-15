@@ -12,27 +12,28 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "^2.45.0",
-    "next": "14.2.15",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "qrcode": "^1.5.4",
-    "resend": "^4.0.0",
-    "lucide-react": "^0.447.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "jsqr": "1.4.0",
+    "lucide-react": "^0.447.0",
+    "next": "14.2.15",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "resend": "^4.0.0",
     "tailwind-merge": "^2.5.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
-    "@types/qrcode": "^1.5.5",
-    "typescript": "^5.6.0",
-    "tailwindcss": "^3.4.0",
-    "postcss": "^8.4.0",
     "autoprefixer": "^10.4.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.15",
-    "supabase": "^1.200.0"
+    "postcss": "^8.4.0",
+    "supabase": "^1.200.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.6.0"
   }
 }
