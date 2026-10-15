@@ -162,6 +162,15 @@ We are redesigning the full UI to match the new Figma design while keeping all f
 - If a page mixes data fetching and layout, keep the data fetching and only replace the layout and markup.
 - Use only the new design tokens and the components in `src/components/ds/` in redesigned screens.
   - Add the new tokens under **new names** in `tailwind.config.ts`. Don't redefine `gray`, `white`, `black` or `cirkle`: the current "Espresso" theme remaps those, and every screen that hasn't been redesigned yet depends on them.
+  - Flaym tokens (in `tailwind.config.ts`):
+    - Colours: `canvas`, `canvas-dark`, `surface`, `surface-muted`, `primary`, `on-primary`, `muted`, `line`, `accent`, `accent-subtle`, `accent-strong`, `success`, `success-subtle`, `warning`, `warning-subtle`
+    - Font: `font-brand` (IBM Plex Mono 400/500)
+    - Sizes: `text-display`, `text-heading-xl`, `text-heading-lg`, `text-body`, `text-caption`, `text-label`
+    - Radius: `rounded-control`, `rounded-pill`
+    - Gradient: `bg-flaym-gradient`
+    - Figma defines no danger colour and no shadows. Don't invent them.
+  - Each portal picks `bg-canvas` (light) or `bg-canvas-dark`.
+  - `globals.css` still sets `h1`–`h3` to Fraunces, so redesigned headings must add `font-brand` explicitly.
 - Only touch the portal named in the current task.
 - Commit after each finished screen with a clear message.
 - Mobile-first, Tailwind only, no custom CSS files.

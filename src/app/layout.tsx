@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Fraunces } from 'next/font/google';
+import { Inter, Fraunces, IBM_Plex_Mono } from 'next/font/google';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { ToastProvider } from '@/components/ui/toast';
 import ServiceWorkerRegister from '@/components/pwa/sw-register';
@@ -10,6 +10,13 @@ const fraunces = Fraunces({
   subsets: ['latin'],
   variable: '--font-fraunces',
   axes: ['opsz'],
+});
+// Flaym redesign font (used via `font-brand`).
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-plex-mono',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -36,7 +43,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+    <html lang="en" className={`${inter.variable} ${fraunces.variable} ${plexMono.variable}`}>
       <body className="font-sans antialiased bg-espresso-bg text-espresso-cream">
         <AuthProvider>
           <ToastProvider>
