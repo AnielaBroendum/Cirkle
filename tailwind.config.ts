@@ -95,11 +95,15 @@ const config: Config = {
         surface: {
           DEFAULT: '#FFFFFF', // cards, inputs, segmented control
           muted: '#E7E3DB', //   secondary bars, neutral pill
+          dark: '#3A2F30', //    raised card on bg-canvas-dark (Figma "App" frames)
         },
         primary: '#2C2324', //   Obsidian: text, primary button, nav, active segment
         'on-primary': '#FFFFFF', // text on obsidian / accent
         muted: '#7B7673', //     Char: muted text, labels, captions
-        line: '#D5D1C8', //      Ash: borders (border-line)
+        line: {
+          DEFAULT: '#D5D1C8', // Ash: borders (border-line)
+          dark: '#4A3E3F', //    dividers and borders on bg-canvas-dark (Figma "App" frames)
+        },
         accent: {
           DEFAULT: '#FF5000', // Flaym: CTA, active states
           subtle: '#FFE3D6', //  "New" pill background

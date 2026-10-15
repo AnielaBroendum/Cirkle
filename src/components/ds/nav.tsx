@@ -8,11 +8,21 @@ import { cn } from './cn';
 import { Logo } from './logo';
 
 /** Same shape as the NAV_ITEMS arrays in the current portal layouts. */
-export type NavItem = { href: string; label: string; icon: LucideIcon };
+export type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  /** Extra route prefixes that also mark this item active (e.g. Profile's sub-tabs). */
+  match?: string[];
+};
 
 // Same active rule as the current layouts.
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + '/');
+}
+
+function isItemActive(pathname: string, item: NavItem) {
+  return [item.href, ...(item.match ?? [])].some((href) => isActive(pathname, href));
 }
 
 /* ── TopBar (mobile app bar) ─────────────────────────────────────────── */
@@ -79,25 +89,26 @@ export function BottomNav({ items, fixed = true, className }: BottomNavProps) {
   return (
     <nav
       className={cn(
-        'z-40 bg-primary pb-[env(safe-area-inset-bottom)] font-brand',
+        'z-40 border-t border-line-dark bg-primary pb-[env(safe-area-inset-bottom)] font-brand',
         fixed && 'fixed inset-x-0 bottom-0',
         className
       )}
     >
+      {/* Figma "Tab bar": 24px icon at 10px from the top, 11px label below. */}
       <ul className="mx-auto flex h-16 max-w-lg items-stretch">
         {items.map((item) => {
-          const on = isActive(pathname, item.href);
+          const on = isItemActive(pathname, item);
           return (
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
                 aria-current={on ? 'page' : undefined}
                 className={cn(
-                  'flex h-full flex-col items-center justify-center gap-1 text-label uppercase transition-colors',
-                  on ? 'text-accent' : 'text-on-primary/60 hover:text-on-primary'
+                  'flex h-full flex-col items-center justify-start gap-1.5 pt-2.5 text-label leading-none tracking-normal transition-colors',
+                  on ? 'text-accent' : 'text-muted hover:text-on-primary'
                 )}
               >
-                <item.icon className="h-5 w-5" strokeWidth={on ? 2.25 : 1.75} />
+                <item.icon className="h-6 w-6" strokeWidth={on ? 2 : 1.5} />
                 {item.label}
               </Link>
             </li>
