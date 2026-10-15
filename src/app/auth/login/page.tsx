@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import AuthSwitchLink from '../switch-link';
 import { createClient } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
@@ -152,9 +153,9 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-gray-500">
           Don&apos;t have an account?{' '}
-          <Link href="/auth/signup" className="text-cirkle-600 hover:underline font-medium">
+          <AuthSwitchLink to="/auth/signup" className="text-cirkle-600 hover:underline font-medium">
             Create account
-          </Link>
+          </AuthSwitchLink>
         </p>
       </div>
     </main>

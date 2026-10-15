@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import AuthSwitchLink from '../switch-link';
 import { createClient } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 
@@ -210,9 +211,9 @@ export default function SignUpPage() {
 
         <p className="text-center text-sm text-gray-500">
           Already have an account?{' '}
-          <Link href="/auth/login" className="text-cirkle-600 hover:underline font-medium">
+          <AuthSwitchLink to="/auth/login" className="text-cirkle-600 hover:underline font-medium">
             Sign in
-          </Link>
+          </AuthSwitchLink>
         </p>
       </div>
     </main>
