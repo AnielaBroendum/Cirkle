@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Share2, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { formatDKK } from '@/lib/utils';
@@ -272,6 +273,14 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
             <span className="bg-primary/60 px-2.5 py-1.5 text-caption text-on-primary">Swipe for more</span>
           </div>
         )}
+
+        {/* DPP / About (Figma 12) */}
+        <Link
+          href={`/d/${product.id}/about`}
+          className="absolute bottom-3.5 left-5 bg-primary/60 px-2.5 py-1.5 text-label tracking-normal text-on-primary"
+        >
+          ‹ About
+        </Link>
 
         {/* Image position */}
         {images.length > 1 && currentImage > 0 && (
