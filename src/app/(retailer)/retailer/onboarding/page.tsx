@@ -150,11 +150,11 @@ export default function RetailerOnboardingPage() {
           </div>
 
           <Field label="Logo">
-            <ImageUpload bucket="brand-assets" folder="retailer-logos" value={logo} onChange={setLogo} max={1} label="Upload logo" />
+            <ImageUpload bucket="brand-assets" folder="retailer-logos" value={logo} onChange={setLogo} max={1} label="Upload logo" appearance="flaym" />
           </Field>
 
           <Field label="Store photos" hint="The first photo is your cover. Up to 5.">
-            <ImageUpload bucket="brand-assets" folder="retailer-photos" value={photos} onChange={setPhotos} max={5} label="Upload photos" />
+            <ImageUpload bucket="brand-assets" folder="retailer-photos" value={photos} onChange={setPhotos} max={5} label="Upload photos" appearance="flaym" cover />
           </Field>
 
           {error && <p className="border border-accent bg-accent-subtle px-4 py-3 text-body text-accent-strong">{error}</p>}

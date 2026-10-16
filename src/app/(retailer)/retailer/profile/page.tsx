@@ -241,10 +241,10 @@ export default function RetailerProfilePage() {
             />
           </Field>
           <Field label="Cover image" hint="The first photo is your cover. Up to 5.">
-            <ImageUpload bucket="brand-assets" folder="retailer-photos" value={photos} onChange={setPhotos} max={5} label="Upload" />
+            <ImageUpload bucket="brand-assets" folder="retailer-photos" value={photos} onChange={setPhotos} max={5} label="Upload" appearance="flaym" cover />
           </Field>
           <Field label="Logo">
-            <ImageUpload bucket="brand-assets" folder="retailer-logos" value={logo} onChange={setLogo} max={1} label="Upload logo" />
+            <ImageUpload bucket="brand-assets" folder="retailer-logos" value={logo} onChange={setLogo} max={1} label="Upload logo" appearance="flaym" />
           </Field>
         </Card>
 
