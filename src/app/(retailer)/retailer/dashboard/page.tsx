@@ -14,6 +14,7 @@ import {
   ListSkeleton,
   Skeleton,
   StatTile,
+  Tabs,
   TBody,
   TD,
   TH,
@@ -58,6 +59,17 @@ type CommissionDetail = {
   created_at: string;
 };
 
+type Period = 'week' | 'month' | 'year';
+
+const PERIOD_LABEL: Record<Period, string> = { week: 'this week', month: 'this month', year: 'this year' };
+
+// Week = last 7 days, Month = this calendar month, Year = this calendar year.
+function periodStart(period: Period, now: Date): string {
+  if (period === 'week') return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  return new Date(now.getFullYear(), 0, 1).toISOString();
+}
+
 export default function RetailerDashboardPage() {
   const { user } = useAuth();
   const [kpis, setKpis] = useState<KPIs>({
@@ -72,11 +84,16 @@ export default function RetailerDashboardPage() {
   const [depositTotal, setDepositTotal] = useState(0);
   const [depositByBrand, setDepositByBrand] = useState<{ brand_name: string; total: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>('month');
+  const [refreshing, setRefreshing] = useState(false);
   const [storeName, setStoreName] = useState('');
 
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
+    // Ignore responses from a previous period if the toggle changes mid-load.
+    let cancelled = false;
+    setRefreshing(true);
 
     supabase
       .from('retailer_profiles')
@@ -84,8 +101,10 @@ export default function RetailerDashboardPage() {
       .eq('user_id', user.id)
       .single()
       .then(async ({ data: rp }: { data: { id: string; name: string } | null }) => {
+        if (cancelled) return;
         if (!rp) {
           setLoading(false);
+          setRefreshing(false);
           return;
         }
 
@@ -94,8 +113,7 @@ export default function RetailerDashboardPage() {
         const retailerId = retailer.id;
 
         const now = new Date();
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const since = periodStart(period, now);
 
         const [
           samplesRes,
@@ -111,12 +129,12 @@ export default function RetailerDashboardPage() {
             .select('id', { count: 'exact', head: true })
             .eq('retailer_id', retailerId)
             .eq('status', 'active'),
-          // Scans this week
+          // Scans in the selected period
           supabase
             .from('scans')
             .select('id', { count: 'exact', head: true })
             .eq('source_retailer_id', retailerId)
-            .gte('scanned_at', weekAgo),
+            .gte('scanned_at', since),
           // Recent scans for feed
           supabase
             .from('scans')
@@ -124,17 +142,18 @@ export default function RetailerDashboardPage() {
             .eq('source_retailer_id', retailerId)
             .order('scanned_at', { ascending: false })
             .limit(10),
-          // Total attributed sales
+          // Attributed sales in the selected period
           supabase
             .from('attributions')
             .select('id', { count: 'exact', head: true })
-            .eq('source_retailer_id', retailerId),
-          // Commission this month
+            .eq('source_retailer_id', retailerId)
+            .gte('created_at', since),
+          // Commission in the selected period
           supabase
             .from('attributions')
             .select('id, commission_amount_dkk, attribution_type, created_at, order_id')
             .eq('source_retailer_id', retailerId)
-            .gte('created_at', monthStart)
+            .gte('created_at', since)
             .order('created_at', { ascending: false }),
           // Active partnerships
           supabase
@@ -143,6 +162,8 @@ export default function RetailerDashboardPage() {
             .eq('retailer_id', retailerId)
             .eq('status', 'active'),
         ]);
+
+        if (cancelled) return;
 
         // Calculate commission and build detail list
         type CommissionRow = { id: string; commission_amount_dkk: number | null; attribution_type: string; created_at: string; order_id: string };
@@ -156,6 +177,7 @@ export default function RetailerDashboardPage() {
             .select('order_id, product_name')
             .in('order_id', orderIds);
 
+          if (cancelled) return;
           const orderProductMap = new Map(
             ((orderItemsData ?? []) as { order_id: string; product_name: string }[]).map((oi) => [oi.order_id, oi.product_name])
           );
@@ -171,6 +193,8 @@ export default function RetailerDashboardPage() {
                 created_at: a.created_at,
               }))
           );
+        } else {
+          setCommissionDetails([]);
         }
 
         setKpis({
@@ -263,9 +287,15 @@ export default function RetailerDashboardPage() {
           );
         }
 
+        if (cancelled) return;
         setLoading(false);
+        setRefreshing(false);
       });
-  }, [user]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, period]);
 
   function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -297,21 +327,36 @@ export default function RetailerDashboardPage() {
   return (
     <div className="space-y-7">
       {/* Header (Figma 02) */}
-      <div>
-        <h1 className="font-brand text-heading-xl uppercase text-primary">Dashboard</h1>
-        <p className="mt-1 text-body text-muted">
-          Activity and earnings from products in {storeName || 'your store'}
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-brand text-heading-xl uppercase text-primary">Dashboard</h1>
+          <p className="mt-1 text-body text-muted">
+            Activity and earnings from products in {storeName || 'your store'}
+          </p>
+        </div>
+        <Tabs
+          className="self-start sm:self-auto"
+          value={period}
+          onValueChange={(v) => setPeriod(v as Period)}
+          items={[
+            { value: 'week', label: 'Week' },
+            { value: 'month', label: 'Month' },
+            { value: 'year', label: 'Year' },
+          ]}
+        />
       </div>
 
       {/* KPI tiles: Figma's "Saves" slot shows Active samples, which the page already loads */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <StatTile label="Scans in store" value={kpis.scansThisWeek} hint="This week" />
+      <div
+        aria-busy={refreshing || undefined}
+        className={`grid grid-cols-2 gap-3 transition-opacity lg:grid-cols-4 lg:gap-4 ${refreshing ? 'opacity-60' : ''}`}
+      >
+        <StatTile label="Scans in store" value={kpis.scansThisWeek} hint={capitalize(PERIOD_LABEL[period])} />
         <StatTile label="Active samples" value={kpis.activeSamples} hint="In your store now" />
-        <StatTile label="Purchases credited" value={kpis.salesAttributed} hint="All time" />
+        <StatTile label="Purchases credited" value={kpis.salesAttributed} hint={capitalize(PERIOD_LABEL[period])} />
         <StatTile
           tone="dark"
-          label="Earned this month"
+          label={`Earned ${PERIOD_LABEL[period]}`}
           value={<span className="text-accent">{formatDKK(kpis.commissionThisMonth)}</span>}
           hint="Your commission"
         />
@@ -321,14 +366,14 @@ export default function RetailerDashboardPage() {
         {/* Latest credited purchases */}
         <Card padding="none" className="p-5 lg:p-6">
           <SectionTitle
-            title="Credited this month"
+            title={`Credited ${PERIOD_LABEL[period]}`}
             aside={commissionDetails.length > 0 ? `${formatDKK(kpis.commissionThisMonth)} total` : undefined}
           />
           {commissionDetails.length === 0 ? (
             <EmptyState
               className="border-none py-8"
               icon={<Coins className="h-5 w-5" />}
-              title="Nothing credited this month"
+              title={`Nothing credited ${PERIOD_LABEL[period]}`}
               description="When someone buys after scanning a product in your store, your cut shows up here."
             />
           ) : (
@@ -434,6 +479,10 @@ export default function RetailerDashboardPage() {
       </div>
     </div>
   );
+}
+
+function capitalize(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // Figma card title: 14px uppercase, with an optional muted note on the right.
