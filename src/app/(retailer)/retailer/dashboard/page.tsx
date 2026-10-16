@@ -306,9 +306,9 @@ export default function RetailerDashboardPage() {
 
       {/* KPI tiles: Figma's "Saves" slot shows Active samples, which the page already loads */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <StatTile label="Scans this week" value={kpis.scansThisWeek} />
-        <StatTile label="Active samples" value={kpis.activeSamples} />
-        <StatTile label="Purchases credited" value={kpis.salesAttributed} />
+        <StatTile label="Scans in store" value={kpis.scansThisWeek} hint="This week" />
+        <StatTile label="Active samples" value={kpis.activeSamples} hint="In your store now" />
+        <StatTile label="Purchases credited" value={kpis.salesAttributed} hint="All time" />
         <StatTile
           tone="dark"
           label="Earned this month"
@@ -321,14 +321,14 @@ export default function RetailerDashboardPage() {
         {/* Latest credited purchases */}
         <Card padding="none" className="p-5 lg:p-6">
           <SectionTitle
-            title="Latest credited purchases"
-            aside={commissionDetails.length > 0 ? `${formatDKK(kpis.commissionThisMonth)} this month` : undefined}
+            title="Credited this month"
+            aside={commissionDetails.length > 0 ? `${formatDKK(kpis.commissionThisMonth)} total` : undefined}
           />
           {commissionDetails.length === 0 ? (
             <EmptyState
               className="border-none py-8"
               icon={<Coins className="h-5 w-5" />}
-              title="Nothing credited yet"
+              title="Nothing credited this month"
               description="When someone buys after scanning a product in your store, your cut shows up here."
             />
           ) : (
