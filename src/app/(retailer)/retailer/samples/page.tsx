@@ -6,7 +6,22 @@ import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { QrCode, Plus, ArrowLeftRight, Truck, Package } from 'lucide-react';
+import { QrCode, Plus, ArrowLeftRight, Truck } from 'lucide-react';
+import {
+  Badge,
+  Button,
+  buttonClasses,
+  Card,
+  CardSkeleton,
+  EmptyState,
+  Field,
+  Input,
+  Modal,
+  Select,
+  Skeleton,
+  StatusPill,
+  Tabs,
+} from '@/components/ds';
 import type { Database } from '@/lib/database.types';
 
 type Sample = Database['public']['Tables']['samples']['Row'];
@@ -54,6 +69,7 @@ export default function RetailerSamplesPage() {
   const [swapRequests, setSwapRequests] = useState<SwapRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'samples' | 'swaps'>('samples');
+  const [brandFilter, setBrandFilter] = useState('all');
   const [retailerId, setRetailerId] = useState<string | null>(null);
 
   // Swap modal state
@@ -231,102 +247,153 @@ export default function RetailerSamplesPage() {
   const selectedSwapProduct = brandProducts.find((p) => p.id === swapProductId);
   const pendingSwaps = swapRequests.filter((s) => !['completed', 'cancelled'].includes(s.status));
 
+  // Brand filter (Figma 03 segmented control) — client-side only.
+  const brandCounts = samples.reduce<Map<string, number>>((m, s) => m.set(s.brand_name, (m.get(s.brand_name) ?? 0) + 1), new Map());
+  const visibleSamples = brandFilter === 'all' ? samples : samples.filter((s) => s.brand_name === brandFilter);
+  const printableSamples = samples.filter((s) => s.qr_code_url);
+
+  // "Print all QR tags": opens the existing QR images in a print-ready window. No new data.
+  function printQrTags() {
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const esc = (v: string) => v.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
+    const tags = printableSamples
+      .map(
+        (s) => `<figure><img src="${esc(s.qr_code_url as string)}" alt="" /><figcaption><b>${esc(s.product_name)}</b><br/>${esc(
+          s.brand_name
+        )}${s.size || s.color ? ' · ' + esc([s.size, s.color].filter(Boolean).join(' / ')) : ''}</figcaption></figure>`
+      )
+      .join('');
+    win.document.write(
+      `<!doctype html><title>QR tags</title><style>body{font-family:'IBM Plex Mono',monospace;margin:24px;color:#2C2324}main{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}figure{margin:0;border:1px solid #D5D1C8;padding:16px;text-align:center;break-inside:avoid}img{width:140px;height:140px}figcaption{font-size:11px;margin-top:8px;line-height:1.4}</style><main>${tags}</main><script>window.onload=()=>window.print()</script>`
+    );
+    win.document.close();
+  }
+
   if (loading) {
-    return <div className="space-y-4"><div className="animate-pulse bg-gray-200 rounded h-6 w-32" /><div className="animate-pulse bg-gray-100 rounded-xl h-48 w-full" /></div>;
+    return (
+      <div className="space-y-7">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-72" />
+          <Skeleton className="h-4 w-96 max-w-full" />
+        </div>
+        <Skeleton className="h-8 w-80 max-w-full" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Samples</h1>
-        <Link
-          href="/retailer/samples/request"
-          className="flex items-center gap-2 rounded-lg bg-cirkle-600 px-4 py-2.5 text-sm text-white font-medium hover:bg-cirkle-700 transition"
-        >
-          <Plus className="h-4 w-4" /> Request samples
-        </Link>
+    <div className="space-y-7">
+      {/* Header (Figma 03) */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-brand text-heading-xl uppercase text-primary">Products in the store</h1>
+          <p className="mt-1 text-body text-muted">Placed here by the brands. Print a tag if one is missing or worn.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/retailer/samples/request" className={buttonClasses({ variant: 'secondary' })}>
+            <Plus className="h-4 w-4" /> Request samples
+          </Link>
+          <Button variant="accent" onClick={printQrTags} disabled={printableSamples.length === 0}>
+            Print all QR tags
+          </Button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-        <button
-          onClick={() => setTab('samples')}
-          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition ${tab === 'samples' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          Active samples ({samples.filter((s) => s.status === 'active').length})
-        </button>
-        <button
-          onClick={() => setTab('swaps')}
-          className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition ${tab === 'swaps' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          Swap requests {pendingSwaps.length > 0 && `(${pendingSwaps.length})`}
-        </button>
-      </div>
+      <Tabs
+        variant="underline"
+        value={tab}
+        onValueChange={(v) => setTab(v as 'samples' | 'swaps')}
+        items={[
+          { value: 'samples', label: 'In the store', count: samples.filter((s) => s.status === 'active').length },
+          { value: 'swaps', label: 'Swap requests', count: pendingSwaps.length > 0 ? pendingSwaps.length : undefined },
+        ]}
+      />
 
       {tab === 'samples' && (
         <>
           {samples.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-              <QrCode className="h-12 w-12 text-gray-300 mx-auto" />
-              <p className="mt-3 text-gray-500">No samples yet</p>
-              <p className="mt-1 text-sm text-gray-400">Request samples from your brand partners</p>
-            </div>
+            <EmptyState
+              icon={<QrCode className="h-5 w-5" />}
+              title="No products yet"
+              description="Request samples from your brand partners. They arrive with a QR tag for your store."
+              action={
+                <Link href="/retailer/samples/request" className={buttonClasses({ variant: 'accent' })}>
+                  <Plus className="h-4 w-4" /> Request samples
+                </Link>
+              }
+            />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {samples.map((sample) => (
-                <div key={sample.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-                  <div className="flex items-start gap-3">
-                    {sample.product_image ? (
-                      <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
-                        <Image src={sample.product_image} alt="" fill className="object-cover" sizes="56px" />
-                      </div>
-                    ) : (
-                      <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <QrCode className="h-6 w-6 text-gray-400" />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-900 text-sm truncate">{sample.product_name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{sample.brand_name}</p>
-                      {(sample.size || sample.color) && (
-                        <p className="text-xs text-gray-400 mt-0.5">{[sample.size, sample.color].filter(Boolean).join(' / ')}</p>
-                      )}
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${
-                          sample.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
-                        }`}>
-                          {sample.status === 'active' ? 'Active' : sample.status}
-                        </span>
-                        {sample.deposit_status === 'held' && sample.deposit_amount_dkk && (
-                          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                            {formatDKK(sample.deposit_amount_dkk)} held
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm border-t border-gray-100 pt-2">
-                    <div className="text-gray-500">
-                      <span className="font-medium text-gray-700">{sample.scan_count}</span> scans
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {sample.last_scanned && (
-                        <span className="text-xs text-gray-400">Last: {formatDate(sample.last_scanned)}</span>
-                      )}
-                      {sample.status === 'active' && (
-                        <button
-                          onClick={() => openSwapModal(sample)}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium hover:bg-purple-100 transition"
-                        >
-                          <ArrowLeftRight className="h-3 w-3" /> Swap
-                        </button>
-                      )}
-                    </div>
-                  </div>
+            <>
+              {brandCounts.size > 1 && (
+                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+                  <Tabs
+                    className="whitespace-nowrap"
+                    value={brandFilter}
+                    onValueChange={setBrandFilter}
+                    items={[
+                      { value: 'all', label: 'All brands', count: samples.length },
+                      ...Array.from(brandCounts, ([name, count]) => ({ value: name, label: name, count })),
+                    ]}
+                  />
                 </div>
-              ))}
-            </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {visibleSamples.map((sample) => (
+                  <Card key={sample.id} padding="none" className="flex flex-col p-4">
+                    <div className="relative aspect-[228/180] w-full overflow-hidden bg-flaym-gradient">
+                      {sample.product_image && (
+                        <Image src={sample.product_image} alt="" fill className="object-cover" sizes="(min-width: 1280px) 228px, (min-width: 640px) 50vw, 100vw" />
+                      )}
+                    </div>
+
+                    <div className="mt-3.5 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-body text-primary">{sample.product_name}</p>
+                        <p className="mt-1 truncate text-caption text-muted">
+                          {[sample.brand_name, [sample.size, sample.color].filter(Boolean).join(' / ')].filter(Boolean).join(' · ')}
+                        </p>
+                      </div>
+                      {sample.qr_code_url ? (
+                        <a href={sample.qr_code_url} target="_blank" rel="noreferrer" aria-label="Open QR tag" className="shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={sample.qr_code_url} alt="" width={44} height={44} className="h-11 w-11" />
+                        </a>
+                      ) : (
+                        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-line text-muted">
+                          <QrCode className="h-5 w-5" />
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                      <StatusPill status={sample.status} />
+                      {sample.deposit_status === 'held' && sample.deposit_amount_dkk && (
+                        <Badge tone="warning">{formatDKK(sample.deposit_amount_dkk)} held</Badge>
+                      )}
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3">
+                      <p className="whitespace-nowrap text-caption text-primary">
+                        {sample.scan_count} scans
+                        {sample.last_scanned && <span className="text-muted"> · {formatDate(sample.last_scanned)}</span>}
+                      </p>
+                      {sample.status === 'active' && (
+                        <Button size="sm" variant="ghost" onClick={() => openSwapModal(sample)} leftIcon={<ArrowLeftRight className="h-3.5 w-3.5" />}>
+                          Swap
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </>
       )}
@@ -334,66 +401,53 @@ export default function RetailerSamplesPage() {
       {tab === 'swaps' && (
         <>
           {swapRequests.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-              <ArrowLeftRight className="h-12 w-12 text-gray-300 mx-auto" />
-              <p className="mt-3 text-gray-500">No swap requests</p>
-            </div>
+            <EmptyState
+              icon={<ArrowLeftRight className="h-5 w-5" />}
+              title="No swap requests"
+              description="Swap a product that isn't moving for something new from the same brand. Use Swap on any product card."
+            />
           ) : (
             <div className="space-y-3">
               {swapRequests.map((sw) => (
-                <div key={sw.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {sw.return_product_name} → {sw.new_product_name}
+                <Card key={sw.id} className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-body text-primary">
+                        {sw.return_product_name} <span className="text-muted">→</span> {sw.new_product_name}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="mt-1 text-caption text-muted">
                         {sw.new_size} / {sw.new_color}
-                        {sw.reason && ` — ${sw.reason}`}
+                        {sw.reason && ` · ${sw.reason}`}
                       </p>
                     </div>
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                      sw.status === 'completed' ? 'bg-green-50 text-green-700'
-                        : sw.status === 'cancelled' ? 'bg-gray-100 text-gray-500'
-                        : 'bg-amber-50 text-amber-700'
-                    }`}>
-                      {SWAP_STATUS_LABELS[sw.status] ?? sw.status}
-                    </span>
+                    <StatusPill status={sw.status} label={SWAP_STATUS_LABELS[sw.status] ?? sw.status} />
                   </div>
 
                   {sw.status === 'approved' && (
                     <div>
                       {trackingSwapId === sw.id ? (
                         <div className="flex items-center gap-2">
-                          <input
+                          <Input
                             type="text"
                             value={trackingNumber}
                             onChange={(e) => setTrackingNumber(e.target.value)}
                             placeholder="Return tracking number"
-                            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cirkle-500 focus:outline-none"
+                            className="flex-1"
                           />
-                          <button
-                            onClick={() => submitReturnTracking(sw.id)}
-                            className="px-3 py-2 rounded-lg bg-cirkle-600 text-white text-sm font-medium hover:bg-cirkle-700"
-                          >
-                            Submit
-                          </button>
+                          <Button onClick={() => submitReturnTracking(sw.id)}>Submit</Button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => setTrackingSwapId(sw.id)}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-purple-50 text-purple-700 text-sm font-medium hover:bg-purple-100"
-                        >
-                          <Truck className="h-4 w-4" /> Enter return tracking
-                        </button>
+                        <Button variant="secondary" size="sm" onClick={() => setTrackingSwapId(sw.id)} leftIcon={<Truck className="h-4 w-4" />}>
+                          Enter return tracking
+                        </Button>
                       )}
                     </div>
                   )}
 
                   {sw.return_tracking_number && (
-                    <p className="text-xs text-gray-400">Return tracking: {sw.return_tracking_number}</p>
+                    <p className="text-caption text-muted">Return tracking: {sw.return_tracking_number}</p>
                   )}
-                </div>
+                </Card>
               ))}
             </div>
           )}
@@ -401,21 +455,37 @@ export default function RetailerSamplesPage() {
       )}
 
       {/* Swap modal */}
-      {swapSample && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setSwapSample(null)}>
-          <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-900">Swap sample</h2>
-            <p className="text-sm text-gray-500">
-              Returning: <span className="font-medium text-gray-700">{swapSample.product_name}</span>
+      <Modal
+        open={!!swapSample}
+        onClose={() => setSwapSample(null)}
+        title="Swap product"
+        footer={
+          <>
+            <Button
+              className="flex-1"
+              onClick={submitSwap}
+              loading={swapSubmitting}
+              disabled={swapSubmitting || !swapProductId || !swapSize || !swapColor}
+            >
+              {swapSubmitting ? 'Submitting…' : 'Submit swap request'}
+            </Button>
+            <Button variant="secondary" onClick={() => setSwapSample(null)}>
+              Cancel
+            </Button>
+          </>
+        }
+      >
+        {swapSample && (
+          <div className="space-y-4">
+            <p className="text-body text-muted">
+              Returning: <span className="text-primary">{swapSample.product_name}</span>
               {swapSample.size && ` (${swapSample.size})`}
             </p>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Replacement product</label>
-              <select
+            <Field label="Replacement product">
+              <Select
                 value={swapProductId}
                 onChange={(e) => { setSwapProductId(e.target.value); setSwapSize(''); setSwapColor(''); }}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 focus:border-cirkle-500 focus:outline-none bg-white"
               >
                 <option value="">Select product</option>
                 {brandProducts.map((p) => (
@@ -423,69 +493,38 @@ export default function RetailerSamplesPage() {
                     {p.name}{p.deposit_amount_dkk ? ` (deposit: ${formatDKK(p.deposit_amount_dkk)})` : ''}
                   </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
 
             {selectedSwapProduct && (
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Size</label>
-                  <select
-                    value={swapSize}
-                    onChange={(e) => setSwapSize(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 focus:border-cirkle-500 focus:outline-none bg-white"
-                  >
+                <Field label="Size">
+                  <Select value={swapSize} onChange={(e) => setSwapSize(e.target.value)}>
                     <option value="">Select</option>
                     {selectedSwapProduct.sizes.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                  <select
-                    value={swapColor}
-                    onChange={(e) => setSwapColor(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 focus:border-cirkle-500 focus:outline-none bg-white"
-                  >
+                  </Select>
+                </Field>
+                <Field label="Colour">
+                  <Select value={swapColor} onChange={(e) => setSwapColor(e.target.value)}>
                     <option value="">Select</option>
                     {selectedSwapProduct.colors.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
+                  </Select>
+                </Field>
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-              <select
-                value={swapReason}
-                onChange={(e) => setSwapReason(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 focus:border-cirkle-500 focus:outline-none bg-white"
-              >
+            <Field label="Reason">
+              <Select value={swapReason} onChange={(e) => setSwapReason(e.target.value)}>
                 <option value="">Select reason</option>
                 <option value="Not performing">Not performing</option>
                 <option value="Wrong size">Wrong size</option>
                 <option value="Seasonal change">Seasonal change</option>
                 <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={submitSwap}
-                disabled={swapSubmitting || !swapProductId || !swapSize || !swapColor}
-                className="flex-1 rounded-lg bg-cirkle-600 px-4 py-2.5 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
-              >
-                {swapSubmitting ? 'Submitting...' : 'Submit swap request'}
-              </button>
-              <button
-                onClick={() => setSwapSample(null)}
-                className="rounded-lg border border-gray-300 px-4 py-2.5 text-gray-700 font-medium hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
-            </div>
+              </Select>
+            </Field>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }
