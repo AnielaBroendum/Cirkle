@@ -91,6 +91,7 @@ const config: Config = {
         canvas: {
           DEFAULT: '#FFFFFF', // light page background (bg-canvas)
           dark: '#2C2324', //    dark page background (bg-canvas-dark)
+          warm: '#F4F2EE', //    warm off-white page background (bg-canvas-warm, Figma "Retail Portal")
         },
         surface: {
           DEFAULT: '#FFFFFF', // cards, inputs, segmented control
