@@ -21,6 +21,10 @@ Legend: **C** = client component, **S** = server component. "Reads" = direct Sup
 | error | `src/app/error.tsx` | C | Global error boundary | — | — |
 | 404 | `src/app/not-found.tsx` | S | Not-found page | — | — |
 
+**Redesigned (Oct 2026):** `/` (after Figma App 01 Welcome), `/auth/login` (Brand/Retail Portal 01 Login), `/auth/signup` and `/invite/[token]` (styled after Portal 01). Login, signup and invite share `components/shared/auth-shell.tsx` (gradient art panel + form column; a short band on mobile). All use `bg-flaym-gradient`.
+
+Figma items left out: App 02 Consent (no consent storage), Continue with Apple / Google (no OAuth in the code: there's no `signInWithOAuth` call anywhere), Forgot password (no reset flow), the terms line (no terms page). `error.tsx` and `not-found.tsx` are not redesigned yet.
+
 ---
 
 ## Consumer portal: `src/app/(consumer)/` (redesigned to Figma "App", Oct 2026)
@@ -76,7 +80,7 @@ Figma items left out because the data isn't loaded today: dashboard Saves, Week/
 - Token `canvas-warm` (#F4F2EE) in `tailwind.config.ts`.
 - `components/brand/image-upload.tsx`: opt-in `appearance="flaym"` (+ `cover`) used by retailer screens; the default look stays for the brand portal. Upload fixes apply everywhere.
 
-Not redesigned (outside `(retailer)`): Figma 01 Login (`/auth/login`, shared by all roles), `/invite/[token]`.
+Figma 01 Login (`/auth/login`, shared by all roles) and `/invite/[token]` are done as shared screens (see Shared / public).
 
 ---
 
