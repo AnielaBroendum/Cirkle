@@ -73,8 +73,9 @@ Figma items left out because the data isn't loaded today: dashboard Saves, Week/
 - `supabase/migrations/004_retailer_profile_details.sql`: `retailer_profiles.opening_hours` (public) and `retailer_payout_details` (reg. no., account no., CVR) with owner-only RLS, because `retailer_profiles` is publicly readable. **Apply with `supabase db push`** before `/retailer/profile` can save.
 - `src/lib/database.types.ts` updated for both.
 - Token `canvas-warm` (#F4F2EE) in `tailwind.config.ts`.
+- `components/brand/image-upload.tsx`: opt-in `appearance="flaym"` (+ `cover`) used by retailer screens; the default look stays for the brand portal. Upload fixes apply everywhere.
 
-Not redesigned (outside `(retailer)`): Figma 01 Login (`/auth/login`, shared by all roles), `/invite/[token]`, and `components/brand/image-upload.tsx` (still the old style inside onboarding and Store profile).
+Not redesigned (outside `(retailer)`): Figma 01 Login (`/auth/login`, shared by all roles), `/invite/[token]`.
 
 ---
 
