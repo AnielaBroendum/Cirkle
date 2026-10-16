@@ -149,6 +149,13 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 - `tailwind.config.ts` remaps `gray`, `white`, `black` and `cirkle` into the dark "Espresso" theme. Add the new design tokens under new names so screens that haven't been redesigned yet don't change.
 - `src/components/ds/` doesn't exist yet. Build it first, from the Figma tokens and components.
 
+## Open decisions
+
+- **Sending email (no emails arrive yet).** Tested 2026-10-16: a brand invite to a real address returned 200 but no email arrived. `RESEND_API_KEY` is set, but no sender domain has been set up: `EMAIL_FROM` is unset, so `src/lib/email.ts` sends from `noreply@cirkle.dk`, and that domain isn't verified in Resend, so Resend rejects the send. `sendEmail` also ignores the result Resend returns, so failures leave no error in the logs. Affects every email: retailer invitations, order confirmation, new order to brand, order status updates. To decide:
+  - Which domain and sender address to use (e.g. a Flaym domain, since the product is now Flaym rather than Cirkle), then verify it in Resend (DNS records) and set `EMAIL_FROM`.
+  - Whether `sendEmail` should log or surface Resend errors (a change to `src/lib`, so outside the redesign rules).
+  - The email templates still say "Cirkle" with the old blue styling; rebrand them to Flaym at the same time.
+
 ---
 
 ## Cleanup
