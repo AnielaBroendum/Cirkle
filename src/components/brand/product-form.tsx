@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { ImageUpload } from '@/components/brand/image-upload';
 import { parseDKKtoOre, formatDKK } from '@/lib/utils';
-import { Trash2, Plus, Minus } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Minus, X } from 'lucide-react';
+import { Button, Card, Field, Input, Textarea, cn } from '@/components/ds';
 import type { Database } from '@/lib/database.types';
 
 type Product = Database['public']['Tables']['products']['Row'];
@@ -15,9 +17,13 @@ type ProductFormProps = {
   brandProfileId: string;
   product?: Product | null;
   existingVariants?: ProductVariant[];
+  /** Page title, e.g. "Add product" / "Edit product" (Figma 04 header). */
+  title: string;
+  /** Names of stores holding a sample of this product; omit to hide the "In stores" card. */
+  stores?: string[];
 };
 
-export function ProductForm({ brandProfileId, product, existingVariants = [] }: ProductFormProps) {
+export function ProductForm({ brandProfileId, product, existingVariants = [], title, stores }: ProductFormProps) {
   const router = useRouter();
   const isEditing = !!product;
 
@@ -34,6 +40,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [] }: 
   const [category, setCategory] = useState(product?.category ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [newSize, setNewSize] = useState('');
 
   const [variants, setVariants] = useState<
     { size: string; color: string; stock_count: number; id?: string }[]
@@ -145,6 +152,18 @@ export function ProductForm({ brandProfileId, product, existingVariants = [] }: 
     router.refresh();
   }
 
+  // Size chips edit the same comma-separated sizes text as before.
+  function addSize() {
+    const size = newSize.trim();
+    if (!size) return;
+    setSizesText([...sizes, size].join(', '));
+    setNewSize('');
+  }
+
+  function removeSize(size: string) {
+    setSizesText(sizes.filter((s) => s !== size).join(', '));
+  }
+
   function updateVariantStock(index: number, delta: number) {
     setVariants((prev) =>
       prev.map((v, i) =>
@@ -159,190 +178,256 @@ export function ProductForm({ brandProfileId, product, existingVariants = [] }: 
     );
   }
 
+  const canSave = !loading && !!name.trim() && !!priceKr;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Product name *</label>
-        <input
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          placeholder="e.g. Classic T-Shirt"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-        <textarea
-          rows={3}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none resize-none"
-          placeholder="Describe the product"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Price (kr) *</label>
-          <input
-            type="number"
-            required
-            min="1"
-            step="0.01"
-            value={priceKr}
-            onChange={(e) => setPriceKr(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-            placeholder="299"
-          />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="truncate text-body text-muted">
+            <Link href="/brand/products" className="hover:text-primary">
+              Product library
+            </Link>
+            {product && <> / {product.name}</>}
+          </p>
+          <h1 className="mt-1 font-brand text-heading-xl uppercase text-primary">{title}</h1>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-          <input
-            type="text"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-            placeholder="T-shirts, Dresses, etc."
-          />
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={() => router.back()}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!canSave} loading={loading}>
+            {loading ? 'Saving…' : isEditing ? 'Save changes' : 'Create product'}
+          </Button>
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Deposit amount (kr)</label>
-        <p className="text-xs text-gray-400 mb-2">
-          What retailers pay per sample of this product. Leave empty for no deposit.
+      {error && (
+        <p role="alert" className="border border-accent bg-accent-subtle px-4 py-3 text-body text-accent-strong">
+          {error}
         </p>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={depositKr}
-          onChange={(e) => setDepositKr(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          placeholder="150"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Product images</label>
-        <ImageUpload
-          bucket="brand-assets"
-          folder="products"
-          value={images}
-          onChange={setImages}
-          max={5}
-          label="Upload images"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Sizes</label>
-          <input
-            type="text"
-            value={sizesText}
-            onChange={(e) => setSizesText(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-            placeholder="S, M, L, XL"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Colors</label>
-          <input
-            type="text"
-            value={colorsText}
-            onChange={(e) => setColorsText(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-            placeholder="Black, White, Navy"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Materials</label>
-        <input
-          type="text"
-          value={materials}
-          onChange={(e) => setMaterials(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-          placeholder="100% organic cotton"
-        />
-      </div>
-
-      {/* Variant stock management */}
-      {variants.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Stock per variant
-          </label>
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium text-gray-600">Size</th>
-                  <th className="text-left px-4 py-2 font-medium text-gray-600">Color</th>
-                  <th className="text-center px-4 py-2 font-medium text-gray-600">Quantity</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {variants.map((v, i) => (
-                  <tr key={`${v.size}-${v.color}`}>
-                    <td className="px-4 py-2 text-gray-900">{v.size}</td>
-                    <td className="px-4 py-2 text-gray-900">{v.color}</td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => updateVariantStock(i, -1)}
-                          className="p-1 rounded border border-gray-300 text-gray-500 hover:bg-gray-100"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </button>
-                        <input
-                          type="number"
-                          min="0"
-                          value={v.stock_count}
-                          onChange={(e) => setVariantStock(i, parseInt(e.target.value) || 0)}
-                          className="w-16 text-center rounded border border-gray-300 px-2 py-1 text-gray-900 focus:border-cirkle-500 focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => updateVariantStock(i, 1)}
-                          className="p-1 rounded border border-gray-300 text-gray-500 hover:bg-gray-100"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
       )}
 
-      {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,617fr)_minmax(0,455fr)] lg:gap-5">
+        <Card padding="none" className="rounded-none p-5 lg:p-6">
+          <div className="grid gap-4 sm:grid-cols-6">
+            <Field label="Name *" htmlFor="pf-name" className="sm:col-span-6">
+              <Input
+                id="pf-name"
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Classic T-Shirt"
+              />
+            </Field>
 
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={loading || !name.trim() || !priceKr}
-          className="rounded-lg bg-cirkle-600 px-6 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
-        >
-          {loading ? 'Saving...' : isEditing ? 'Save changes' : 'Create product'}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="rounded-lg border border-gray-300 px-6 py-3 text-gray-700 font-medium hover:bg-gray-50 transition"
-        >
-          Cancel
-        </button>
+            <Field label="Category" htmlFor="pf-category" className="sm:col-span-2">
+              <Input
+                id="pf-category"
+                type="text"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="T-shirts, Dresses, etc."
+              />
+            </Field>
+            <Field label="Colours" htmlFor="pf-colors" hint="Separate with commas" className="sm:col-span-2">
+              <Input
+                id="pf-colors"
+                type="text"
+                value={colorsText}
+                onChange={(e) => setColorsText(e.target.value)}
+                placeholder="Black, White, Navy"
+              />
+            </Field>
+            <Field label="Price (kr) *" htmlFor="pf-price" className="sm:col-span-2">
+              <Input
+                id="pf-price"
+                type="number"
+                required
+                min="1"
+                step="0.01"
+                value={priceKr}
+                onChange={(e) => setPriceKr(e.target.value)}
+                placeholder="299"
+              />
+            </Field>
+
+            <div className="flex flex-col gap-1.5 sm:col-span-6">
+              <span className="text-label uppercase text-muted">Sizes</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {sizes.map((size) => (
+                  <span key={size} className="inline-flex h-7 items-center gap-1 rounded-pill bg-surface-muted pl-3 pr-1.5 text-caption font-medium text-primary">
+                    {size}
+                    <button
+                      type="button"
+                      onClick={() => removeSize(size)}
+                      aria-label={`Remove size ${size}`}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-pill text-muted hover:text-primary"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+                <span className="inline-flex h-7 items-center rounded-pill border border-dashed border-line pl-3 pr-1">
+                  <input
+                    type="text"
+                    value={newSize}
+                    onChange={(e) => setNewSize(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        addSize();
+                      }
+                    }}
+                    onBlur={addSize}
+                    placeholder="Add size"
+                    aria-label="Add size"
+                    className="w-20 bg-transparent font-brand text-caption text-primary outline-none placeholder:text-muted"
+                  />
+                  <button
+                    type="button"
+                    onClick={addSize}
+                    aria-label="Add size"
+                    className="inline-flex h-5 w-5 items-center justify-center text-muted hover:text-primary"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </span>
+              </div>
+            </div>
+
+            <Field label="About (shown on the product page)" htmlFor="pf-description" className="sm:col-span-6">
+              <Textarea
+                id="pf-description"
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe the product"
+              />
+            </Field>
+
+            <Field label="Materials and care" htmlFor="pf-materials" className="sm:col-span-6">
+              <Input
+                id="pf-materials"
+                type="text"
+                value={materials}
+                onChange={(e) => setMaterials(e.target.value)}
+                placeholder="100% organic cotton"
+              />
+            </Field>
+
+            <Field
+              label="Sample deposit (kr)"
+              htmlFor="pf-deposit"
+              hint="What stores pay per sample of this product. Leave empty for no deposit."
+              className="sm:col-span-3"
+            >
+              <Input
+                id="pf-deposit"
+                type="number"
+                min="0"
+                step="0.01"
+                value={depositKr}
+                onChange={(e) => setDepositKr(e.target.value)}
+                placeholder="150"
+              />
+            </Field>
+          </div>
+
+          {/* Variant stock management */}
+          {variants.length > 0 && (
+            <div className="mt-6 border-t border-line pt-5">
+              <h2 className="mb-3 font-brand text-body uppercase tracking-[0.3px] text-primary">Stock per variant</h2>
+              <div className="-mx-1 overflow-x-auto">
+                <table className="w-full border-collapse font-brand text-[13px] text-primary">
+                  <thead>
+                    <tr>
+                      <th className="border-b border-line px-3 py-2 text-left text-label font-medium uppercase text-muted">Size</th>
+                      <th className="border-b border-line px-3 py-2 text-left text-label font-medium uppercase text-muted">Colour</th>
+                      <th className="border-b border-line px-3 py-2 text-right text-label font-medium uppercase text-muted">Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {variants.map((v, i) => (
+                      <tr key={`${v.size}-${v.color}`}>
+                        <td className="px-3 py-2">{v.size}</td>
+                        <td className="px-3 py-2">{v.color}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <StockButton label={`Decrease ${v.size} ${v.color}`} onClick={() => updateVariantStock(i, -1)}>
+                              <Minus className="h-3 w-3" />
+                            </StockButton>
+                            <input
+                              type="number"
+                              min="0"
+                              value={v.stock_count}
+                              onChange={(e) => setVariantStock(i, parseInt(e.target.value) || 0)}
+                              aria-label={`Stock ${v.size} ${v.color}`}
+                              className="h-8 w-16 rounded-control border border-line bg-surface text-center font-brand text-[13px] text-primary outline-none focus:border-primary"
+                            />
+                            <StockButton label={`Increase ${v.size} ${v.color}`} onClick={() => updateVariantStock(i, 1)}>
+                              <Plus className="h-3 w-3" />
+                            </StockButton>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {variants.length === 0 && (
+            <p className="mt-5 text-caption text-muted">Add sizes and colours to set stock per variant.</p>
+          )}
+        </Card>
+
+        <Card padding="none" className="rounded-none p-5 lg:p-6">
+          <h2 className="mb-4 font-brand text-body uppercase tracking-[0.3px] text-primary">Images</h2>
+          <ImageUpload
+            bucket="brand-assets"
+            folder="products"
+            value={images}
+            onChange={setImages}
+            max={5}
+            label="Add"
+            appearance="flaym"
+          />
+          <p className="mt-3 text-caption text-muted">The first image is the main image. Up to 5.</p>
+
+          {stores && (
+            <div className="mt-6 border-t border-line pt-5">
+              <h2 className="mb-3 font-brand text-body uppercase tracking-[0.3px] text-primary">In stores</h2>
+              {stores.length === 0 ? (
+                <p className="text-caption text-muted">Not in any store yet. Add a sample under Stores &amp; QR tags.</p>
+              ) : (
+                <ul className="space-y-2.5">
+                  {stores.map((store) => (
+                    <li key={store} className="flex items-center gap-3 text-[13px] text-primary">
+                      <span className="h-3.5 w-3.5 shrink-0 bg-accent" aria-hidden />
+                      {store}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </Card>
       </div>
     </form>
+  );
+}
+
+function StockButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={cn('inline-flex h-8 w-8 items-center justify-center rounded-control border border-line text-muted transition-colors hover:border-primary hover:text-primary')}
+    >
+      {children}
+    </button>
   );
 }

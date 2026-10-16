@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { ProductForm } from '@/components/brand/product-form';
+import { Skeleton } from '@/components/ds';
 
 export default function NewProductPage() {
   const { user } = useAuth();
@@ -23,13 +24,23 @@ export default function NewProductPage() {
   }, [user]);
 
   if (!brandProfileId) {
-    return <div className="animate-pulse text-gray-400">Loading...</div>;
+    return <FormSkeleton />;
   }
 
+  return <ProductForm brandProfileId={brandProfileId} title="Add product" />;
+}
+
+function FormSkeleton() {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Nyt produkt</h1>
-      <ProductForm brandProfileId={brandProfileId} />
+      <div>
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="mt-2 h-10 w-64" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-[617fr_455fr] lg:gap-5">
+        <Skeleton className="h-[480px] w-full" />
+        <Skeleton className="h-[320px] w-full" />
+      </div>
     </div>
   );
 }
