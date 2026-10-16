@@ -710,6 +710,10 @@ export type Database = {
         Args: { p_brand_id: string };
         Returns: number;
       };
+      get_brand_save_counts: {
+        Args: { p_since: string };
+        Returns: { day: string; saves: number }[];
+      };
     };
   };
 };
