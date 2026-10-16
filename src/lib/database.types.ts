@@ -38,6 +38,7 @@ export type Database = {
           description: string | null;
           logo_url: string | null;
           website: string | null;
+          return_policy_url: string | null;
           onboarding_complete: boolean;
           created_at: string;
           updated_at: string;
@@ -49,6 +50,7 @@ export type Database = {
           description?: string | null;
           logo_url?: string | null;
           website?: string | null;
+          return_policy_url?: string | null;
           onboarding_complete?: boolean;
         };
         Update: {
@@ -58,7 +60,31 @@ export type Database = {
           description?: string | null;
           logo_url?: string | null;
           website?: string | null;
+          return_policy_url?: string | null;
           onboarding_complete?: boolean;
+        };
+        Relationships: [];
+      };
+      brand_payout_details: {
+        Row: {
+          brand_id: string;
+          reg_no: string | null;
+          account_no: string | null;
+          cvr: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          brand_id: string;
+          reg_no?: string | null;
+          account_no?: string | null;
+          cvr?: string | null;
+        };
+        Update: {
+          brand_id?: string;
+          reg_no?: string | null;
+          account_no?: string | null;
+          cvr?: string | null;
         };
         Relationships: [];
       };
