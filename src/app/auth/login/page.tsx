@@ -2,10 +2,10 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import AuthSwitchLink from '../switch-link';
 import { createClient } from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
+import { Button, Field, Input } from '@/components/ds';
+import { AuthShell, AuthError } from '@/components/shared/auth-shell';
 import type { Database } from '@/lib/database.types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -76,88 +76,66 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email
-        </label>
-        <input
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <Field label="Email" htmlFor="email">
+        <Input
           id="email"
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
           placeholder="you@example.com"
         />
-      </div>
+      </Field>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-          Password
-        </label>
-        <input
+      <Field label="Password" htmlFor="password">
+        <Input
           id="password"
           type="password"
           required
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
           placeholder="Your password"
         />
-      </div>
+      </Field>
 
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">
-          {error}
-        </p>
-      )}
+      {error && <AuthError>{error}</AuthError>}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Signing in...
-          </>
-        ) : (
-          'Sign in'
-        )}
-      </button>
+      <Button type="submit" fullWidth loading={loading} className="h-[52px]">
+        {loading ? 'Logging in...' : 'Log in'}
+      </Button>
     </form>
   );
 }
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <Link href="/" className="text-3xl font-bold text-cirkle-950">
-            Cirkle
-          </Link>
-          <h1 className="mt-4 text-2xl font-semibold text-gray-900">
-            Sign in
-          </h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Welcome back
-          </p>
-        </div>
+    <AuthShell
+      eyebrow="Flaym"
+      title="Log in"
+      intro="Brands, stores and shoppers all log in here."
+    >
+      <Suspense>
+        <LoginForm />
+      </Suspense>
 
-        <Suspense>
-          <LoginForm />
-        </Suspense>
-
-        <p className="text-center text-sm text-gray-500">
-          Don&apos;t have an account?{' '}
-          <AuthSwitchLink to="/auth/signup" className="text-cirkle-600 hover:underline font-medium">
-            Create account
+      <div className="space-y-2 text-[13px] text-muted">
+        <p>
+          No account yet?{' '}
+          <AuthSwitchLink to="/auth/signup" className="text-primary underline">
+            Create one
           </AuthSwitchLink>
         </p>
+        <p>Store invited by a brand? Use the link in your invitation email.</p>
+        <p>
+          Need help?{' '}
+          <a href="mailto:hello@flaym.app" className="text-primary underline">
+            hello@flaym.app
+          </a>
+        </p>
       </div>
-    </main>
+    </AuthShell>
   );
 }
