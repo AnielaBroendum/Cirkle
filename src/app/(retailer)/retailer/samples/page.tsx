@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { QrCode, Plus, ArrowLeftRight, Truck } from 'lucide-react';
+import { QrCode, Plus, ArrowLeftRight, Truck, Package } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -51,6 +51,24 @@ type SwapRequestRow = {
   created_at: string;
 };
 
+type SampleRequestRow = {
+  id: string;
+  brand_name: string;
+  status: string;
+  note: string | null;
+  review_note: string | null;
+  created_at: string;
+  items: { id: string; product_name: string; size: string; color: string; deposit_amount_dkk: number }[];
+};
+
+const REQUEST_STATUS_LABELS: Record<string, string> = {
+  pending: 'Waiting for brand',
+  approved: 'Approved',
+  shipped: 'On its way',
+  received: 'Received',
+  rejected: 'Declined',
+};
+
 const SWAP_STATUS_LABELS: Record<string, string> = {
   requested: 'Pending',
   approved: 'Approved',
@@ -68,7 +86,8 @@ export default function RetailerSamplesPage() {
   const [samples, setSamples] = useState<SampleWithDetails[]>([]);
   const [swapRequests, setSwapRequests] = useState<SwapRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'samples' | 'swaps'>('samples');
+  const [tab, setTab] = useState<'samples' | 'swaps' | 'requests'>('samples');
+  const [sampleRequests, setSampleRequests] = useState<SampleRequestRow[]>([]);
   const [brandFilter, setBrandFilter] = useState('all');
   const [retailerId, setRetailerId] = useState<string | null>(null);
 
@@ -179,6 +198,59 @@ export default function RetailerSamplesPage() {
       });
   }, [user]);
 
+  // Sample requests the retailer has sent (status, items, deposits). Read-only.
+  useEffect(() => {
+    if (!retailerId) return;
+    const supabase = createClient();
+
+    (async () => {
+      const { data: reqs } = await supabase
+        .from('sample_requests')
+        .select('id, brand_id, status, note, review_note, created_at')
+        .eq('retailer_id', retailerId)
+        .order('created_at', { ascending: false });
+
+      const rows = (reqs ?? []) as { id: string; brand_id: string; status: string; note: string | null; review_note: string | null; created_at: string }[];
+      if (rows.length === 0) {
+        setSampleRequests([]);
+        return;
+      }
+
+      const { data: itemsData } = await supabase
+        .from('sample_request_items')
+        .select('id, request_id, product_id, size, color, deposit_amount_dkk')
+        .in('request_id', rows.map((r) => r.id));
+      const items = (itemsData ?? []) as { id: string; request_id: string; product_id: string; size: string; color: string; deposit_amount_dkk: number }[];
+
+      const [brandsRes, productsRes] = await Promise.all([
+        supabase.from('brand_profiles').select('id, name').in('id', Array.from(new Set(rows.map((r) => r.brand_id)))),
+        supabase.from('products').select('id, name').in('id', Array.from(new Set(items.map((i) => i.product_id)))),
+      ]);
+      const brandNames = new Map(((brandsRes.data ?? []) as { id: string; name: string }[]).map((b) => [b.id, b.name]));
+      const productNames = new Map(((productsRes.data ?? []) as { id: string; name: string }[]).map((pr) => [pr.id, pr.name]));
+
+      setSampleRequests(
+        rows.map((r) => ({
+          id: r.id,
+          brand_name: brandNames.get(r.brand_id) ?? 'Unknown brand',
+          status: r.status,
+          note: r.note,
+          review_note: r.review_note,
+          created_at: r.created_at,
+          items: items
+            .filter((i) => i.request_id === r.id)
+            .map((i) => ({
+              id: i.id,
+              product_name: productNames.get(i.product_id) ?? 'Unknown product',
+              size: i.size,
+              color: i.color,
+              deposit_amount_dkk: i.deposit_amount_dkk,
+            })),
+        }))
+      );
+    })();
+  }, [retailerId]);
+
   async function openSwapModal(sample: SampleWithDetails) {
     setSwapSample(sample);
     setSwapProductId('');
@@ -246,6 +318,7 @@ export default function RetailerSamplesPage() {
 
   const selectedSwapProduct = brandProducts.find((p) => p.id === swapProductId);
   const pendingSwaps = swapRequests.filter((s) => !['completed', 'cancelled'].includes(s.status));
+  const openRequests = sampleRequests.filter((r) => !['received', 'rejected'].includes(r.status)).length;
 
   // Brand filter (Figma 03 segmented control) — client-side only.
   const brandCounts = samples.reduce<Map<string, number>>((m, s) => m.set(s.brand_name, (m.get(s.brand_name) ?? 0) + 1), new Map());
@@ -308,9 +381,10 @@ export default function RetailerSamplesPage() {
       <Tabs
         variant="underline"
         value={tab}
-        onValueChange={(v) => setTab(v as 'samples' | 'swaps')}
+        onValueChange={(v) => setTab(v as 'samples' | 'swaps' | 'requests')}
         items={[
           { value: 'samples', label: 'In the store', count: samples.filter((s) => s.status === 'active').length },
+          { value: 'requests', label: 'Sample requests', count: openRequests > 0 ? openRequests : undefined },
           { value: 'swaps', label: 'Swap requests', count: pendingSwaps.length > 0 ? pendingSwaps.length : undefined },
         ]}
       />
@@ -394,6 +468,66 @@ export default function RetailerSamplesPage() {
                 ))}
               </div>
             </>
+          )}
+        </>
+      )}
+
+      {tab === 'requests' && (
+        <>
+          {sampleRequests.length === 0 ? (
+            <EmptyState
+              icon={<Package className="h-5 w-5" />}
+              title="No sample requests"
+              description="Requests you send to brands show up here until the samples arrive."
+              action={
+                <Link href="/retailer/samples/request" className={buttonClasses({ variant: 'accent' })}>
+                  <Plus className="h-4 w-4" /> Request samples
+                </Link>
+              }
+            />
+          ) : (
+            <div className="space-y-3">
+              {sampleRequests.map((r) => {
+                const deposit = r.items.reduce((sum, i) => sum + i.deposit_amount_dkk, 0);
+                return (
+                  <Card key={r.id} className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-body text-primary">{r.brand_name}</p>
+                        <p className="mt-1 text-caption text-muted">
+                          Sent {formatDate(r.created_at)} · {r.items.length} {r.items.length === 1 ? 'item' : 'items'} · {formatDKK(deposit)} deposit
+                        </p>
+                      </div>
+                      <StatusPill status={r.status} label={REQUEST_STATUS_LABELS[r.status] ?? r.status} />
+                    </div>
+
+                    <ul className="divide-y divide-line border-y border-line">
+                      {r.items.map((i) => (
+                        <li key={i.id} className="flex items-center justify-between gap-3 py-2.5">
+                          <p className="min-w-0 truncate text-body text-primary">
+                            {i.product_name} <span className="text-caption text-muted">· {i.size} / {i.color}</span>
+                          </p>
+                          <span className="shrink-0 text-caption text-muted">{formatDKK(i.deposit_amount_dkk)}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {(r.note || r.review_note) && (
+                      <div className="space-y-1 text-caption text-muted">
+                        {r.note && <p>Your note: {r.note}</p>}
+                        {r.review_note && <p>From {r.brand_name}: {r.review_note}</p>}
+                      </div>
+                    )}
+
+                    {r.status === 'shipped' && (
+                      <Button size="sm" onClick={() => confirmReceived(r.id)} leftIcon={<Package className="h-4 w-4" />}>
+                        Confirm received
+                      </Button>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
           )}
         </>
       )}
