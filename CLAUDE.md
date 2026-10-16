@@ -9,7 +9,7 @@ A three-sided marketplace for fashion. Brands upload products and send physical 
 - **Framework**: Next.js 14+ (App Router, TypeScript, server components)
 - **Database**: Supabase (PostgreSQL + Auth + Storage + Realtime)
 - **Auth**: Supabase Auth (email/password + Google + Apple Sign In)
-- **Styling**: Tailwind CSS + shadcn/ui
+- **Styling**: Tailwind CSS + the Flaym design system (`src/components/ds`)
 - **QR Codes**: `qrcode` npm package
 - **Email**: Resend (transactional emails)
 - **Hosting**: Vercel
@@ -111,7 +111,7 @@ src/
     points.ts               — Points calculation
     qr.ts                   — QR code generation
   components/
-    ui/                     — shadcn/ui components
+    ds/                     — Flaym design system components (see Conventions)
     brand/                  — Brand-specific components
     retailer/               — Retailer-specific components
     consumer/               — Consumer-specific components
@@ -128,9 +128,24 @@ src/
 - English language for all user-facing content and code/comments
 - Mobile-first responsive design
 - Tailwind for styling — no custom CSS files
+- Build UI from the Flaym design system (below)
 - Error handling: always return proper HTTP status codes from API routes
 - Use Supabase's `createServerClient` in server components and API routes
 - Use Supabase's `createBrowserClient` in client components
+
+### Design system (Flaym)
+
+The UI follows the Flaym Figma file. Use only these tokens (defined in `tailwind.config.ts`) and the components in `src/components/ds/`. Tailwind's default palette (`gray-*`, `red-*`, etc.) is not part of the design.
+
+- **Colours**: `canvas` (white page), `canvas-dark` (Obsidian page), `canvas-warm` (off-white portal page), `surface`, `surface-muted`, `surface-dark` (card on a dark page), `primary` (Obsidian: text, primary buttons, nav), `on-primary`, `muted` (secondary text), `line`, `line-dark`, `accent` (Flaym orange: CTAs, active states), `accent-subtle`, `accent-strong`, `success`, `success-subtle`, `warning`, `warning-subtle`
+- **No danger colour and no shadows**: Figma has neither. Errors use the accent tones (`text-accent-strong`, or an accent icon on `bg-primary`). Don't add red or box shadows.
+- **Font**: `font-brand` (IBM Plex Mono 400/500) is the body default. Headings and labels are uppercase via `uppercase`.
+- **Type scale**: `text-display`, `text-heading-xl`, `text-heading-lg`, `text-body`, `text-caption`, `text-label`
+- **Radius**: `rounded-control` (square, 0px) for buttons, inputs and cards; `rounded-pill` for pills, avatars and toggles
+- **Gradients**: `bg-flaym-gradient` (welcome and auth art), `bg-flaym-scan` (consumer Scan screen)
+- **Page backgrounds per area**: consumer app `bg-canvas-dark`; brand and retailer portals `bg-canvas-warm`; landing and auth `bg-flaym-gradient` with a `bg-canvas` form column; error and 404 `bg-canvas`
+- **Components** (import from `@/components/ds`): `Logo`, `Button` / `buttonClasses`, `Field`, `Input`, `Textarea`, `Select`, `Checkbox`, `Toggle`, `Card`, `CardHeader`, `Badge`, `StatusPill`, `Avatar`, `Modal` (sheet on mobile), `Tabs`, `TopBar`, `BottomNav`, `SidebarNav`, `EmptyState`, `StatTile`, skeletons (`Skeleton`, `KPISkeleton`, `ListSkeleton`, `CardSkeleton`), `Toast` / `ToastProvider` / `useToast` (mounted in the root layout), `List` / `ListRow`, `Table` (`THead`, `TBody`, `TR`, `TH`, `TD`), `ProductCard`, and `cn` for class merging
+- Shared layout pieces that aren't generic live next to their area, e.g. `components/shared/auth-shell.tsx` (login, signup, invite) and `components/consumer/checkout-parts.tsx`.
 
 ## Environment Variables
 
@@ -151,26 +166,3 @@ See `.env.example` for required variables. Key ones:
 - DPP fields are placeholder only (materials text field, no structured EU compliance)
 - Email notifications via Resend for: order confirmation, status updates, retailer invitations
 - The consumer experience should feel like a PWA — installable, fast, mobile-optimized
-
-## Redesign rules
-
-We are redesigning the full UI to match the new Figma design while keeping all functionality exactly as it is. See `REDESIGN.md` for the route inventory and the flow test checklist.
-
-- Never change API routes (`src/app/api`), `src/lib`, `supabase/`, database queries, auth logic, Resend emails, QR/attribution/points logic, or environment variables.
-  - `src/middleware.ts` (role gating) and `src/app/auth/callback` count as auth logic. Don't touch them.
-- Only change layout, markup and styling. Keep every data call, form submission, handler, state and redirect wired exactly as before.
-- If a page mixes data fetching and layout, keep the data fetching and only replace the layout and markup.
-- Use only the new design tokens and the components in `src/components/ds/` in redesigned screens.
-  - Add the new tokens under **new names** in `tailwind.config.ts`. Don't redefine `gray`, `white`, `black` or `cirkle`: the current "Espresso" theme remaps those, and every screen that hasn't been redesigned yet depends on them.
-  - Flaym tokens (in `tailwind.config.ts`):
-    - Colours: `canvas`, `canvas-dark`, `surface`, `surface-muted`, `surface-dark`, `primary`, `on-primary`, `muted`, `line`, `line-dark`, `accent`, `accent-subtle`, `accent-strong`, `success`, `success-subtle`, `warning`, `warning-subtle` (`surface-dark` and `line-dark` come from the Figma App frames, for dark portals)
-    - Font: `font-brand` (IBM Plex Mono 400/500)
-    - Sizes: `text-display`, `text-heading-xl`, `text-heading-lg`, `text-body`, `text-caption`, `text-label`
-    - Radius: `rounded-control`, `rounded-pill`
-    - Gradients: `bg-flaym-gradient`, `bg-flaym-scan` (consumer Scan screen)
-    - Figma defines no danger colour and no shadows. Don't invent them.
-  - Each portal picks `bg-canvas` (light) or `bg-canvas-dark`.
-  - `globals.css` still sets `h1`–`h3` to Fraunces, so redesigned headings must add `font-brand` explicitly.
-- Only touch the portal named in the current task.
-- Commit after each finished screen with a clear message.
-- Mobile-first, Tailwind only, no custom CSS files.

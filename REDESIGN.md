@@ -1,6 +1,6 @@
 # Cirkle redesign: inventory
 
-The new Figma UI is a reskin: functionality must not change. The rules are in `CLAUDE.md` → "Redesign rules".
+The new Figma UI was a reskin: functionality did not change. **Finished 2026-10-16**: the Espresso theme is removed and every screen uses the Flaym tokens and `src/components/ds/` (documented in `CLAUDE.md` → Conventions → Design system). This file stays as the route inventory and the flow test checklist.
 
 Legend: **C** = client component, **S** = server component. "Reads" = direct Supabase table and RPC reads in the page (keep them). "Calls" = API routes the page hits (keep them).
 
@@ -23,7 +23,12 @@ Legend: **C** = client component, **S** = server component. "Reads" = direct Sup
 
 **Redesigned (Oct 2026):** `/` (after Figma App 01 Welcome), `/auth/login` (Brand/Retail Portal 01 Login), `/auth/signup` and `/invite/[token]` (styled after Portal 01). Login, signup and invite share `components/shared/auth-shell.tsx` (gradient art panel + form column; a short band on mobile). All use `bg-flaym-gradient`.
 
-Figma items left out: App 02 Consent (no consent storage), Continue with Apple / Google (no OAuth in the code: there's no `signInWithOAuth` call anywhere), Forgot password (no reset flow), the terms line (no terms page). `error.tsx` and `not-found.tsx` are not redesigned yet.
+Figma items left out: App 02 Consent (on hold, see below), Continue with Apple / Google (no OAuth in the code: there's no `signInWithOAuth` call anywhere), Forgot password (no reset flow), the terms line (no terms page). `error.tsx` and `not-found.tsx` were redesigned last (Oct 16): `bg-canvas`, uppercase Plex Mono heading, accent button.
+
+**On hold: App 02 Consent** (Figma node 8:18, "Before you scan"). Dark screen with three toggles in a `surface-dark` card: Data for the chain (required, always on), Share my data with brands (on by default in Figma), News from brands (max one email a week, off). Then an accent "Start scanning" button. Two decisions are open before building it:
+- **Storage:** nothing stores consent today. Options: a new migration (`consumer_consents` table, owner-only RLS, each choice plus a timestamp; recommended, since brand sharing and marketing email are GDPR consents you need to prove), auth user metadata (touches auth calls), or UI only (not safe beyond a preview).
+- **Placement:** after shopper signup (signup → `/consumer/consent` → `/consumer/home`, with `?redirect=` still winning; this changes the consumer signup redirect), or a standalone page linked from profile settings.
+- Note: Figma has "Share my data with brands" on by default. Under GDPR, optional consents should start off.
 
 ---
 
@@ -143,15 +148,15 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 - `components/consumer/order-timeline.tsx`: status timeline
 - `components/providers/auth-provider.tsx`: auth context (logic only, no UI)
 - `components/pwa/*`: install prompt, page transition, service worker registration
-- `components/ui/skeleton.tsx`, `components/ui/toast.tsx`: to be replaced by `components/ds/` equivalents
+- `components/ui/` was deleted on 2026-10-16; skeletons and toasts now come from `components/ds/`
 
 ## Notes
 
 - `src/middleware.ts` handles auth plus role gating (`/brand`, `/retailer` and `/consumer` are locked to their role; `/`, `/auth`, `/p`, `/d` and `/invite` are public). Don't touch it.
 - CLAUDE.md mentions `src/lib/attribution.ts`, `points.ts` and `qr.ts`. **These files don't exist.** That logic lives inside the API routes listed above.
 - Auth pages are in `src/app/auth/`, not in an `(auth)/` route group as CLAUDE.md says.
-- `tailwind.config.ts` remaps `gray`, `white`, `black` and `cirkle` into the dark "Espresso" theme. Add the new design tokens under new names so screens that haven't been redesigned yet don't change.
-- `src/components/ds/` doesn't exist yet. Build it first, from the Figma tokens and components.
+- The Espresso theme (remapped `gray`/`white`/`black`/`cirkle`, plus `espresso`, `terracotta`, `gold`, `sage`, Inter and Fraunces) was removed from `tailwind.config.ts`, `globals.css` and the root layout on 2026-10-16. `gray-*`, `white` and `black` are Tailwind defaults again, but they're not part of the design.
+- The `/auth/ds-preview` page was deleted on 2026-10-16.
 
 ## Open decisions
 
@@ -180,48 +185,50 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 
 ---
 
-## Flow test checklist (run after each portal is redesigned)
+## Flow test checklist
+
+**Final run 2026-10-16** against `next dev` on :3000 at 375px, with test accounts on `@flaym.test` (logins in the gitignored `.env.test-accounts.local`). [x] = passed, [~] = passed with a note, [ ] = not tested.
 
 ### Auth & gating
-- [ ] Sign up as brand, as retailer and as consumer, and land on the correct page for each
-- [ ] Log in for each role and land on the correct page; `?redirect=` is honoured
-- [ ] Logged out, `/brand/dashboard` redirects to `/auth/login?redirect=…`
-- [ ] Wrong role, e.g. a consumer opening `/brand/*`, is redirected to their own dashboard
-- [ ] Visiting `/auth/login` while logged in still lets you switch accounts
+- [x] Sign up as brand, as retailer and as consumer, and land on the correct page for each (brand → onboarding, retailer via invite → onboarding, consumer → back to the basket via `?redirect=`)
+- [x] Log in for each role and land on the correct page; `?redirect=` is honoured
+- [x] Logged out, `/brand/dashboard` redirects to `/auth/login?redirect=…`
+- [x] Wrong role, e.g. a consumer opening `/brand/*`, is redirected to their own dashboard (tested retailer → `/brand/dashboard`)
+- [x] Visiting `/auth/login` while logged in still lets you switch accounts
 
 ### Brand
-- [ ] A new brand is forced through onboarding (profile, logo upload, first product) and lands on the dashboard
-- [ ] Create a product with images and variants; edit it; the changes persist
-- [ ] Invite a retailer by email: the Resend invitation arrives and the link opens `/invite/[token]`
-- [ ] Request an existing retailer; the request appears for the retailer
-- [ ] Create a sample for a partner retailer: the QR is generated and shown; delete the sample
-- [ ] Approve a retailer's sample request: samples, QR codes and a deposit transaction are created
-- [ ] Swap lifecycle: approve → retailer ships back → inspect → refund or forfeit → new sample is created
-- [ ] Transactions page shows deposits held; dashboard KPIs match
-- [ ] Advance an order pending → confirmed → packed → shipped (tracking) → delivered; a status email goes out each time
-- [ ] Returns: a consumer return request appears on `/brand/returns`; approve → mark received → mark refunded (needs 003)
-- [ ] Account: edit brand details and payouts, save, reload, values persist (needs 007)
-- [ ] Dashboard Saves shows a number after 006 is applied
+- [x] A new brand is forced through onboarding (profile, logo upload, first product) and lands on the dashboard
+- [x] Create a product with images and variants; edit it; the changes persist
+- [~] Invite a retailer by email: invitation and link created, link opens `/invite/[token]` and accept works. No email arrives (Resend sender domain not set up, see Open decisions)
+- [ ] Request an existing retailer; the request appears for the retailer (skipped: the only other stores belong to non-test accounts)
+- [x] Create a sample for a partner retailer: the QR is generated and shown; delete the sample
+- [x] Approve a retailer's sample request: samples, QR codes and a deposit transaction are created
+- [~] Swap lifecycle: approve → retailer ships back → inspect → refund or forfeit → new sample is created. **Gap (since Phase 7, not the redesign):** no screen moves a swap from `return_shipped` to `return_received`; the API allows it but nothing calls it. Tested by calling the API once, then the rest worked in the UI
+- [x] Transactions page shows deposits held; dashboard KPIs match
+- [~] Advance an order pending → confirmed → packed → shipped (tracking) → delivered. No status emails arrive (Resend, see Open decisions)
+- [x] Returns: a consumer return request appears on `/brand/returns`; approve → mark received → mark refunded (needs 003)
+- [~] Account: brand details save and persist. Payouts and return policy link show the "database update" notice: migration 007 isn't applied (`brand_payout_details` 404)
+- [ ] Dashboard Saves shows a number after 006 is applied (006 isn't applied: `get_brand_save_counts` 404, card shows "Not available yet")
 
 ### Retailer
-- [ ] Accept an invite, complete onboarding (photos), land on the dashboard
-- [ ] Request a partnership with a brand from `/retailer/brands`
-- [ ] Request samples (pick products and sizes) and land on `/retailer/samples`
-- [ ] Mark a sample request received; request a swap; mark the swap shipped back
-- [ ] Transactions page shows deposit capital tied up; dashboard shows scans, sales and commission
+- [x] Accept an invite, complete onboarding (photos), land on the dashboard
+- [ ] Request a partnership with a brand from `/retailer/brands` (skipped: the only other brands belong to non-test accounts)
+- [x] Request samples (pick products and sizes) and land on `/retailer/samples`
+- [x] Mark a sample request received; request a swap; mark the swap shipped back
+- [x] Transactions page shows deposit capital tied up; dashboard shows scans, sales and commission
 
 ### Consumer
-- [ ] Scan `/p/[sampleId]` logged out: product page renders and the scan is recorded
-- [ ] Save a product, which then appears in `/consumer/saved`; remove it
-- [ ] Buy now while logged out goes to signup with a redirect, then back to checkout
-- [ ] Checkout with points redeemed: order is created, points are deducted, confirmation email and brand email go out
-- [ ] Order detail shows the timeline updating as the brand changes the status
-- [ ] Peer QR appears on the order and in `/consumer/qr`
-- [ ] A friend scans `/d/[productId]?ref=…` and buys; the attribution is a peer one and the owner earns 50 points
-- [ ] Profile shows the points balance and history (100 welcome points)
-- [ ] Home shows recent discoveries and saved items
+- [x] Scan `/p/[sampleId]` logged out: product page renders and the scan is recorded
+- [x] Save a product, which then appears in `/consumer/saved`; remove it (the "Saved n" count in the header only updates on reload)
+- [x] Buy now while logged out goes to signup with a redirect, then back to checkout (via the basket)
+- [~] Checkout with points redeemed: order is created, points are deducted. Emails don't arrive (Resend)
+- [x] Order detail shows the timeline updating as the brand changes the status
+- [x] Peer QR appears on the order and in `/consumer/qr`
+- [x] A friend scans `/d/[productId]?ref=…` and buys; the attribution is a peer one and the owner earns 50 points
+- [~] Profile shows the points balance and history. The 100 welcome points are granted on the first purchase (in `/api/checkout`), not at signup
+- [~] Home is now the Scan screen (Figma App 03); camera is blocked in the test browser so only the fallback was seen. Discoveries and saved items are under Profile → History / Saved
 
 ### PWA / responsive
-- [ ] Install prompt appears; app installs; service worker registers
-- [ ] Every redesigned screen works at 375px width with no horizontal scroll
-- [ ] Error page and 404 render in the new design
+- [ ] Install prompt appears; app installs; service worker registers (not testable in dev: `sw-register` unregisters in development. Also `manifest.json` lists `/icon-192.png` and `/icon-512.png`, which don't exist)
+- [x] Every redesigned screen works at 375px width with no horizontal scroll
+- [~] Error page and 404 render in the new design (404 checked under `/auth/…`; logged out, other unknown paths go to login via the middleware. `error.tsx` checked by build only)
