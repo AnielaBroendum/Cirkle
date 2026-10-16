@@ -72,6 +72,7 @@ Figma items left out because the data isn't loaded today: dashboard Saves, Week/
 **New backend pieces (approved exceptions):**
 - `supabase/migrations/004_retailer_profile_details.sql`: `retailer_profiles.opening_hours` (public) and `retailer_payout_details` (reg. no., account no., CVR) with owner-only RLS, because `retailer_profiles` is publicly readable. **Apply with `supabase db push`** before `/retailer/profile` can save.
 - `src/lib/database.types.ts` updated for both.
+- `supabase/migrations/005_retailer_order_items_read.sql`: RLS select policy so a retailer can read `order_items` of orders attributed to their store (product names in the dashboard's credited list; before this they showed "Unknown product"). No access to `orders` or consumer data. **Apply like 004.**
 - Token `canvas-warm` (#F4F2EE) in `tailwind.config.ts`.
 - `components/brand/image-upload.tsx`: opt-in `appearance="flaym"` (+ `cover`) used by retailer screens; the default look stays for the brand portal. Upload fixes apply everywhere.
 
