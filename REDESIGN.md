@@ -53,18 +53,28 @@ Product page (used by `/p` and `/d`, Figma 04b/04c): `src/components/consumer/pr
 
 ---
 
-## Retailer portal: `src/app/(retailer)/`
+## Retailer portal: `src/app/(retailer)/` (redesigned to Figma "Retail Portal", Oct 2026)
 
-Layout `(retailer)/layout.tsx` (C): nav (Dashboard, Samples, Transactions, Brands). It reads `retailer_profiles` and redirects to `/retailer/onboarding` until the profile exists.
+Layout `(retailer)/layout.tsx` (C): dark ds `SidebarNav` (Dashboard, Products, Transactions, Brands, Store profile, Log out) on `bg-canvas-warm`. It reads `retailer_profiles` and redirects to `/retailer/onboarding` until the profile exists (unchanged). Figma has desktop frames only; mobile uses the SidebarNav drawer.
 
-| Route | What it does | Reads | Calls |
-|---|---|---|---|
-| `/retailer/dashboard` | KPIs (scans, sales, commission earned, deposit capital tied up), recent activity | `retailer_profiles`, `samples`, `scans`, `attributions`, `brand_retailer_partnerships`, `order_items`, `products`, `brand_profiles` | — |
-| `/retailer/onboarding` | Store profile form plus photos (`ImageUpload`), then goes to dashboard | `retailer_profiles` (write) | Supabase Storage |
-| `/retailer/samples` | Samples in store with scan counts; request a swap; update swap and sample-request status (e.g. shipped back / received) | `retailer_profiles`, `samples`, `swap_requests`, `products`, `brand_profiles`, `scans` | `POST /api/swap-requests`, `PATCH /api/swap-requests/[id]/status`, `PATCH /api/sample-requests/[id]/status` |
-| `/retailer/samples/request` | Pick a partner brand, products and sizes, then request samples (deposit shown). Goes to `/retailer/samples` | `retailer_profiles`, `brand_retailer_partnerships`, `brand_profiles`, `products` | `POST /api/sample-requests` |
-| `/retailer/samples/transactions` | Deposit ledger (paid / refunded / forfeited) | `retailer_profiles`, `sample_transactions`, `samples`, `products`, `brand_profiles` | — |
-| `/retailer/brands` | Partner brands plus commission rates; request a partnership with a brand | `retailer_profiles`, `brand_retailer_partnerships`, `brand_profiles` | `POST /api/partnerships/request` |
+| Route | Figma | What it does | Reads | Calls |
+|---|---|---|---|---|
+| `/retailer/dashboard` | 02 | KPI tiles (scans this week, active samples, purchases credited, earned this month), latest credited purchases, recent scans, partnerships, deposit capital | `retailer_profiles`, `samples`, `scans`, `attributions`, `brand_retailer_partnerships`, `order_items`, `products`, `brand_profiles` | — |
+| `/retailer/samples` | 03 | "Products in the store": cards with QR tag and scans, brand filter, Print all QR tags (client-only print window), swap requests tab, swap modal | `retailer_profiles`, `samples`, `swap_requests`, `products`, `brand_profiles`, `scans` | `POST /api/swap-requests`, `PATCH /api/swap-requests/[id]/status`, `PATCH /api/sample-requests/[id]/status` |
+| `/retailer/profile` (new) | 04 | Store profile and payouts: store details, opening hours, photos, logo, payout details, brands in the store | `retailer_profiles` (read/write), `retailer_payout_details` (read/upsert), `brand_retailer_partnerships`, `samples`, `brand_profiles` | Supabase Storage (`ImageUpload`) |
+| `/retailer/onboarding` | — (styled after 01) | Store profile form plus logo and photos, then dashboard | `retailer_profiles` (write) | Supabase Storage |
+| `/retailer/samples/request` | — | Pick partner brand, products, sizes; request samples (deposit shown) | `retailer_profiles`, `brand_retailer_partnerships`, `brand_profiles`, `products` | `POST /api/sample-requests` |
+| `/retailer/samples/transactions` | — | Deposit ledger (paid / refunded / forfeited) | `retailer_profiles`, `sample_transactions`, `samples`, `products`, `brand_profiles` | — |
+| `/retailer/brands` | — | Pending invites (accept/decline), active partnerships, request a partnership | `retailer_profiles`, `brand_retailer_partnerships`, `brand_profiles` | `POST /api/partnerships/request` |
+
+Figma items left out because the data isn't loaded today: dashboard Saves, Week/Month/Year toggle, Earnings per month chart, "vs. last month" deltas, "Paid out" date; per-product buys and price on product cards; Brand column in credited purchases (shows Type instead).
+
+**New backend pieces (approved exceptions):**
+- `supabase/migrations/004_retailer_profile_details.sql`: `retailer_profiles.opening_hours` (public) and `retailer_payout_details` (reg. no., account no., CVR) with owner-only RLS, because `retailer_profiles` is publicly readable. **Apply with `supabase db push`** before `/retailer/profile` can save.
+- `src/lib/database.types.ts` updated for both.
+- Token `canvas-warm` (#F4F2EE) in `tailwind.config.ts`.
+
+Not redesigned (outside `(retailer)`): Figma 01 Login (`/auth/login`, shared by all roles), `/invite/[token]`, and `components/brand/image-upload.tsx` (still the old style inside onboarding and Store profile).
 
 ---
 
