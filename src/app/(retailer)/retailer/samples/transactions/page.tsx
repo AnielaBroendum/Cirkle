@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { Receipt, ArrowDownCircle, ArrowUpCircle, XCircle } from 'lucide-react';
+import { Receipt } from 'lucide-react';
+import { Card, EmptyState, ListSkeleton, Skeleton, StatusPill } from '@/components/ds';
 
 type Transaction = {
   id: string;
@@ -16,12 +17,12 @@ type Transaction = {
   created_at: string;
 };
 
-const TYPE_CONFIG: Record<string, { label: string; icon: typeof ArrowDownCircle; color: string }> = {
-  deposit_paid: { label: 'Deposit paid', icon: ArrowUpCircle, color: 'text-red-500' },
-  deposit_refunded: { label: 'Deposit refunded', icon: ArrowDownCircle, color: 'text-green-500' },
-  deposit_forfeited: { label: 'Deposit forfeited', icon: XCircle, color: 'text-amber-500' },
-  swap_out: { label: 'Swap out', icon: ArrowUpCircle, color: 'text-purple-500' },
-  swap_in: { label: 'Swap in', icon: ArrowDownCircle, color: 'text-blue-500' },
+const TYPE_LABELS: Record<string, string> = {
+  deposit_paid: 'Deposit paid',
+  deposit_refunded: 'Deposit refunded',
+  deposit_forfeited: 'Deposit forfeited',
+  swap_out: 'Swap out',
+  swap_in: 'Swap in',
 };
 
 export default function RetailerTransactionsPage() {
@@ -82,46 +83,69 @@ export default function RetailerTransactionsPage() {
   }, [user]);
 
   if (loading) {
-    return <div className="space-y-4"><div className="animate-pulse bg-gray-200 rounded h-8 w-48" /><div className="animate-pulse bg-gray-100 rounded-xl h-48" /></div>;
+    return (
+      <div className="space-y-7">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-56" />
+          <Skeleton className="h-4 w-80 max-w-full" />
+        </div>
+        <ListSkeleton rows={5} />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Deposit transactions</h1>
+    <div className="space-y-7">
+      <div>
+        <h1 className="font-brand text-heading-xl uppercase text-primary">Transactions</h1>
+        <p className="mt-1 text-body text-muted">Deposits paid for samples in your store, and what came back.</p>
+      </div>
 
       {transactions.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-          <Receipt className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 text-gray-500">No transactions yet</p>
-          <p className="mt-1 text-sm text-gray-400">Deposit payments and refunds will appear here</p>
-        </div>
+        <EmptyState
+          icon={<Receipt className="h-5 w-5" />}
+          title="No transactions yet"
+          description="Deposit payments and refunds will appear here."
+        />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-          {transactions.map((t) => {
-            const config = TYPE_CONFIG[t.transaction_type] ?? { label: t.transaction_type, icon: Receipt, color: 'text-gray-500' };
-            const Icon = config.icon;
-            return (
-              <div key={t.id} className="flex items-center gap-3 px-4 py-3">
-                <div className={`p-1.5 rounded-lg bg-gray-50 ${config.color}`}>
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{config.label}</p>
-                  <p className="text-xs text-gray-500 truncate">{t.product_name} — {t.brand_name}</p>
-                  {t.note && <p className="text-xs text-gray-400 truncate mt-0.5">{t.note}</p>}
-                </div>
-                <div className="text-right">
-                  <p className={`text-sm font-bold ${t.amount_dkk > 0 ? 'text-red-600' : t.amount_dkk < 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                    {t.amount_dkk > 0 ? '-' : '+'}{formatDKK(Math.abs(t.amount_dkk))}
+        <Card padding="none">
+          {/* Column labels (sm and up) */}
+          <div className="hidden grid-cols-[80px_1fr_150px_120px] gap-4 border-b border-line px-6 py-3 text-label uppercase text-muted sm:grid">
+            <span>Date</span>
+            <span>Product</span>
+            <span>Type</span>
+            <span className="text-right">Amount</span>
+          </div>
+          <ul className="divide-y divide-line">
+            {transactions.map((t) => (
+              <li
+                key={t.id}
+                className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1.5 px-4 py-3.5 sm:grid-cols-[80px_1fr_150px_120px] sm:px-6"
+              >
+                <span className="order-3 text-caption text-muted sm:order-none">
+                  {new Date(t.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </span>
+                <div className="order-1 min-w-0 sm:order-none">
+                  <p className="truncate text-body text-primary">{t.product_name}</p>
+                  <p className="mt-0.5 truncate text-caption text-muted">
+                    {t.brand_name}
+                    {t.note && ` · ${t.note}`}
                   </p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(t.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                  </p>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+                <span className="order-4 justify-self-end sm:order-none sm:justify-self-start">
+                  <StatusPill status={t.transaction_type} label={TYPE_LABELS[t.transaction_type] ?? t.transaction_type} />
+                </span>
+                <p
+                  className={`order-2 text-right text-body font-medium sm:order-none ${
+                    t.amount_dkk < 0 ? 'text-success' : t.amount_dkk > 0 ? 'text-primary' : 'text-muted'
+                  }`}
+                >
+                  {t.amount_dkk > 0 ? '-' : '+'}{formatDKK(Math.abs(t.amount_dkk))}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
     </div>
   );
