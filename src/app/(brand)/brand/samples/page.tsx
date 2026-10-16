@@ -171,11 +171,23 @@ export default function BrandSamplesPage() {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  function downloadQr(url: string, productName: string) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `qr-${productName.toLowerCase().replace(/\s+/g, '-')}.png`;
-    a.click();
+  // The QR lives on Supabase Storage (another origin), where browsers ignore
+  // the download attribute and just open the image. Fetch it and download a
+  // same-origin blob instead; fall back to opening it in a new tab.
+  async function downloadQr(url: string, productName: string) {
+    const filename = `qr-${productName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.png`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`QR fetch failed: ${res.status}`);
+      const blobUrl = URL.createObjectURL(await res.blob());
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch {
+      window.open(url, '_blank', 'noopener');
+    }
   }
 
   async function deleteSample(sampleId: string) {
