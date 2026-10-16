@@ -187,7 +187,7 @@ export function SidebarNav({ items, homeHref, account, footer, embedded = false,
 
         <nav className="flex-1 overflow-y-auto py-3">
           {items.map((item) => {
-            const on = isActive(pathname, item.href);
+            const on = isItemActive(pathname, item);
             return (
               <Link
                 key={item.href}
