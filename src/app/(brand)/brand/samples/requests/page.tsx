@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { Inbox, Check, X, Truck, PackageCheck } from 'lucide-react';
+import { Inbox, Check, X, Truck } from 'lucide-react';
+import { Button, Card, EmptyState, Input, ListSkeleton, StatusPill, THead, TBody, TR, TH, TD } from '@/components/ds';
+import { StoresPageHeader } from '@/components/brand/stores-tabs';
 
 type RequestItem = {
   id: string;
@@ -138,115 +140,103 @@ export default function BrandSampleRequestsPage() {
     setActionLoading(null);
   }
 
-  const statusColors: Record<string, string> = {
-    pending: 'bg-amber-50 text-amber-700',
-    approved: 'bg-blue-50 text-blue-700',
-    shipped: 'bg-purple-50 text-purple-700',
-    received: 'bg-green-50 text-green-700',
-    rejected: 'bg-red-50 text-red-600',
-  };
+  const header = <StoresPageHeader subtitle="Samples stores have asked for. Approving creates the samples, QR tags and deposits." />;
 
   if (loading) {
-    return <div className="space-y-4"><div className="animate-pulse bg-gray-200 rounded h-8 w-48" /><div className="animate-pulse bg-gray-100 rounded-xl h-48" /></div>;
+    return (
+      <div className="space-y-6">
+        {header}
+        <ListSkeleton rows={3} />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Sample requests</h1>
+      {header}
 
       {requests.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-          <Inbox className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 text-gray-500">No sample requests yet</p>
-          <p className="mt-1 text-sm text-gray-400">Requests from retailers will appear here</p>
-        </div>
+        <EmptyState
+          className="bg-surface"
+          icon={<Inbox className="h-5 w-5" />}
+          title="No sample requests yet"
+          description="Requests from retailers will appear here"
+        />
       ) : (
         <div className="space-y-4">
           {requests.map((sr) => (
-            <div key={sr.id} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-semibold text-gray-900">{sr.retailer_name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+            <Card key={sr.id} padding="none" className="space-y-4 rounded-none p-5 lg:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-brand text-body uppercase tracking-[0.3px] text-primary">{sr.retailer_name}</p>
+                  <p className="mt-0.5 text-caption text-muted">
                     {new Date(sr.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
-                  {sr.note && <p className="text-sm text-gray-500 mt-1">Note: {sr.note}</p>}
+                  {sr.note && <p className="mt-2 text-body text-muted">Note: {sr.note}</p>}
                 </div>
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${statusColors[sr.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {sr.status}
-                </span>
+                <StatusPill status={sr.status} />
               </div>
 
-              <div className="border border-gray-100 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
+              <div className="-mx-1 overflow-x-auto">
+                <table className="w-full border-collapse font-brand text-[13px] text-primary">
+                  <THead>
                     <tr>
-                      <th className="text-left px-3 py-2 font-medium text-gray-600">Product</th>
-                      <th className="text-left px-3 py-2 font-medium text-gray-600">Size</th>
-                      <th className="text-left px-3 py-2 font-medium text-gray-600">Color</th>
-                      <th className="text-right px-3 py-2 font-medium text-gray-600">Deposit</th>
+                      <TH className="px-3 py-2 text-label font-medium">Product</TH>
+                      <TH className="px-3 py-2 text-label font-medium">Size</TH>
+                      <TH className="px-3 py-2 text-label font-medium">Colour</TH>
+                      <TH className="px-3 py-2 text-right text-label font-medium">Deposit</TH>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  </THead>
+                  <TBody>
                     {sr.items.map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-3 py-2 text-gray-900">{item.product_name}</td>
-                        <td className="px-3 py-2 text-gray-600">{item.size}</td>
-                        <td className="px-3 py-2 text-gray-600">{item.color}</td>
-                        <td className="px-3 py-2 text-gray-900 text-right">{formatDKK(item.deposit_amount_dkk)}</td>
-                      </tr>
+                      <TR key={item.id}>
+                        <TD className="px-3 py-2.5">{item.product_name}</TD>
+                        <TD className="px-3 py-2.5 text-muted">{item.size}</TD>
+                        <TD className="px-3 py-2.5 text-muted">{item.color}</TD>
+                        <TD className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{formatDKK(item.deposit_amount_dkk)}</TD>
+                      </TR>
                     ))}
-                  </tbody>
-                  <tfoot className="bg-gray-50">
-                    <tr>
-                      <td colSpan={3} className="px-3 py-2 font-medium text-gray-700">Total deposit</td>
-                      <td className="px-3 py-2 font-bold text-gray-900 text-right">{formatDKK(sr.total_deposit)}</td>
+                  </TBody>
+                  <tfoot>
+                    <tr className="border-t border-line">
+                      <td colSpan={3} className="px-3 py-2.5 text-label uppercase text-muted">Total deposit</td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium tabular-nums">{formatDKK(sr.total_deposit)}</td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
 
               {sr.review_note && sr.status !== 'pending' && (
-                <p className="text-sm text-gray-500">Review note: {sr.review_note}</p>
+                <p className="text-body text-muted">Review note: {sr.review_note}</p>
               )}
 
               {/* Actions */}
               {sr.status === 'pending' && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleApprove(sr.id)}
-                    disabled={actionLoading === sr.id}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition disabled:opacity-50"
-                  >
-                    <Check className="h-4 w-4" /> Approve
-                  </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button onClick={() => handleApprove(sr.id)} loading={actionLoading === sr.id && rejectingId !== sr.id} disabled={actionLoading === sr.id} leftIcon={<Check className="h-4 w-4" />}>
+                    Approve
+                  </Button>
                   {rejectingId === sr.id ? (
-                    <div className="flex items-center gap-2 flex-1">
-                      <input
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
+                      <Input
                         type="text"
                         value={rejectNote}
                         onChange={(e) => setRejectNote(e.target.value)}
                         placeholder="Reason (optional)"
-                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cirkle-500 focus:outline-none"
+                        aria-label="Reason for rejecting"
+                        className="min-w-[180px] flex-1"
                       />
-                      <button
-                        onClick={() => handleReject(sr.id)}
-                        disabled={actionLoading === sr.id}
-                        className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-                      >
-                        Confirm
-                      </button>
-                      <button onClick={() => setRejectingId(null)} className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">
+                      <Button variant="secondary" onClick={() => handleReject(sr.id)} loading={actionLoading === sr.id}>
+                        Confirm reject
+                      </Button>
+                      <Button variant="ghost" onClick={() => setRejectingId(null)}>
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => setRejectingId(sr.id)}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition"
-                    >
-                      <X className="h-4 w-4" /> Reject
-                    </button>
+                    <Button variant="secondary" onClick={() => setRejectingId(sr.id)} leftIcon={<X className="h-4 w-4" />}>
+                      Reject
+                    </Button>
                   )}
                 </div>
               )}
@@ -254,33 +244,27 @@ export default function BrandSampleRequestsPage() {
               {sr.status === 'approved' && (
                 <div>
                   {shippingId === sr.id ? (
-                    <div className="flex items-center gap-2">
-                      <input
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
                         type="text"
                         value={trackingNumber}
                         onChange={(e) => setTrackingNumber(e.target.value)}
                         placeholder="Tracking number"
-                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cirkle-500 focus:outline-none"
+                        aria-label="Tracking number"
+                        className="min-w-[180px] flex-1"
                       />
-                      <button
-                        onClick={() => handleShip(sr.id)}
-                        disabled={actionLoading === sr.id}
-                        className="px-4 py-2 rounded-lg bg-cirkle-600 text-white text-sm font-medium hover:bg-cirkle-700 disabled:opacity-50"
-                      >
+                      <Button onClick={() => handleShip(sr.id)} loading={actionLoading === sr.id}>
                         Mark shipped
-                      </button>
+                      </Button>
                     </div>
                   ) : (
-                    <button
-                      onClick={() => setShippingId(sr.id)}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-50 text-purple-700 text-sm font-medium hover:bg-purple-100 transition"
-                    >
-                      <Truck className="h-4 w-4" /> Ship samples
-                    </button>
+                    <Button onClick={() => setShippingId(sr.id)} leftIcon={<Truck className="h-4 w-4" />}>
+                      Ship samples
+                    </Button>
                   )}
                 </div>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}

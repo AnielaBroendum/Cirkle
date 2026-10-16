@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { QrCode, ArrowLeft } from 'lucide-react';
+import { QrCode, Package, Store } from 'lucide-react';
 import Link from 'next/link';
+import { Button, Card, EmptyState, Field, Select, Skeleton, buttonClasses } from '@/components/ds';
 import type { Database } from '@/lib/database.types';
 
 type Product = Database['public']['Tables']['products']['Row'];
@@ -117,94 +118,101 @@ export default function NewSamplePage() {
     router.push('/brand/samples');
   }
 
+  const header = (
+    <div>
+      <p className="text-body text-muted">
+        <Link href="/brand/samples" className="hover:text-primary">
+          Stores and QR tags
+        </Link>{' '}
+        / New sample
+      </p>
+      <h1 className="mt-1 font-brand text-heading-xl uppercase text-primary">Add sample</h1>
+      <p className="mt-1 text-body text-muted">Pick a product and a partner store. We generate the store&apos;s QR tag right away.</p>
+    </div>
+  );
+
   if (pageLoading) {
-    return <div className="animate-pulse text-gray-400">Loading...</div>;
+    return (
+      <div className="max-w-xl space-y-6">
+        {header}
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6 max-w-lg">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/brand/samples"
-          className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Create sample</h1>
-      </div>
+    <div className="max-w-xl space-y-6">
+      {header}
 
       {products.length === 0 ? (
-        <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
-          <p className="text-gray-500">You need to create a product first.</p>
-          <Link
-            href="/brand/products/new"
-            className="mt-2 inline-block text-sm text-cirkle-600 font-medium hover:underline"
-          >
-            Create product
-          </Link>
-        </div>
+        <EmptyState
+          className="bg-surface"
+          icon={<Package className="h-5 w-5" />}
+          title="No products yet"
+          description="You need to create a product first."
+          action={
+            <Link href="/brand/products/new" className={buttonClasses()}>
+              Create product
+            </Link>
+          }
+        />
       ) : retailers.length === 0 ? (
-        <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
-          <p className="text-gray-500">You have no active retail partnerships yet.</p>
-          <Link
-            href="/brand/partnerships"
-            className="mt-2 inline-block text-sm text-cirkle-600 font-medium hover:underline"
-          >
-            Manage partnerships
-          </Link>
-        </div>
+        <EmptyState
+          className="bg-surface"
+          icon={<Store className="h-5 w-5" />}
+          title="No partner stores yet"
+          description="You have no active retail partnerships yet."
+          action={
+            <Link href="/brand/samples" className={buttonClasses()}>
+              Invite a store
+            </Link>
+          }
+        />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Product *</label>
-            <select
-              value={selectedProduct}
-              onChange={(e) => setSelectedProduct(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none bg-white"
-            >
+        <Card padding="none" className="space-y-5 rounded-none p-5 lg:p-6">
+          <Field label="Product *" htmlFor="sample-product">
+            <Select id="sample-product" value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
               <option value="">Select product</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} — {formatDKK(p.price_dkk)}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Store *</label>
-            <select
-              value={selectedRetailer}
-              onChange={(e) => setSelectedRetailer(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none bg-white"
-            >
+          <Field label="Store *" htmlFor="sample-store">
+            <Select id="sample-store" value={selectedRetailer} onChange={(e) => setSelectedRetailer(e.target.value)}>
               <option value="">Select store</option>
               {retailers.map((r) => (
                 <option key={r.retailer_id} value={r.retailer_id}>
                   {r.retailer_name}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
 
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>
+            <p role="alert" className="border border-accent bg-accent-subtle px-4 py-3 text-body text-accent-strong">
+              {error}
+            </p>
           )}
 
-          <button
-            onClick={handleCreate}
-            disabled={loading || !selectedProduct || !selectedRetailer}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
-          >
-            {loading ? (
-              'Creating...'
-            ) : (
-              <>
-                <QrCode className="h-4 w-4" /> Create sample & generate QR
-              </>
-            )}
-          </button>
-        </div>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            <Link href="/brand/samples" className={buttonClasses({ variant: 'secondary' })}>
+              Cancel
+            </Link>
+            <Button
+              onClick={handleCreate}
+              disabled={loading || !selectedProduct || !selectedRetailer}
+              loading={loading}
+              leftIcon={<QrCode className="h-4 w-4" />}
+              className="sm:flex-1"
+            >
+              {loading ? 'Creating…' : 'Create sample & generate QR'}
+            </Button>
+          </div>
+        </Card>
       )}
     </div>
   );
