@@ -80,26 +80,34 @@ Not redesigned (outside `(retailer)`): Figma 01 Login (`/auth/login`, shared by 
 
 ---
 
-## Brand portal: `src/app/(brand)/`
+## Brand portal: `src/app/(brand)/` (redesigned to Figma "Brand Portal (desktop)", Oct 2026)
 
-Layout `(brand)/layout.tsx` (C): sidebar nav (Dashboard, Products, Samples, Sample requests, Swap requests, Transactions, Partnerships, Orders). It reads `brand_profiles` and redirects to `/brand/onboarding` until the profile exists.
+Layout `(brand)/layout.tsx` (C): dark ds `SidebarNav` (Dashboard, Products, Stores & QR tags, Orders, Returns; Account and Log out at the bottom) on `bg-canvas-warm`. It reads `brand_profiles` and redirects to `/brand/onboarding` until onboarding is complete (unchanged). Figma has desktop frames only; mobile uses the SidebarNav drawer. "Stores & QR tags" stays active on `/brand/samples/*` and `/brand/partnerships` (`NavItem.match`; `SidebarNav` now honours it, an approved ds fix). Those pages share a sub-tab row (`components/brand/stores-tabs.tsx`: Products in stores · Sample requests · Swaps · Deposits · Partnerships).
 
-| Route | What it does | Reads | Calls |
-|---|---|---|---|
-| `/brand/dashboard` | KPIs (scans, sales, commissions owed, deposits held), top retailers, recent orders | `brand_profiles`, `samples`, `scans`, `products`, `orders`, `attributions`, `retailer_profiles` | — |
-| `/brand/onboarding` | Wizard: brand profile plus logo, then first product. Goes to dashboard | `brand_profiles`, `products` (write) | Supabase Storage (`ImageUpload`) |
-| `/brand/products` | Product list. Links to new and edit | `brand_profiles`, `products` | — |
-| `/brand/products/new` | Create a product with `ProductForm` | `brand_profiles` | `ProductForm` writes `products`, `product_variants`, plus Storage |
-| `/brand/products/[id]/edit` | Edit a product with `ProductForm` | `brand_profiles`, `products`, `product_variants` | same as above |
-| `/brand/samples` | All samples with QR codes and scan counts; delete a sample | `brand_profiles`, `samples`, `products`, `retailer_profiles`, `scans` | `DELETE /api/samples?id=` |
-| `/brand/samples/new` | Create a sample for a partner retailer (generates a QR). Goes to `/brand/samples` | `brand_profiles`, `products`, `brand_retailer_partnerships`, `retailer_profiles` | `POST /api/samples` |
-| `/brand/samples/requests` | Incoming retailer sample requests: approve (creates samples, QR codes and deposits) or change status | `brand_profiles`, `sample_requests`, `sample_request_items`, `retailer_profiles`, `products` | `POST /api/sample-requests/[id]/approve`, `PATCH /api/sample-requests/[id]/status` |
-| `/brand/samples/swaps` | Swap requests: approve, inspect, refund or forfeit, ship new sample | `brand_profiles`, `swap_requests`, `samples`, `products`, `retailer_profiles` | `PATCH /api/swap-requests/[id]/status` |
-| `/brand/samples/transactions` | Deposit ledger (deposits held) | `brand_profiles`, `sample_transactions`, `samples`, `retailer_profiles`, `products` | — |
-| `/brand/partnerships` | Partnerships list; invite a retailer by email; request an existing retailer | `brand_profiles`, `brand_retailer_partnerships`, `retailer_profiles` | `POST /api/partnerships/invite`, `POST /api/partnerships/request-retailer` |
-| `/brand/orders` | Incoming orders; advance status (pending → confirmed → packed → shipped → delivered, tracking number) | `brand_profiles`, `orders` | `POST /api/orders/[orderId]/status` |
+| Route | Figma | What it does | Reads | Calls |
+|---|---|---|---|---|
+| `/brand/dashboard` | 02 | Day / Week / Month / Year toggle; Scans, Saves, Purchases, Sales via Flaym (+ store cut) with deltas vs. the previous period; activity chart; By store; Top products; commission, deposits held, recent activity | `brand_profiles`, `products`, `samples`, `scans`, `orders`, `attributions`, `retailer_profiles`, `order_items`, RPC `get_brand_save_counts` | — |
+| `/brand/products` | 03 | Product library: search, All / In stores / Inactive, active toggle, delete (ds Modal confirm) | `brand_profiles`, `products`, `samples` (stores per product) | — |
+| `/brand/products/new`, `/brand/products/[id]/edit` | 04 | `ProductForm` in two columns: fields + stock per variant; images + stores holding a sample | `brand_profiles`, `products`, `product_variants`, `samples`, `retailer_profiles` | `ProductForm` writes `products`, `product_variants`, Storage |
+| `/brand/samples` | 05 | Products-in-stores hub: store list (partner stores, waiting invitations / requests, available stores), the store's samples with QR tag, scans, deposit and open swap; select + print QR tags (client-only print window); Invite store modal; request partnership; delete sample | `brand_profiles`, `samples`, `products`, `retailer_profiles`, `scans`, `brand_retailer_partnerships`, `swap_requests` | `DELETE /api/samples?id=`, `POST /api/partnerships/invite`, `POST /api/partnerships/request-retailer` |
+| `/brand/samples/new` | — (after 04) | Add sample: product + partner store, generates the QR | `brand_profiles`, `products`, `brand_retailer_partnerships`, `retailer_profiles` | `POST /api/samples` |
+| `/brand/samples/requests` | — | Sample requests: approve, reject (reason), ship (tracking) | `brand_profiles`, `sample_requests`, `sample_request_items`, `retailer_profiles`, `products` | `POST /api/sample-requests/[id]/approve`, `PATCH /api/sample-requests/[id]/status` |
+| `/brand/samples/swaps` | — | Swap lifecycle: approve / cancel, inspect (note), ship replacement, complete | `brand_profiles`, `swap_requests`, `samples`, `products`, `retailer_profiles` | `PATCH /api/swap-requests/[id]/status` |
+| `/brand/samples/transactions` | — | Deposits ledger (table on desktop, list on mobile; money out shows "−") | `brand_profiles`, `sample_transactions`, `samples`, `retailer_profiles`, `products` | — |
+| `/brand/partnerships` | — (part of 05) | Incoming requests (accept / decline), pending invitations (copy link), active, available stores (request with commission), inactive; Invite store modal | `brand_profiles`, `brand_retailer_partnerships`, `retailer_profiles` | `POST /api/partnerships/invite`, `POST /api/partnerships/request-retailer` |
+| `/brand/orders` | 06 | New / In progress / Shipped / Delivered / All; table + detail panel (bottom sheet below xl): ship to, items, the chain (credited store or "Passed on by a friend"), history, next step with tracking | `brand_profiles`, `orders` (+ items, events, profile), `attributions`, `retailer_profiles` | `POST /api/orders/[orderId]/status` |
+| `/brand/returns` (new) | 07 | Return requests on the brand's orders: Decline / Approve, then Mark received, Mark refunded; Open / All | `returns`, `order_items`, `orders`, `products` (update `returns.status` under the 003 RLS) | — |
+| `/brand/account` (new) | 08 | Brand (name, webshop, return policy link, order email read-only, about, logo) and payouts (reg. no., account no., CVR) | `brand_profiles` (read/write), `brand_payout_details` (read/upsert) | Supabase Storage (`ImageUpload`) |
+| `/brand/onboarding` | — (after 01) | Split art/form wizard: brand profile + logo, then first product; goes to dashboard | `brand_profiles`, `products` (write) | Supabase Storage |
 
----
+Figma items left out because the data or feature doesn't exist: Export settlement (dashboard); product import, Source column and product-level SKU (03/04); the per-store product checkboxes that add/remove products (05; "Add" links to `/brand/samples/new` instead); Chain ID (06); brand agreement card (08).
+
+**New backend pieces (approved exceptions):**
+- `supabase/migrations/006_brand_save_counts.sql`: `get_brand_save_counts(p_since)`, a security-definer function returning daily save counts for the caller's own products only (no user ids). Until applied, the dashboard's Saves tile shows "–".
+- `supabase/migrations/007_brand_account_details.sql`: `brand_profiles.return_policy_url` and `brand_payout_details` with owner-only RLS (mirrors 004). Until applied, the return policy and payout fields on `/brand/account` are disabled with a note.
+- **Apply both with `supabase db push`.** `src/lib/database.types.ts` is updated for both.
+- `/brand/returns` needs migration 003 (already required by the consumer return flow). No returns emails yet.
+- `components/brand/invite-store-modal.tsx` holds the invite form that used to live on the partnerships page (same API call and defaults). `components/brand/image-upload.tsx`: every caller now uses `appearance="flaym"`, so the default look is unused.
 
 ## API routes (do not change)
 
@@ -180,6 +188,9 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 - [ ] Swap lifecycle: approve → retailer ships back → inspect → refund or forfeit → new sample is created
 - [ ] Transactions page shows deposits held; dashboard KPIs match
 - [ ] Advance an order pending → confirmed → packed → shipped (tracking) → delivered; a status email goes out each time
+- [ ] Returns: a consumer return request appears on `/brand/returns`; approve → mark received → mark refunded (needs 003)
+- [ ] Account: edit brand details and payouts, save, reload, values persist (needs 007)
+- [ ] Dashboard Saves shows a number after 006 is applied
 
 ### Retailer
 - [ ] Accept an invite, complete onboarding (photos), land on the dashboard
