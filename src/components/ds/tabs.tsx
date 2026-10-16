@@ -50,7 +50,7 @@ export function Tabs({ items, value, defaultValue, onValueChange, variant = 'seg
   }
 
   return (
-    <div role="tablist" className={cn('flex gap-6 overflow-x-auto border-b border-line font-brand', className)}>
+    <div role="tablist" className={cn('no-scrollbar flex gap-6 overflow-x-auto border-b border-line font-brand', className)}>
       {items.map((item) => {
         const on = item.value === active;
         return (
