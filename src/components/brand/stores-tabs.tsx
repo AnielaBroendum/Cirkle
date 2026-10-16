@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Tabs, cn } from '@/components/ds';
 
@@ -17,14 +18,23 @@ export function StoresTabs({ className }: { className?: string }) {
   const pathname = usePathname() ?? '';
   const router = useRouter();
   const active = TABS.find((t) => t.value === pathname)?.value ?? '/brand/samples';
+  const ref = useRef<HTMLDivElement>(null);
+
+  // On narrow screens the tab row scrolls; keep the current tab in view.
+  useEffect(() => {
+    ref.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [active]);
+
   return (
-    <Tabs
-      variant="underline"
-      items={TABS}
-      value={active}
-      onValueChange={(href) => router.push(href)}
-      className={cn('[scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className)}
-    />
+    <div ref={ref}>
+      <Tabs
+        variant="underline"
+        items={TABS}
+        value={active}
+        onValueChange={(href) => router.push(href)}
+        className={cn('[scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className)}
+      />
+    </div>
   );
 }
 
