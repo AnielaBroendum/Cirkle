@@ -1,17 +1,11 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Fraunces, IBM_Plex_Mono } from 'next/font/google';
+import { IBM_Plex_Mono } from 'next/font/google';
 import { AuthProvider } from '@/components/providers/auth-provider';
-import { ToastProvider } from '@/components/ui/toast';
+import { ToastProvider } from '@/components/ds';
 import ServiceWorkerRegister from '@/components/pwa/sw-register';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  variable: '--font-fraunces',
-  axes: ['opsz'],
-});
-// Flaym redesign font (used via `font-brand`).
+// Flaym brand font (used via `font-brand`).
 const plexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
@@ -31,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1A0F08',
+  themeColor: '#2C2324',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -43,8 +37,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable} ${plexMono.variable}`}>
-      <body className="font-sans antialiased bg-espresso-bg text-espresso-cream">
+    <html lang="en" className={plexMono.variable}>
+      <body className="bg-canvas font-brand text-primary antialiased">
         <AuthProvider>
           <ToastProvider>
             {children}

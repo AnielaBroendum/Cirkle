@@ -157,14 +157,14 @@ export function ImageUpload({
       {value.length > 0 && (
         <div className="flex flex-wrap gap-3">
           {value.map((url, i) => (
-            <div key={url} className="relative group w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
+            <div key={url} className="relative group w-24 h-24 overflow-hidden border border-line">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={url} alt="" className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => removeImage(i)}
                 aria-label="Remove image"
-                className="absolute top-1 right-1 p-1 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1 p-1 bg-primary/60 rounded-pill text-on-primary opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -178,7 +178,7 @@ export function ImageUpload({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-gray-400 hover:text-gray-700 transition disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-line font-brand text-body text-muted hover:border-primary hover:text-primary transition disabled:opacity-50"
         >
           {uploading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -190,7 +190,7 @@ export function ImageUpload({
       )}
 
       {error && (
-        <p className="text-xs text-red-600">{error}</p>
+        <p className="text-caption text-accent-strong">{error}</p>
       )}
 
       {fileInput}
