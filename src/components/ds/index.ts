@@ -1,4 +1,4 @@
-// Flaym design system. Use only these components + the Flaym tokens in redesigned screens.
+// Flaym design system. Build screens from these components and the Flaym tokens.
 export { cn } from './cn';
 export { Logo } from './logo';
 export { Button, buttonClasses, type ButtonProps, type ButtonVariant, type ButtonSize } from './button';

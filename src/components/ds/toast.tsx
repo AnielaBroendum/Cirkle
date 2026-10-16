@@ -4,7 +4,6 @@ import { createContext, useCallback, useContext, useState } from 'react';
 import { Check, X, AlertTriangle, Info } from 'lucide-react';
 import { cn } from './cn';
 
-// Same API as components/ui/toast.tsx, so pages can switch with an import change.
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 type ToastContextValue = { toast: (message: string, type?: ToastType) => void };

@@ -21,7 +21,7 @@ export function EmptyState({ icon, title, description, action, className }: Empt
   );
 }
 
-/* ── Skeletons (same exports as components/ui/skeleton.tsx) ─────────── */
+/* ── Skeletons ───────────────────────────────────────────────────────── */
 
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cn('animate-pulse bg-surface-muted', className)} />;
