@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { LayoutDashboard, QrCode, Store, LogOut, Receipt } from 'lucide-react';
+import { LayoutDashboard, QrCode, Store, LogOut, Receipt, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Database } from '@/lib/database.types';
 import { Logo, SidebarNav, type NavItem } from '@/components/ds';
@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/retailer/samples', label: 'Products', icon: QrCode },
   { href: '/retailer/samples/transactions', label: 'Transactions', icon: Receipt },
   { href: '/retailer/brands', label: 'Brands', icon: Store },
+  { href: '/retailer/profile', label: 'Store profile', icon: Settings },
 ];
 
 export default function RetailerLayout({ children }: { children: React.ReactNode }) {

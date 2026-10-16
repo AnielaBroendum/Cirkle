@@ -76,6 +76,7 @@ export type Database = {
           logo_url: string | null;
           store_photos: string[];
           store_type: string | null;
+          opening_hours: string | null;
           onboarding_complete: boolean;
           created_at: string;
           updated_at: string;
@@ -93,6 +94,7 @@ export type Database = {
           logo_url?: string | null;
           store_photos?: string[];
           store_type?: string | null;
+          opening_hours?: string | null;
           onboarding_complete?: boolean;
         };
         Update: {
@@ -108,7 +110,31 @@ export type Database = {
           logo_url?: string | null;
           store_photos?: string[];
           store_type?: string | null;
+          opening_hours?: string | null;
           onboarding_complete?: boolean;
+        };
+        Relationships: [];
+      };
+      retailer_payout_details: {
+        Row: {
+          retailer_id: string;
+          reg_no: string | null;
+          account_no: string | null;
+          cvr: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          retailer_id: string;
+          reg_no?: string | null;
+          account_no?: string | null;
+          cvr?: string | null;
+        };
+        Update: {
+          retailer_id?: string;
+          reg_no?: string | null;
+          account_no?: string | null;
+          cvr?: string | null;
         };
         Relationships: [];
       };
