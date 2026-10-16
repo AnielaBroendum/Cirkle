@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatCommission } from '@/lib/utils';
-import { Store, Check, Clock, Handshake, X } from 'lucide-react';
+import { Store, Check, Handshake, X } from 'lucide-react';
+import { Avatar, Badge, Button, Card, CardSkeleton, EmptyState, Skeleton } from '@/components/ds';
 import type { Database } from '@/lib/database.types';
 
 type BrandProfile = Database['public']['Tables']['brand_profiles']['Row'];
@@ -142,7 +142,19 @@ export default function RetailerBrandsPage() {
   }
 
   if (loading) {
-    return <div className="space-y-4"><div className="animate-pulse bg-gray-200 rounded h-6 w-32" /><div className="animate-pulse bg-gray-100 rounded-xl h-48 w-full" /></div>;
+    return (
+      <div className="space-y-7">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-4 w-72 max-w-full" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const activePartnerships = partnerships.filter((p) => p.status === 'active');
@@ -151,188 +163,125 @@ export default function RetailerBrandsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Brands</h1>
-        <p className="mt-1 text-gray-500">
-          Your partnerships and available brands
-        </p>
+        <h1 className="font-brand text-heading-xl uppercase text-primary">Brands</h1>
+        <p className="mt-1 text-body text-muted">Your partnerships and available brands</p>
       </div>
 
-      {/* Active partnerships */}
-      {activePartnerships.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            Active partnerships
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {activePartnerships.map((p) => (
-              <div
-                key={p.id}
-                className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4"
-              >
-                {p.brand_logo ? (
-                  <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                    <Image
-                      src={p.brand_logo}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="48px"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-12 h-12 rounded-xl bg-cirkle-50 flex items-center justify-center flex-shrink-0">
-                    <span className="text-lg font-bold text-cirkle-600">
-                      {p.brand_name.charAt(0)}
-                    </span>
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-900 truncate">{p.brand_name}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <Check className="h-3.5 w-3.5 text-green-500" />
-                    <span className="text-xs text-green-600">Active</span>
-                    <span className="text-xs text-gray-400 ml-1">
-                      {formatCommission(p.commission_direct)} direct
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {error && <p className="border border-accent bg-accent-subtle px-4 py-3 text-body text-accent-strong">{error}</p>}
 
-      {/* Pending */}
+      {/* Pending (shown first: these may need an answer) */}
       {pendingPartnerships.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending</h2>
+        <section>
+          <SectionTitle count={pendingPartnerships.length}>Pending</SectionTitle>
           <div className="grid gap-3 sm:grid-cols-2">
             {pendingPartnerships.map((p) => {
               // Brand-initiated requests carry a token → the retailer can accept.
               const brandInvited = !!p.invitation_token;
               return (
-                <div
-                  key={p.id}
-                  className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4"
-                >
-                  {p.brand_logo ? (
-                    <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                      <Image
-                        src={p.brand_logo}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="48px"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg font-bold text-gray-400">
-                        {p.brand_name.charAt(0)}
-                      </span>
-                    </div>
-                  )}
+                <Card key={p.id} padding="none" className="flex items-center gap-4 p-4">
+                  <Avatar src={p.brand_logo} name={p.brand_name} size="lg" />
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-900 truncate">{p.brand_name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Clock className="h-3.5 w-3.5 text-amber-500" />
-                      <span className="text-xs text-amber-600">
-                        {brandInvited ? 'Wants to partner with you' : 'Request sent'}
-                      </span>
-                    </div>
+                    <p className="truncate text-body text-primary">{p.brand_name}</p>
+                    <Badge tone={brandInvited ? 'accent' : 'warning'} className="mt-1.5">
+                      {brandInvited ? 'Wants to partner with you' : 'Request sent'}
+                    </Badge>
                   </div>
                   {brandInvited && (
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => respondToInvite(p.id, 'active')}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition"
-                      >
-                        <Check className="h-3.5 w-3.5" /> Accept
-                      </button>
-                      <button
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button size="sm" onClick={() => respondToInvite(p.id, 'active')} leftIcon={<Check className="h-3.5 w-3.5" />}>
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
                         onClick={() => respondToInvite(p.id, 'declined')}
-                        className="flex items-center justify-center p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
+                        aria-label="Decline"
                         title="Decline"
+                        className="w-8 px-0"
                       >
                         <X className="h-3.5 w-3.5" />
-                      </button>
+                      </Button>
                     </div>
                   )}
-                </div>
+                </Card>
               );
             })}
           </div>
-        </div>
+        </section>
+      )}
+
+      {/* Active partnerships */}
+      {activePartnerships.length > 0 && (
+        <section>
+          <SectionTitle count={activePartnerships.length}>Active partnerships</SectionTitle>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {activePartnerships.map((p) => (
+              <Card key={p.id} padding="none" className="flex items-center gap-4 p-4">
+                <Avatar src={p.brand_logo} name={p.brand_name} size="lg" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-body text-primary">{p.brand_name}</p>
+                  <p className="mt-1 text-caption text-muted">{formatCommission(p.commission_direct)} direct commission</p>
+                </div>
+                <Badge tone="success">Active</Badge>
+              </Card>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Available brands catalog */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          Available brands
-        </h2>
+      <section>
+        <SectionTitle>Available brands</SectionTitle>
         {availableBrands.length === 0 ? (
-          <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
-            <Handshake className="h-10 w-10 text-gray-300 mx-auto" />
-            <p className="mt-2 text-sm text-gray-500">
-              {partnerships.length > 0
-                ? 'You have partnerships with all brands on the platform'
-                : 'No brands on the platform yet'}
-            </p>
-          </div>
+          <EmptyState
+            icon={<Handshake className="h-5 w-5" />}
+            title={partnerships.length > 0 ? 'All brands added' : 'No brands yet'}
+            description={
+              partnerships.length > 0
+                ? 'You have partnerships with all brands on the platform.'
+                : 'No brands on the platform yet.'
+            }
+          />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {availableBrands.map((brand) => (
-              <div
-                key={brand.id}
-                className="bg-white rounded-xl border border-gray-200 p-4 space-y-3"
-              >
+              <Card key={brand.id} padding="none" className="flex flex-col gap-3 p-5">
                 <div className="flex items-center gap-3">
-                  {brand.logo_url ? (
-                    <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                      <Image
-                        src={brand.logo_url}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="48px"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-12 h-12 rounded-xl bg-cirkle-50 flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg font-bold text-cirkle-600">
-                        {brand.name.charAt(0)}
-                      </span>
-                    </div>
-                  )}
+                  <Avatar src={brand.logo_url} name={brand.name} size="lg" />
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{brand.name}</p>
-                    {brand.website && (
-                      <p className="text-xs text-gray-400 truncate">{brand.website}</p>
-                    )}
+                    <p className="truncate text-body text-primary">{brand.name}</p>
+                    {brand.website && <p className="truncate text-caption text-muted">{brand.website}</p>}
                   </div>
                 </div>
 
-                {brand.description && (
-                  <p className="text-sm text-gray-500 line-clamp-2">{brand.description}</p>
-                )}
+                {brand.description && <p className="line-clamp-2 text-caption text-muted">{brand.description}</p>}
 
-                <button
+                <Button
+                  className="mt-auto"
+                  variant="secondary"
+                  fullWidth
                   onClick={() => handleRequest(brand.id)}
+                  loading={requesting === brand.id}
                   disabled={requesting === brand.id}
-                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-cirkle-600 px-3 py-2 text-sm text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
+                  leftIcon={<Store className="h-4 w-4" />}
                 >
-                  <Store className="h-4 w-4" />
-                  {requesting === brand.id ? 'Sending...' : 'Request partnership'}
-                </button>
-              </div>
+                  {requesting === brand.id ? 'Sending…' : 'Request partnership'}
+                </Button>
+              </Card>
             ))}
           </div>
         )}
-      </div>
-
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>
-      )}
+      </section>
     </div>
+  );
+}
+
+// Figma section title: 14px uppercase, optional muted count.
+function SectionTitle({ children, count }: { children: React.ReactNode; count?: number }) {
+  return (
+    <h2 className="mb-3 font-brand text-body uppercase tracking-[0.3px] text-primary">
+      {children}
+      {count !== undefined && <span className="ml-2 text-muted">{count}</span>}
+    </h2>
   );
 }
