@@ -1,35 +1,28 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import {
-  LayoutDashboard,
-  QrCode,
-  Store,
-  LogOut,
-  Menu,
-  X,
-  Receipt,
-} from 'lucide-react';
+import { LayoutDashboard, QrCode, Store, LogOut, Receipt, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Database } from '@/lib/database.types';
+import { Logo, SidebarNav, type NavItem } from '@/components/ds';
 
 type RetailerProfile = Database['public']['Tables']['retailer_profiles']['Row'];
 
-const NAV_ITEMS = [
+// Figma "Retail Portal" nav. Products = the samples placed in the store.
+const NAV_ITEMS: NavItem[] = [
   { href: '/retailer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/retailer/samples', label: 'Samples', icon: QrCode },
+  { href: '/retailer/samples', label: 'Products', icon: QrCode },
   { href: '/retailer/samples/transactions', label: 'Transactions', icon: Receipt },
   { href: '/retailer/brands', label: 'Brands', icon: Store },
+  { href: '/retailer/profile', label: 'Store profile', icon: Settings },
 ];
 
 export default function RetailerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, profile, loading, signOut } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [retailerProfile, setRetailerProfile] = useState<RetailerProfile | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
@@ -61,96 +54,42 @@ export default function RetailerLayout({ children }: { children: React.ReactNode
 
   if (loading || checkingOnboarding) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-pulse text-gray-400">Loading...</div>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas-warm font-brand">
+        <Logo height={24} framed />
+        <p className="animate-pulse text-caption uppercase tracking-[0.7px] text-muted">Loading…</p>
       </div>
     );
   }
 
   if (pathname.startsWith('/retailer/onboarding')) {
-    return <div className="min-h-screen bg-gray-50">{children}</div>;
+    return <div className="min-h-screen bg-canvas-warm font-brand text-primary">{children}</div>;
   }
 
+  const storeName = retailerProfile?.name || profile?.name;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="p-2 -ml-2 text-gray-600 hover:text-gray-900"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <span className="font-bold text-cirkle-950">Cirkle</span>
-        <div className="w-9" />
-      </header>
-
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-50 bg-black/50"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-200 lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="flex items-center justify-between h-14 px-4 border-b border-gray-200">
-          <Link href="/retailer/dashboard" className="font-bold text-lg text-cirkle-950">
-            Cirkle
-          </Link>
+    <div className="min-h-screen bg-canvas-warm font-brand text-primary">
+      <SidebarNav
+        items={NAV_ITEMS}
+        homeHref="/retailer/dashboard"
+        account={storeName ? { name: storeName, role: 'Retail Portal' } : undefined}
+        footer={(close) => (
           <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1 text-gray-400 hover:text-gray-600"
+            type="button"
+            onClick={() => {
+              close();
+              signOut();
+            }}
+            className="flex w-full items-center gap-3 px-2 py-2.5 text-body text-on-primary/60 transition-colors hover:text-on-primary"
           >
-            <X className="h-5 w-5" />
+            <LogOut className="h-[18px] w-[18px]" />
+            Log out
           </button>
-        </div>
-
-        {(retailerProfile || profile) && (
-          <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {retailerProfile?.name || profile?.name}
-            </p>
-            <p className="text-xs text-gray-500">Retailer</p>
-          </div>
         )}
-
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-cirkle-50 text-cirkle-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-3 border-t border-gray-200">
-          <button
-            onClick={signOut}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-          >
-            <LogOut className="h-5 w-5" />
-            Sign out
-          </button>
-        </div>
-      </aside>
+      />
 
       <main className="lg:pl-64">
-        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="mx-auto max-w-[1144px] px-4 py-6 sm:px-6 lg:px-12 lg:py-9">{children}</div>
       </main>
     </div>
   );

@@ -43,25 +43,23 @@ export default function InstallPrompt() {
   if (!deferredPrompt || dismissed) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-50 max-w-sm mx-auto animate-in slide-in-from-bottom-4">
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4 flex items-center gap-3">
-        <div className="p-2 rounded-xl bg-cirkle-50 text-cirkle-600 flex-shrink-0">
-          <Download className="h-5 w-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900">Install Cirkle</p>
-          <p className="text-xs text-gray-500">Faster access from your home screen</p>
+    <div className="fixed inset-x-4 bottom-20 z-50 mx-auto max-w-sm font-brand">
+      <div className="flex items-center gap-3 border border-line-dark bg-surface-dark p-3.5">
+        <span className="grid h-9 w-9 shrink-0 place-items-center bg-accent text-on-primary">
+          <Download className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-body text-on-primary">Install Flaym</p>
+          <p className="text-caption text-muted">Scan faster from your home screen</p>
         </div>
         <button
+          type="button"
           onClick={handleInstall}
-          className="px-3 py-1.5 bg-cirkle-600 text-white text-xs font-medium rounded-lg hover:bg-cirkle-700 transition flex-shrink-0"
+          className="h-8 shrink-0 bg-accent px-3 text-caption font-medium text-on-primary hover:bg-accent/90"
         >
           Install
         </button>
-        <button
-          onClick={handleDismiss}
-          className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0"
-        >
+        <button type="button" onClick={handleDismiss} aria-label="Dismiss" className="shrink-0 p-1 text-muted hover:text-on-primary">
           <X className="h-4 w-4" />
         </button>
       </div>

@@ -2,10 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Heart, Share2, ShoppingBag, MapPin, Users, ChevronLeft, Package, Check, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { Share2, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { formatDKK } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
+import { BottomNav, Toast, cn } from '@/components/ds';
+import { addToBasket } from './basket-store';
+import { consumerTabs } from './tab-items';
 
 function timeAgo(iso?: string): string {
   if (!iso) return '';
@@ -59,7 +63,9 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [currentImage, setCurrentImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(product.sizes?.length === 1 ? product.sizes[0] : null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(product.colors?.length === 1 ? product.colors[0] : null);
+  const [selectionError, setSelectionError] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -94,8 +100,15 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
       .then((data) => {
         if (data.id) setScanId(data.id);
       })
-      .catch(() => {});
-  }, [scanData, user?.id, authLoading, recordScan]);
+      .catch(() => {})
+      .finally(() => {
+        // Back from signup after tapping Buy (?then=basket): the scan is now
+        // recorded with the new account, so continue to the basket.
+        if (user && new URLSearchParams(window.location.search).get('then') === 'basket') {
+          router.replace('/consumer/basket');
+        }
+      });
+  }, [scanData, user?.id, authLoading, recordScan]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleScroll() {
     if (!carouselRef.current) return;
@@ -110,17 +123,8 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
   const signupPath = `/auth/signup?role=consumer&redirect=${encodeURIComponent(checkoutPath)}`;
   const buyHref = user ? checkoutPath : signupPath;
 
-  function handleBuyClick(e: React.MouseEvent) {
-    // If auth is still loading, let the link navigate to signup as fallback
-    if (authLoading) return;
-
-    // If we have a scanId from the JS-side scan recording, update the URL
-    if (user && scanId) {
-      e.preventDefault();
-      window.location.href = `/consumer/checkout/${product.id}?scan=${scanId}`;
-    }
-    // Otherwise let the <a> tag navigate naturally
-  }
+  // Scanned → Scan tab is active; opened in-app (Saved / History) → Profile.
+  const tabs = consumerTabs(recordScan ? { scanMatch: ['/p', '/d'] } : { profileMatch: ['/d'] });
 
   async function handleSave() {
     if (!user) {
@@ -148,7 +152,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
     // Try native share (works on mobile HTTPS)
     if (typeof navigator.share === 'function') {
       try {
-        await navigator.share({ title: `${product.name} — Cirkle`, url });
+        await navigator.share({ title: `${product.name} — Flaym`, url });
         return;
       } catch {
         // user cancelled or not supported — fall through
@@ -186,234 +190,256 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
     }
   }
 
+
+  // Figma 04b: "Buy" adds to the basket (05) and opens it. Logged-out shoppers
+  // keep the item (localStorage) through signup, which redirects to the basket.
+  function handleBuyToBasket(e: React.MouseEvent) {
+    if (!hydrated) return; // pre-hydration: the <a> falls back to direct checkout
+    e.preventDefault();
+    if (product.sizes?.length > 0 && !selectedSize) {
+      setSelectionError('Pick a size first');
+      return;
+    }
+    if (product.colors?.length > 0 && !selectedColor) {
+      setSelectionError('Pick a colour first');
+      return;
+    }
+    setSelectionError('');
+    addToBasket({
+      productId: product.id,
+      name: product.name,
+      brandId: brand.id,
+      brandName: brand.name,
+      priceOre: product.price_dkk,
+      image: product.images?.[0] ?? null,
+      size: selectedSize,
+      color: selectedColor,
+      foundVia: { type: attribution.type, name: attribution.name },
+    });
+    if (authLoading || !user) {
+      // Come back to this product page first so the scan is recorded with the
+      // new account (that's what attributes the sale), then on to the basket.
+      const back = new URL(window.location.href);
+      back.searchParams.set('then', 'basket');
+      window.location.href = `/auth/signup?role=consumer&redirect=${encodeURIComponent(back.pathname + back.search)}`;
+      return;
+    }
+    router.push('/consumer/basket');
+  }
+
   const images = product.images?.length > 0 ? product.images : [];
+  // Swatches only after hydration (CSS.supports is browser-only), and only if
+  // the browser can paint every colour name.
+  const swatches =
+    hydrated && typeof CSS !== 'undefined' && (product.colors ?? []).every((c) => CSS.supports('color', c.toLowerCase()));
+  const inApp = !recordScan; // opened from Saved / History rather than scanned
 
   return (
-    <div className="relative mx-auto min-h-screen max-w-lg bg-espresso-bg text-espresso-cream">
-      {/* Image carousel with overlaid chrome */}
-      <div className="relative bg-espresso-surface">
+    <div className={cn('relative mx-auto min-h-screen max-w-lg bg-canvas-dark font-brand text-on-primary', user ? 'pb-16' : '')}>
+      {/* Image carousel (Figma: 430px tall) */}
+      <div className="relative h-[430px] bg-surface-dark">
         {images.length > 0 ? (
-          <div
-            ref={carouselRef}
-            onScroll={handleScroll}
-            className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto"
-          >
+          <div ref={carouselRef} onScroll={handleScroll} className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto">
             {images.map((src, i) => (
-              <div key={i} className="relative aspect-[4/5] w-full flex-shrink-0 snap-center">
-                <Image src={src} alt={`${product.name} ${i + 1}`} fill className="object-cover" sizes="100vw" priority={i === 0} />
+              <div key={i} className="relative h-full w-full flex-shrink-0 snap-center">
+                <Image src={src} alt={`${product.name} ${i + 1}`} fill className="object-cover" sizes="(max-width: 512px) 100vw, 512px" priority={i === 0} />
               </div>
             ))}
           </div>
         ) : (
-          <div
-            className="flex aspect-[4/5] items-center justify-center"
-            style={{ background: 'linear-gradient(160deg,#E0915C 0%,#7a3f1f 70%,#2a1308 100%)' }}
-          >
-            <Package className="h-16 w-16 text-white/30" />
-          </div>
+          <div className="h-full bg-flaym-gradient" aria-hidden />
         )}
 
-        {/* Top glass controls */}
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-12">
+        {/* Back + share */}
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-5 pt-14">
           <a
             href={user ? '/consumer/home' : '/'}
+            aria-label="Back"
             onClick={(e) => {
-              // Prefer going back in history (e.g. to the feed); fall back to the href.
+              // Prefer going back in history (e.g. to Saved); fall back to the href.
               if (hydrated && typeof window !== 'undefined' && window.history.length > 1) {
                 e.preventDefault();
                 router.back();
               }
             }}
-            className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-espresso-bg/50 text-white backdrop-blur transition active:scale-90"
+            className="grid h-9 w-9 place-items-center rounded-pill bg-primary/60 text-body text-on-primary"
           >
-            <ChevronLeft className="h-5 w-5" />
+            ←
           </a>
           <button
+            type="button"
             onClick={handleShare}
             disabled={!hydrated}
-            className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-espresso-bg/50 text-white backdrop-blur transition active:scale-90 disabled:opacity-60"
+            aria-label="Share"
+            className="grid h-9 w-9 place-items-center rounded-pill bg-primary/60 text-on-primary disabled:opacity-60"
           >
-            {showCopied ? <LinkIcon className="h-[18px] w-[18px]" /> : <Share2 className="h-[18px] w-[18px]" />}
+            {showCopied ? <LinkIcon className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
           </button>
         </div>
 
-        {/* Scan attribution chip */}
-        <div className="absolute bottom-7 left-5 right-5 flex items-center gap-2 self-start rounded-full border border-white/15 bg-espresso-bg/65 px-4 py-2.5 text-[11.5px] font-semibold text-espresso-cream backdrop-blur w-fit max-w-[calc(100%-2.5rem)]">
-          {attribution.type === 'retailer' ? (
-            <MapPin className="h-[14px] w-[14px] flex-none text-terracotta" />
-          ) : (
-            <Users className="h-[14px] w-[14px] flex-none text-terracotta" />
-          )}
-          <span className="truncate">
-            {attribution.type === 'retailer'
-              ? `Scanned at ${attribution.name}`
-              : `Shared by ${attribution.name}`}
-          </span>
-          {attribution.scannedAt && (
-            <span className="flex-none text-espresso-muted">· {timeAgo(attribution.scannedAt)}</span>
-          )}
-        </div>
+        {/* Swipe nudge: only while there is more to swipe to */}
+        {images.length > 1 && currentImage === 0 && (
+          <div className="pointer-events-none absolute inset-x-0 top-[200px] flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2 text-heading-lg leading-none text-on-primary">
+              <span>‹</span>
+              <span className="h-7 w-7 rounded-pill border-2 border-on-primary" />
+              <span>›</span>
+            </div>
+            <span className="bg-primary/60 px-2.5 py-1.5 text-caption text-on-primary">Swipe for more</span>
+          </div>
+        )}
 
-        {/* Carousel dots */}
-        {images.length > 1 && (
-          <div className="absolute bottom-5 right-4 flex gap-1.5">
+        {/* DPP / About (Figma 12) */}
+        <Link
+          href={`/d/${product.id}/about`}
+          className="absolute bottom-3.5 left-5 bg-primary/60 px-2.5 py-1.5 text-label tracking-normal text-on-primary"
+        >
+          ‹ About
+        </Link>
+
+        {/* Image position */}
+        {images.length > 1 && currentImage > 0 && (
+          <div className="absolute bottom-4 right-5 flex gap-1.5">
             {images.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1.5 rounded-full transition-all ${i === currentImage ? 'w-4 bg-white' : 'w-1.5 bg-white/40'}`}
-              />
+              <span key={i} className={cn('h-1.5 rounded-pill transition-all', i === currentImage ? 'w-4 bg-on-primary' : 'w-1.5 bg-on-primary/40')} />
             ))}
           </div>
         )}
       </div>
 
-      {/* Pulled-up sheet */}
-      <div className="relative -mt-7 rounded-t-[28px] bg-espresso-bg px-5 pb-40 pt-6">
-        <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-espresso-line" />
-
-        {/* Brand */}
-        <div className="flex items-center gap-2">
-          {brand.logo_url && (
-            <Image src={brand.logo_url} alt={brand.name} width={20} height={20} className="rounded-full" />
-          )}
-          <span className="text-[10.5px] font-bold uppercase tracking-[2.2px] text-terracotta">{brand.name}</span>
+      {/* Details */}
+      <div className="px-5 pb-36 pt-[18px]">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-label uppercase text-muted">{brand.name}</p>
+            <h1 className="mt-1.5 font-brand text-heading-lg font-normal uppercase text-on-primary">{product.name}</h1>
+          </div>
+          <span className="whitespace-nowrap text-[18px] font-medium leading-tight">{formatDKK(product.price_dkk)}</span>
         </div>
 
-        {/* Name + Price */}
-        <div className="mt-2 flex items-start justify-between gap-4">
-          <h1 className="font-display text-[28px] italic leading-tight text-espresso-cream">{product.name}</h1>
-          <span className="whitespace-nowrap text-[22px] font-bold text-espresso-cream">{formatDKK(product.price_dkk)}</span>
-        </div>
-
-        {/* Description */}
-        {product.description && (
-          <p className="mt-3.5 text-[13px] leading-relaxed text-espresso-muted">{product.description}</p>
+        {/* Where you found it */}
+        <p className="mt-4 text-caption text-line">
+          {attribution.type === 'retailer' ? (inApp ? 'Saved at ' : 'Found at ') : 'Passed on by '}
+          <span className="text-accent">{attribution.name}</span>
+          {attribution.scannedAt && <span className="text-muted"> · {timeAgo(attribution.scannedAt)}</span>}
+        </p>
+        {attribution.type === 'retailer' && inApp && (
+          <p className="text-caption text-line">The store still gets its cut.</p>
+        )}
+        {attribution.type === 'peer' && attribution.peerPointsMessage && (
+          <p className="text-caption text-line">{attribution.peerPointsMessage}</p>
         )}
 
         {/* Sizes */}
         {product.sizes?.length > 0 && (
-          <div className="mt-5">
-            <h3 className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Size</h3>
-            <div className="flex flex-wrap gap-2.5">
-              {product.sizes.map((size) => {
-                const on = selectedSize === size;
-                return (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`min-w-[46px] rounded-[13px] border px-3.5 py-3 text-sm font-semibold transition active:scale-95 ${
-                      on
-                        ? 'border-espresso-cream bg-espresso-cream text-espresso-bg'
-                        : 'border-espresso-line bg-espresso-surface text-espresso-cream'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="mt-3.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Size">
+            {product.sizes.map((size) => {
+              const on = selectedSize === size;
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => {
+                    setSelectedSize(size);
+                    setSelectionError('');
+                  }}
+                  className={cn(
+                    'h-10 min-w-12 px-3 text-body transition-colors',
+                    on ? 'bg-on-primary text-primary' : 'border border-muted text-on-primary hover:border-on-primary'
+                  )}
+                >
+                  {size}
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {/* Colors */}
+        {/* Colours: Figma swatches when every name is a CSS colour, otherwise
+            text chips (brands write names like "Sort" that a browser can't paint). */}
         {product.colors?.length > 0 && (
-          <div className="mt-5">
-            <h3 className="mb-2.5 text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Colour</h3>
-            <div className="flex flex-wrap gap-2.5">
-              {product.colors.map((color) => (
-                <span key={color} className="rounded-[13px] border border-espresso-line bg-espresso-surface px-3.5 py-2.5 text-xs font-medium text-espresso-cream">
+          <div className="mt-3.5 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Colour">
+            {product.colors.map((color) => {
+              const on = selectedColor === color;
+              const pick = () => {
+                setSelectedColor(color);
+                setSelectionError('');
+              };
+              return swatches ? (
+                <button
+                  key={color}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  aria-label={color}
+                  title={color}
+                  onClick={pick}
+                  // Colour names come from the brand's product data.
+                  style={{ backgroundColor: color.toLowerCase() }}
+                  className={cn('h-[22px] w-[22px] rounded-pill', on && 'border-2 border-on-primary')}
+                />
+              ) : (
+                <button
+                  key={color}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  onClick={pick}
+                  className={cn(
+                    'h-8 px-3 text-caption transition-colors',
+                    on ? 'bg-on-primary text-primary' : 'border border-muted text-on-primary hover:border-on-primary'
+                  )}
+                >
                   {color}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Materials */}
-        {product.materials && (
-          <div className="mt-5">
-            <h3 className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Materials</h3>
-            <p className="text-[13px] text-espresso-muted">{product.materials}</p>
-          </div>
-        )}
-
-        {/* Maker / attribution context */}
-        <div className="mt-5 flex items-center gap-3 rounded-2xl border border-espresso-line bg-espresso-surface p-3.5">
-          {brand.logo_url ? (
-            <span className="relative h-11 w-11 flex-none overflow-hidden rounded-full border border-espresso-line bg-white">
-              <Image src={brand.logo_url} alt={brand.name} fill className="object-cover" sizes="44px" />
-            </span>
-          ) : (
-            <span className="grid h-11 w-11 flex-none place-items-center rounded-full font-display text-lg italic text-white"
-              style={{ background: 'linear-gradient(135deg,#E0915C,#8b4f1f)' }}>
-              {brand.name?.[0] ?? 'C'}
-            </span>
-          )}
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-espresso-cream">{brand.name}</p>
-            <p className="text-xs text-espresso-muted">
-              {attribution.type === 'retailer'
-                ? `Discovered at ${attribution.name} · ✦ Emerging maker`
-                : `Shared by ${attribution.name}`}
-            </p>
-          </div>
-        </div>
-
-        {/* Why you found this */}
-        <div className="mt-5">
-          <h3 className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[1.8px] text-espresso-muted-2">Why you found this</h3>
-          <p className="text-[13px] leading-relaxed text-espresso-muted">
-            {attribution.type === 'retailer' ? (
-              <>You scanned a sample at <span className="text-espresso-cream">{attribution.name}</span>. Buy within 90 days and they earn for the introduction — that&rsquo;s how Cirkle keeps small spaces thriving.</>
-            ) : (
-              attribution.peerPointsMessage || <>Shared by a friend. When you buy, they earn Cirkle Points.</>
+                </button>
+              );
+            })}
+            {swatches && (
+              <span className="ml-1.5 text-caption text-line">
+                {selectedColor ?? product.colors[0]}
+                {product.colors.length > 1 && ` · ${product.colors.length} colours`}
+              </span>
             )}
-          </p>
-        </div>
+          </div>
+        )}
+
+        {selectionError && <p className="mt-3 text-caption text-accent">{selectionError}</p>}
+
+        {product.description && <p className="mt-5 text-caption text-line">{product.description}</p>}
       </div>
 
       {/* "Copied" toast */}
       {showCopied && (
-        <div className="fixed left-1/2 top-16 z-[60] flex -translate-x-1/2 items-center gap-2 rounded-full bg-espresso-cream px-4 py-2.5 text-sm font-semibold text-espresso-bg shadow-lg animate-toast-in">
-          <Check className="h-4 w-4 text-sage" />
-          Link copied!
+        <div className="fixed left-1/2 top-16 z-[60] -translate-x-1/2">
+          <Toast message="Link copied" type="info" className="border-line-dark" />
         </div>
       )}
 
-      {/* Fixed bottom CTAs — Buy is an <a> tag so it works before JS hydrates */}
-      <div
-        className="fixed inset-x-0 bottom-0 z-50"
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: 'linear-gradient(rgba(26,15,8,0), #1A0F08 28%)',
-        }}
-      >
-        <div className="mx-auto flex max-w-lg items-center gap-3 px-5 pb-6 pt-4">
-          <button
-            onClick={handleSave}
-            disabled={saving || saved || !hydrated}
-            className={`grid h-14 w-14 flex-none place-items-center rounded-2xl border transition active:scale-90 ${
-              saved
-                ? 'border-terracotta bg-terracotta text-espresso-bg'
-                : 'border-espresso-line bg-espresso-surface text-espresso-cream'
-            }`}
-          >
-            {saving ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Heart className={`h-[22px] w-[22px] ${saved ? 'fill-current' : ''}`} />
-            )}
-          </button>
+      {/* Buy + Save. Buy is an <a> so it still works before JS hydrates. */}
+      <div className={cn('fixed inset-x-0 z-40 bg-canvas-dark', user ? 'bottom-16' : 'bottom-0 pb-[env(safe-area-inset-bottom)]')}>
+        <div className="mx-auto flex max-w-lg gap-2.5 px-5 py-3">
           <a
             href={buyHref}
-            onClick={handleBuyClick}
-            className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-terracotta font-bold text-espresso-bg no-underline transition active:scale-[0.97]"
+            onClick={handleBuyToBasket}
+            className="flex h-[52px] flex-1 items-center justify-center bg-accent text-[15px] font-medium text-on-primary transition-colors hover:bg-accent/90"
           >
-            <ShoppingBag className="h-[18px] w-[18px]" />
-            Buy now · {formatDKK(product.price_dkk)}
+            Buy
           </a>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || saved || !hydrated}
+            className="flex h-[52px] flex-1 items-center justify-center gap-2 border border-muted text-[15px] font-medium text-on-primary transition-colors hover:border-on-primary disabled:hover:border-muted"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? 'Saved ✓' : 'Save'}
+          </button>
         </div>
       </div>
+
+      {/* Logged-in shoppers get the app's tab bar, as in Figma 04b / 04c. */}
+      {user && <BottomNav items={tabs} />}
     </div>
   );
 }

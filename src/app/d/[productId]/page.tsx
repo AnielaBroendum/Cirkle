@@ -49,7 +49,7 @@ export default async function PeerDiscoveryPage({
         attribution={{
           type: 'peer',
           name: peerName,
-          peerPointsMessage: `${peerName} gets 50 points if you buy`,
+          peerPointsMessage: `${peerName} gets 50 Flayms if you buy`,
         }}
         scanData={{
           product_id: product.id,

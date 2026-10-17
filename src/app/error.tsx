@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ds';
 
 export default function Error({
   reset,
@@ -9,20 +10,17 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 text-center">
-      <div className="p-4 rounded-full bg-red-50 mb-6">
-        <AlertTriangle className="h-8 w-8 text-red-500" />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-4 text-center font-brand">
+      <div className="mb-6 inline-flex h-14 w-14 items-center justify-center bg-surface-muted">
+        <AlertTriangle className="h-7 w-7 text-accent" />
       </div>
-      <h1 className="text-3xl font-bold text-gray-900">Something went wrong</h1>
-      <p className="mt-2 text-gray-500 max-w-sm">
+      <h1 className="font-brand text-heading-xl uppercase text-primary">Something went wrong</h1>
+      <p className="mt-2 max-w-sm text-body text-muted">
         An unexpected error occurred. Please try again.
       </p>
-      <button
-        onClick={reset}
-        className="mt-6 inline-flex items-center gap-2 bg-cirkle-600 text-white font-medium px-6 py-3 rounded-xl hover:bg-cirkle-700 transition"
-      >
+      <Button variant="accent" onClick={reset} className="mt-6">
         Try again
-      </button>
+      </Button>
     </div>
   );
 }

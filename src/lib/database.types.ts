@@ -38,6 +38,7 @@ export type Database = {
           description: string | null;
           logo_url: string | null;
           website: string | null;
+          return_policy_url: string | null;
           onboarding_complete: boolean;
           created_at: string;
           updated_at: string;
@@ -49,6 +50,7 @@ export type Database = {
           description?: string | null;
           logo_url?: string | null;
           website?: string | null;
+          return_policy_url?: string | null;
           onboarding_complete?: boolean;
         };
         Update: {
@@ -58,7 +60,31 @@ export type Database = {
           description?: string | null;
           logo_url?: string | null;
           website?: string | null;
+          return_policy_url?: string | null;
           onboarding_complete?: boolean;
+        };
+        Relationships: [];
+      };
+      brand_payout_details: {
+        Row: {
+          brand_id: string;
+          reg_no: string | null;
+          account_no: string | null;
+          cvr: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          brand_id: string;
+          reg_no?: string | null;
+          account_no?: string | null;
+          cvr?: string | null;
+        };
+        Update: {
+          brand_id?: string;
+          reg_no?: string | null;
+          account_no?: string | null;
+          cvr?: string | null;
         };
         Relationships: [];
       };
@@ -76,6 +102,7 @@ export type Database = {
           logo_url: string | null;
           store_photos: string[];
           store_type: string | null;
+          opening_hours: string | null;
           onboarding_complete: boolean;
           created_at: string;
           updated_at: string;
@@ -93,6 +120,7 @@ export type Database = {
           logo_url?: string | null;
           store_photos?: string[];
           store_type?: string | null;
+          opening_hours?: string | null;
           onboarding_complete?: boolean;
         };
         Update: {
@@ -108,7 +136,31 @@ export type Database = {
           logo_url?: string | null;
           store_photos?: string[];
           store_type?: string | null;
+          opening_hours?: string | null;
           onboarding_complete?: boolean;
+        };
+        Relationships: [];
+      };
+      retailer_payout_details: {
+        Row: {
+          retailer_id: string;
+          reg_no: string | null;
+          account_no: string | null;
+          cvr: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          retailer_id: string;
+          reg_no?: string | null;
+          account_no?: string | null;
+          cvr?: string | null;
+        };
+        Update: {
+          retailer_id?: string;
+          reg_no?: string | null;
+          account_no?: string | null;
+          cvr?: string | null;
         };
         Relationships: [];
       };
@@ -683,6 +735,10 @@ export type Database = {
       get_brand_deposits_held: {
         Args: { p_brand_id: string };
         Returns: number;
+      };
+      get_brand_save_counts: {
+        Args: { p_since: string };
+        Returns: { day: string; saves: number }[];
       };
     };
   };

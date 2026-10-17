@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { ArrowLeftRight, Check, X, Truck, Eye } from 'lucide-react';
+import { ArrowLeftRight, Check, X, Truck, ArrowRight, Package } from 'lucide-react';
+import { Button, Card, EmptyState, Input, ListSkeleton, StatusPill } from '@/components/ds';
+import { StoresPageHeader } from '@/components/brand/stores-tabs';
 
 type SwapRequest = {
   id: string;
@@ -37,17 +39,6 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  requested: 'bg-amber-50 text-amber-700',
-  approved: 'bg-blue-50 text-blue-700',
-  return_shipped: 'bg-purple-50 text-purple-700',
-  return_received: 'bg-indigo-50 text-indigo-700',
-  inspected_ok: 'bg-green-50 text-green-700',
-  inspected_damaged: 'bg-red-50 text-red-600',
-  new_shipped: 'bg-cyan-50 text-cyan-700',
-  completed: 'bg-green-50 text-green-700',
-  cancelled: 'bg-gray-100 text-gray-500',
-};
 
 export default function BrandSwapsPage() {
   const { user } = useAuth();
@@ -140,146 +131,164 @@ export default function BrandSwapsPage() {
     setActionLoading(null);
   }
 
+  const header = <StoresPageHeader subtitle="Stores swap a sample that isn't selling. Deposits are refunded or forfeited after inspection." />;
+
   if (loading) {
-    return <div className="space-y-4"><div className="animate-pulse bg-gray-200 rounded h-8 w-40" /><div className="animate-pulse bg-gray-100 rounded-xl h-48" /></div>;
+    return (
+      <div className="space-y-6">
+        {header}
+        <ListSkeleton rows={3} />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Swap requests</h1>
+      {header}
 
       {swaps.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-          <ArrowLeftRight className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 text-gray-500">No swap requests yet</p>
-        </div>
+        <EmptyState
+          className="bg-surface"
+          icon={<ArrowLeftRight className="h-5 w-5" />}
+          title="No swap requests yet"
+          description="When a store asks to swap a sample, it shows up here."
+        />
       ) : (
         <div className="space-y-4">
           {swaps.map((sw) => (
-            <div key={sw.id} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-semibold text-gray-900">{sw.retailer_name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+            <Card key={sw.id} padding="none" className="space-y-4 rounded-none p-5 lg:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-brand text-body uppercase tracking-[0.3px] text-primary">{sw.retailer_name}</p>
+                  <p className="mt-0.5 text-caption text-muted">
                     {new Date(sw.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                 </div>
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[sw.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {STATUS_LABELS[sw.status] ?? sw.status}
-                </span>
+                <StatusPill status={sw.status} label={STATUS_LABELS[sw.status] ?? sw.status} />
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="bg-red-50/50 rounded-lg p-3">
-                  <p className="text-xs font-medium text-red-600 mb-1">Returning</p>
-                  <p className="text-sm font-medium text-gray-900">{sw.return_product_name}</p>
-                  <p className="text-xs text-gray-500">{sw.return_size} / {sw.return_color}</p>
-                  <p className="text-xs text-gray-500 mt-1">Deposit: {formatDKK(sw.return_deposit)}</p>
+              <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+                <div className="border border-line p-3.5">
+                  <p className="mb-1 text-label uppercase text-muted">Returning</p>
+                  <p className="text-[13px] text-primary">{sw.return_product_name}</p>
+                  <p className="text-caption text-muted">{sw.return_size} / {sw.return_color}</p>
+                  <p className="mt-1 text-caption text-muted">Deposit: {formatDKK(sw.return_deposit)}</p>
                 </div>
-                <div className="bg-green-50/50 rounded-lg p-3">
-                  <p className="text-xs font-medium text-green-600 mb-1">Requesting</p>
-                  <p className="text-sm font-medium text-gray-900">{sw.new_product_name}</p>
-                  <p className="text-xs text-gray-500">{sw.new_size} / {sw.new_color}</p>
-                  <p className="text-xs text-gray-500 mt-1">Deposit: {formatDKK(sw.new_deposit)}</p>
+                <ArrowRight className="mx-auto hidden h-4 w-4 text-muted sm:block" aria-hidden />
+                <div className="border border-line bg-canvas-warm p-3.5">
+                  <p className="mb-1 text-label uppercase text-accent-strong">Requesting</p>
+                  <p className="text-[13px] text-primary">{sw.new_product_name}</p>
+                  <p className="text-caption text-muted">{sw.new_size} / {sw.new_color}</p>
+                  <p className="mt-1 text-caption text-muted">Deposit: {formatDKK(sw.new_deposit)}</p>
                 </div>
               </div>
 
-              {sw.reason && <p className="text-sm text-gray-500">Reason: {sw.reason}</p>}
-              {sw.return_tracking_number && <p className="text-sm text-gray-500">Return tracking: {sw.return_tracking_number}</p>}
-              {sw.inspection_note && <p className="text-sm text-gray-500">Inspection: {sw.inspection_note}</p>}
-              {sw.new_tracking_number && <p className="text-sm text-gray-500">New tracking: {sw.new_tracking_number}</p>}
+              {(sw.reason || sw.return_tracking_number || sw.inspection_note || sw.new_tracking_number) && (
+                <dl className="grid gap-x-6 gap-y-1.5 text-body sm:grid-cols-2">
+                  {sw.reason && <Detail label="Reason" value={sw.reason} />}
+                  {sw.return_tracking_number && <Detail label="Return tracking" value={sw.return_tracking_number} />}
+                  {sw.inspection_note && <Detail label="Inspection" value={sw.inspection_note} />}
+                  {sw.new_tracking_number && <Detail label="New tracking" value={sw.new_tracking_number} />}
+                </dl>
+              )}
 
               {/* Actions based on status */}
               <div className="flex flex-wrap items-center gap-2">
                 {sw.status === 'requested' && (
                   <>
-                    <button
-                      onClick={() => updateStatus(sw.id, 'approved')}
-                      disabled={actionLoading === sw.id}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 disabled:opacity-50"
-                    >
-                      <Check className="h-4 w-4" /> Approve
-                    </button>
-                    <button
-                      onClick={() => updateStatus(sw.id, 'cancelled')}
-                      disabled={actionLoading === sw.id}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 disabled:opacity-50"
-                    >
-                      <X className="h-4 w-4" /> Cancel
-                    </button>
+                    <Button onClick={() => updateStatus(sw.id, 'approved')} disabled={actionLoading === sw.id} leftIcon={<Check className="h-4 w-4" />}>
+                      Approve
+                    </Button>
+                    <Button variant="secondary" onClick={() => updateStatus(sw.id, 'cancelled')} disabled={actionLoading === sw.id} leftIcon={<X className="h-4 w-4" />}>
+                      Cancel
+                    </Button>
                   </>
                 )}
 
                 {sw.status === 'return_received' && (
                   <>
-                    <button
-                      onClick={() => updateStatus(sw.id, 'inspected_ok', { inspection_note: inspectionNote })}
-                      disabled={actionLoading === sw.id}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 disabled:opacity-50"
-                    >
-                      <Check className="h-4 w-4" /> Condition OK
-                    </button>
-                    <button
-                      onClick={() => updateStatus(sw.id, 'inspected_damaged', { inspection_note: inspectionNote })}
-                      disabled={actionLoading === sw.id}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 disabled:opacity-50"
-                    >
-                      <X className="h-4 w-4" /> Damaged
-                    </button>
-                    <input
+                    <Input
                       type="text"
                       value={inspectionNote}
                       onChange={(e) => setInspectionNote(e.target.value)}
                       placeholder="Inspection note (optional)"
-                      className="flex-1 min-w-[200px] rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cirkle-500 focus:outline-none"
+                      aria-label="Inspection note"
+                      className="w-full sm:w-auto sm:min-w-[240px] sm:flex-1"
                     />
+                    <Button
+                      onClick={() => updateStatus(sw.id, 'inspected_ok', { inspection_note: inspectionNote })}
+                      disabled={actionLoading === sw.id}
+                      leftIcon={<Check className="h-4 w-4" />}
+                    >
+                      Condition OK
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => updateStatus(sw.id, 'inspected_damaged', { inspection_note: inspectionNote })}
+                      disabled={actionLoading === sw.id}
+                      leftIcon={<X className="h-4 w-4" />}
+                    >
+                      Damaged
+                    </Button>
                   </>
                 )}
 
                 {(sw.status === 'inspected_ok' || sw.status === 'inspected_damaged') && (
                   <>
                     {trackingFor?.id === sw.id ? (
-                      <div className="flex items-center gap-2 w-full">
-                        <input
+                      <div className="flex w-full flex-wrap items-center gap-2">
+                        <Input
                           type="text"
                           value={trackingInput}
                           onChange={(e) => setTrackingInput(e.target.value)}
                           placeholder="Tracking number"
-                          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cirkle-500 focus:outline-none"
+                          aria-label="Tracking number"
+                          className="min-w-[180px] flex-1"
                         />
-                        <button
+                        <Button
                           onClick={() => updateStatus(sw.id, 'new_shipped', { tracking_number: trackingInput })}
-                          disabled={actionLoading === sw.id}
-                          className="px-4 py-2 rounded-lg bg-cirkle-600 text-white text-sm font-medium hover:bg-cirkle-700 disabled:opacity-50"
+                          loading={actionLoading === sw.id}
                         >
                           Ship new sample
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => setTrackingFor({ id: sw.id, type: 'new_shipped' })}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-purple-50 text-purple-700 text-sm font-medium hover:bg-purple-100"
-                      >
-                        <Truck className="h-4 w-4" /> Ship replacement
-                      </button>
+                      <Button onClick={() => setTrackingFor({ id: sw.id, type: 'new_shipped' })} leftIcon={<Truck className="h-4 w-4" />}>
+                        Ship replacement
+                      </Button>
                     )}
                   </>
                 )}
 
                 {sw.status === 'new_shipped' && (
-                  <button
-                    onClick={() => updateStatus(sw.id, 'completed')}
-                    disabled={actionLoading === sw.id}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 disabled:opacity-50"
-                  >
-                    <Check className="h-4 w-4" /> Mark completed
-                  </button>
+                  <Button onClick={() => updateStatus(sw.id, 'completed')} disabled={actionLoading === sw.id} leftIcon={<Check className="h-4 w-4" />}>
+                    Mark completed
+                  </Button>
+                )}
+
+                {sw.status === 'approved' && <p className="text-caption text-muted">Waiting for the store to ship the sample back.</p>}
+                {sw.status === 'return_shipped' && (
+                  <>
+                    <p className="w-full text-caption text-muted">On its way back. The store marked it shipped.</p>
+                    <Button onClick={() => updateStatus(sw.id, 'return_received')} disabled={actionLoading === sw.id} leftIcon={<Package className="h-4 w-4" />}>
+                      Mark received
+                    </Button>
+                  </>
                 )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-2">
+      <dt className="shrink-0 text-muted">{label}:</dt>
+      <dd className="min-w-0 break-words text-primary">{value}</dd>
     </div>
   );
 }

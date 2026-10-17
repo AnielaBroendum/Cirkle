@@ -2,9 +2,10 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import AuthSwitchLink from '../switch-link';
 import { createClient } from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
+import { Button, Field, Input, cn } from '@/components/ds';
+import { AuthShell, AuthError } from '@/components/shared/auth-shell';
 
 type Role = 'brand' | 'retailer' | 'consumer';
 
@@ -90,131 +91,97 @@ function SignUpForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700">
-          I am a...
-        </label>
-        <div className="grid grid-cols-3 gap-3">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <fieldset className="space-y-1.5">
+        <legend className="mb-1.5 text-label uppercase text-muted">I am a</legend>
+        <div className="grid grid-cols-3 gap-2">
           {(Object.entries(ROLE_CONFIG) as [Role, typeof ROLE_CONFIG[Role]][]).map(
             ([key, config]) => (
               <button
                 key={key}
                 type="button"
+                aria-pressed={role === key}
                 onClick={() => setRole(key)}
-                className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
+                className={cn(
+                  'flex flex-col gap-1 rounded-control border p-3 text-left transition-colors',
                   role === key
-                    ? 'border-cirkle-500 bg-cirkle-50 text-cirkle-700'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                }`}
+                    ? 'border-primary bg-primary text-on-primary'
+                    : 'border-line bg-surface text-primary hover:border-primary'
+                )}
               >
-                <span className="text-sm font-semibold">{config.label}</span>
-                <span className="text-xs mt-1 text-center leading-tight">
+                <span className="text-body font-medium">{config.label}</span>
+                <span className={cn('text-label leading-[14px] tracking-normal', role === key ? 'text-line' : 'text-muted')}>
                   {config.description}
                 </span>
               </button>
             )
           )}
         </div>
-      </div>
+      </fieldset>
 
-      <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-          Name
-        </label>
-        <input
+      <Field label="Name" htmlFor="name">
+        <Input
           id="name"
           type="text"
           required
+          autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
           placeholder="Your name"
         />
-      </div>
+      </Field>
 
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email
-        </label>
-        <input
+      <Field label="Email" htmlFor="email">
+        <Input
           id="email"
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
           placeholder="you@example.com"
         />
-      </div>
+      </Field>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-          Password
-        </label>
-        <input
+      <Field label="Password" htmlFor="password">
+        <Input
           id="password"
           type="password"
           required
           minLength={6}
+          autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
           placeholder="At least 6 characters"
         />
-      </div>
+      </Field>
 
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">
-          {error}
-        </p>
-      )}
+      {error && <AuthError>{error}</AuthError>}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Creating account...
-          </>
-        ) : (
-          'Create account'
-        )}
-      </button>
+      <Button type="submit" fullWidth loading={loading} className="h-[52px]">
+        {loading ? 'Creating account...' : 'Create account'}
+      </Button>
     </form>
   );
 }
 
 export default function SignUpPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <Link href="/" className="text-3xl font-bold text-cirkle-950">
-            Cirkle
-          </Link>
-          <h1 className="mt-4 text-2xl font-semibold text-gray-900">
-            Create account
-          </h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Get started with Cirkle
-          </p>
-        </div>
+    <AuthShell
+      eyebrow="Flaym"
+      title="Create account"
+      intro="Scan it. Save it. Pass it on."
+    >
+      <Suspense>
+        <SignUpForm />
+      </Suspense>
 
-        <Suspense>
-          <SignUpForm />
-        </Suspense>
-
-        <p className="text-center text-sm text-gray-500">
-          Already have an account?{' '}
-          <Link href="/auth/login" className="text-cirkle-600 hover:underline font-medium">
-            Sign in
-          </Link>
-        </p>
-      </div>
-    </main>
+      <p className="text-[13px] text-muted">
+        Already have an account?{' '}
+        <AuthSwitchLink to="/auth/login" className="text-primary underline">
+          Log in
+        </AuthSwitchLink>
+      </p>
+    </AuthShell>
   );
 }

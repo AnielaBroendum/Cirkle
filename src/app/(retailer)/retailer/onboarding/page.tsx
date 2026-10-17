@@ -6,6 +6,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { ImageUpload } from '@/components/brand/image-upload';
 import { Check } from 'lucide-react';
+import { Button, Field, Input, Logo, Select, Textarea } from '@/components/ds';
 
 const STORE_TYPES = [
   { value: 'boutique', label: 'Boutique' },
@@ -83,141 +84,91 @@ export default function RetailerOnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-cirkle-950">Cirkle</h1>
-          <p className="mt-2 text-gray-500">Set up your store</p>
-        </div>
+    <div className="flex min-h-screen flex-col bg-surface font-brand lg:flex-row">
+      {/* Art panel (Figma Retail Portal 01) */}
+      <div className="flex h-40 shrink-0 flex-col items-center justify-center gap-2 bg-flaym-gradient lg:sticky lg:top-0 lg:h-screen lg:w-1/2 lg:gap-5">
+        <Logo height={40} className="lg:hidden" />
+        <Logo height={106} className="hidden lg:inline-block" />
+        <p className="text-caption italic tracking-[4px] text-on-primary lg:text-body">FORWARD</p>
+      </div>
 
-        <div className="h-1.5 rounded-full bg-cirkle-500" />
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <h2 className="text-xl font-semibold text-gray-900">Store profile</h2>
-
+      {/* Form */}
+      <div className="flex flex-1 justify-center px-4 py-10 sm:px-8 lg:items-center lg:py-16">
+        <form onSubmit={handleSubmit} className="w-full max-w-[440px] space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Store name *
-            </label>
-            <input
+            <p className="text-label uppercase text-muted">Retail Portal</p>
+            <h1 className="mt-4 font-brand text-display uppercase text-primary">Set up your store</h1>
+            <p className="mt-3 text-body leading-[1.6] text-muted">
+              This is what people see when they scan a product in your store.
+            </p>
+          </div>
+
+          <Field label="Store name *" htmlFor="store-name">
+            <Input
+              id="store-name"
               type="text"
               required
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
               placeholder="My Store"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
+          <Field label="Description" htmlFor="description">
+            <Textarea
+              id="description"
               rows={3}
               value={storeDescription}
               onChange={(e) => setStoreDescription(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none resize-none"
+              className="resize-none"
               placeholder="Tell us about your store"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Store type
-            </label>
-            <select
-              value={storeType}
-              onChange={(e) => setStoreType(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none bg-white"
-            >
+          <Field label="Store type" htmlFor="store-type">
+            <Select id="store-type" value={storeType} onChange={(e) => setStoreType(e.target.value)}>
               <option value="">Select type</option>
               {STORE_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
                 </option>
               ))}
-            </select>
+            </Select>
+          </Field>
+
+          <Field label="Address" htmlFor="address">
+            <Input id="address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main Street" />
+          </Field>
+
+          <div className="grid grid-cols-[2fr_1fr] gap-3">
+            <Field label="City" htmlFor="city">
+              <Input id="city" type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Copenhagen" />
+            </Field>
+            <Field label="Postal code" htmlFor="postal">
+              <Input id="postal" type="text" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="2100" />
+            </Field>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Address
-            </label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-              placeholder="123 Main Street"
-            />
-          </div>
+          <Field label="Logo">
+            <ImageUpload bucket="brand-assets" folder="retailer-logos" value={logo} onChange={setLogo} max={1} label="Upload logo" appearance="flaym" />
+          </Field>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                City
-              </label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-                placeholder="Copenhagen"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Postal code
-              </label>
-              <input
-                type="text"
-                value={postalCode}
-                onChange={(e) => setPostalCode(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-                placeholder="2100"
-              />
-            </div>
-          </div>
+          <Field label="Store photos" hint="The first photo is your cover. Up to 5.">
+            <ImageUpload bucket="brand-assets" folder="retailer-photos" value={photos} onChange={setPhotos} max={5} label="Upload photos" appearance="flaym" cover />
+          </Field>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Logo</label>
-            <ImageUpload
-              bucket="brand-assets"
-              folder="retailer-logos"
-              value={logo}
-              onChange={setLogo}
-              max={1}
-              label="Upload logo"
-            />
-          </div>
+          {error && <p className="border border-accent bg-accent-subtle px-4 py-3 text-body text-accent-strong">{error}</p>}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Store photos
-            </label>
-            <ImageUpload
-              bucket="brand-assets"
-              folder="retailer-photos"
-              value={photos}
-              onChange={setPhotos}
-              max={5}
-              label="Upload billeder"
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>
-          )}
-
-          <button
+          <Button
             type="submit"
+            size="lg"
+            fullWidth
+            loading={loading}
             disabled={loading || !storeName.trim()}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
+            rightIcon={<Check className="h-4 w-4" />}
           >
-            {loading ? 'Saving...' : 'Complete setup'}
-            {!loading && <Check className="h-4 w-4" />}
-          </button>
+            {loading ? 'Saving…' : 'Complete setup'}
+          </Button>
         </form>
       </div>
     </div>

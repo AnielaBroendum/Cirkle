@@ -4,18 +4,10 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatCommission } from '@/lib/utils';
-import {
-  Handshake,
-  Send,
-  Check,
-  X,
-  Clock,
-  Copy,
-  ExternalLink,
-  Store,
-  MapPin,
-  Loader2,
-} from 'lucide-react';
+import { Handshake, Check, X, Copy, Store, MapPin, Plus } from 'lucide-react';
+import { Badge, Button, Card, EmptyState, Field, Input, ListSkeleton, StatusPill } from '@/components/ds';
+import { StoresPageHeader } from '@/components/brand/stores-tabs';
+import { InviteStoreModal } from '@/components/brand/invite-store-modal';
 import type { Database } from '@/lib/database.types';
 
 type Partnership = Database['public']['Tables']['brand_retailer_partnerships']['Row'];
@@ -38,14 +30,11 @@ export default function BrandPartnershipsPage() {
   const [requestingId, setRequestingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [email, setEmail] = useState('');
   const [commDirect, setCommDirect] = useState(25);
   const [commDeferred, setCommDeferred] = useState(15);
   const [commTier2, setCommTier2] = useState(10);
-  const [inviting, setInviting] = useState(false);
-  const [inviteError, setInviteError] = useState('');
-  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
-  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -135,39 +124,6 @@ export default function BrandPartnershipsPage() {
     loadPartnerships();
   }
 
-  async function handleInvite(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) return;
-
-    setInviteError('');
-    setInviteSuccess(null);
-    setInviting(true);
-
-    const res = await fetch('/api/partnerships/invite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: email.trim(),
-        commission_direct: commDirect * 100,
-        commission_deferred: commDeferred * 100,
-        commission_tier2: commTier2 * 100,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setInviteError(data.error ?? 'Something went wrong');
-      setInviting(false);
-      return;
-    }
-
-    setInviteSuccess(data.invitation_url);
-    setEmail('');
-    setInviting(false);
-    loadPartnerships();
-  }
-
   async function handleUpdateStatus(
     partnershipId: string,
     status: 'active' | 'declined'
@@ -185,26 +141,26 @@ export default function BrandPartnershipsPage() {
 
   function copyUrl(url: string) {
     navigator.clipboard.writeText(url);
-    setCopiedUrl(true);
-    setTimeout(() => setCopiedUrl(false), 2000);
+    setCopiedUrl(url);
+    setTimeout(() => setCopiedUrl(null), 2000);
   }
+
+  const header = (
+    <StoresPageHeader
+      subtitle="Every store you work with, invitations you've sent and stores asking to partner"
+      action={
+        <Button onClick={() => setInviteOpen(true)} leftIcon={<Plus className="h-4 w-4" />} className="self-start sm:self-auto">
+          Invite store
+        </Button>
+      }
+    />
+  );
 
   if (loading) {
     return (
-      <div className="space-y-8">
-        <div>
-          <div className="animate-pulse bg-gray-200 rounded h-8 w-40" />
-          <div className="animate-pulse bg-gray-100 rounded h-4 w-56 mt-2" />
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-          <div className="animate-pulse bg-gray-200 rounded h-6 w-32" />
-          <div className="animate-pulse bg-gray-100 rounded-lg h-12 w-full" />
-          <div className="grid grid-cols-3 gap-3">
-            <div className="animate-pulse bg-gray-100 rounded-lg h-12" />
-            <div className="animate-pulse bg-gray-100 rounded-lg h-12" />
-            <div className="animate-pulse bg-gray-100 rounded-lg h-12" />
-          </div>
-        </div>
+      <div className="space-y-6">
+        {header}
+        <ListSkeleton rows={4} />
       </div>
     );
   }
@@ -217,294 +173,153 @@ export default function BrandPartnershipsPage() {
     ['paused', 'declined'].includes(p.status)
   );
 
+  const commission = (p: Partnership) =>
+    `${formatCommission(p.commission_direct)} / ${formatCommission(p.commission_deferred)} / ${formatCommission(p.commission_tier2)}`;
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Partnerships</h1>
-        <p className="mt-1 text-gray-500">Invite retailers and manage partnerships</p>
-      </div>
+      {header}
 
-      {/* Invite form */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Invite retailer</h2>
-        <form onSubmit={handleInvite} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email address *
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none"
-              placeholder="store@example.com"
+      {/* Incoming requests from retailers */}
+      {requested.length > 0 && (
+        <Section title="Incoming requests" note="Stores asking to partner with you">
+          {requested.map((p) => (
+            <Row
+              key={p.id}
+              title={p.retailer_name ?? 'Store'}
+              subtitle={`Wants to partner · ${commission(p)}`}
+              trailing={
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => handleUpdateStatus(p.id, 'active')} leftIcon={<Check className="h-3.5 w-3.5" />}>
+                    Accept
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => handleUpdateStatus(p.id, 'declined')} leftIcon={<X className="h-3.5 w-3.5" />}>
+                    Decline
+                  </Button>
+                </div>
+              }
             />
-          </div>
+          ))}
+        </Section>
+      )}
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Direct (%)
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={commDirect}
-                onChange={(e) => setCommDirect(Number(e.target.value))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none text-sm"
+      {/* Pending invitations */}
+      {invited.length > 0 && (
+        <Section title="Pending invitations" note="Waiting for the store to accept">
+          {invited.map((p) => {
+            const url = p.invitation_token ? `${window.location.origin}/invite/${p.invitation_token}` : null;
+            return (
+              <Row
+                key={p.id}
+                title={p.retailer_name ?? p.invitation_email ?? 'Unknown'}
+                subtitle={`Awaiting response · ${commission(p)}`}
+                badge={<Badge tone="warning">Pending</Badge>}
+                trailing={
+                  url && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => copyUrl(url)}
+                      leftIcon={copiedUrl === url ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    >
+                      {copiedUrl === url ? 'Copied' : 'Copy link'}
+                    </Button>
+                  )
+                }
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Deferred (%)
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={commDeferred}
-                onChange={(e) => setCommDeferred(Number(e.target.value))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tier-2 (%)
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={commTier2}
-                onChange={(e) => setCommTier2(Number(e.target.value))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 focus:border-cirkle-500 focus:ring-cirkle-500 focus:outline-none text-sm"
-              />
-            </div>
-          </div>
+            );
+          })}
+        </Section>
+      )}
 
-          {inviteError && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">
-              {inviteError}
-            </p>
-          )}
-
-          {inviteSuccess && (
-            <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 space-y-2">
-              <p className="text-sm text-green-700 font-medium">Invitation sent!</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={inviteSuccess}
-                  className="flex-1 text-xs bg-white border border-green-200 rounded px-2 py-1.5 text-gray-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => copyUrl(inviteSuccess)}
-                  className="p-1.5 text-green-600 hover:text-green-700 rounded hover:bg-green-100"
-                  title="Copy link"
-                >
-                  {copiedUrl ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={inviting || !email.trim()}
-            className="flex items-center gap-2 rounded-lg bg-cirkle-600 px-4 py-2.5 text-sm text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
-          >
-            <Send className="h-4 w-4" />
-            {inviting ? 'Sending...' : 'Send invitation'}
-          </button>
-        </form>
-      </div>
+      {/* Active partnerships */}
+      <Section title="Active partnerships" note="Commission: direct / deferred / tier 2">
+        {active.length === 0 ? (
+          <EmptyState
+            className="border-none py-10"
+            icon={<Handshake className="h-5 w-5" />}
+            title="No active partnerships yet"
+            description="Invite a store or request one of the stores below to get started."
+          />
+        ) : (
+          active.map((p) => (
+            <Row
+              key={p.id}
+              title={p.retailer_name ?? p.invitation_email ?? 'Store'}
+              subtitle={commission(p)}
+              badge={<StatusPill status="active" />}
+            />
+          ))
+        )}
+      </Section>
 
       {/* Discover retailers */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Available retailers</h2>
-        <p className="text-sm text-gray-500 mb-3">
-          Browse stores on Cirkle and request a partnership directly.
-        </p>
-        {availableRetailers.length === 0 ? (
-          <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
-            <Store className="h-10 w-10 text-gray-300 mx-auto" />
-            <p className="mt-2 text-sm text-gray-500">
-              {partnerships.length > 0
-                ? "You've connected with every retailer on the platform"
-                : 'No retailers on the platform yet'}
-            </p>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">Available stores</h2>
+            <p className="mt-1 text-caption text-muted">Browse stores on Flaym and request a partnership directly.</p>
           </div>
+          <div className="grid grid-cols-3 gap-2 sm:w-[340px]">
+            <Field label="Direct %" htmlFor="p-direct">
+              <Input id="p-direct" type="number" min={0} max={100} value={commDirect} onChange={(e) => setCommDirect(Number(e.target.value))} className="h-9" />
+            </Field>
+            <Field label="Deferred %" htmlFor="p-deferred">
+              <Input id="p-deferred" type="number" min={0} max={100} value={commDeferred} onChange={(e) => setCommDeferred(Number(e.target.value))} className="h-9" />
+            </Field>
+            <Field label="Tier-2 %" htmlFor="p-tier2">
+              <Input id="p-tier2" type="number" min={0} max={100} value={commTier2} onChange={(e) => setCommTier2(Number(e.target.value))} className="h-9" />
+            </Field>
+          </div>
+        </div>
+        {availableRetailers.length === 0 ? (
+          <EmptyState
+            className="bg-surface py-10"
+            icon={<Store className="h-5 w-5" />}
+            title={partnerships.length > 0 ? 'All caught up' : 'No stores yet'}
+            description={
+              partnerships.length > 0
+                ? "You've connected with every retailer on the platform"
+                : 'No retailers on the platform yet'
+            }
+          />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {availableRetailers.map((r) => (
-              <div key={r.id} className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col">
+              <Card key={r.id} padding="none" className="flex flex-col rounded-none p-4">
                 <div className="flex items-center gap-3">
                   {r.logo_url ? (
-                    <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={r.logo_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                    </div>
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={r.logo_url} alt="" className="h-11 w-11 shrink-0 border border-line object-cover" />
                   ) : (
-                    <div className="w-12 h-12 rounded-xl bg-cirkle-50 flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg font-bold text-cirkle-600">{r.name.charAt(0)}</span>
-                    </div>
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-surface-muted text-heading-lg uppercase text-primary">
+                      {r.name.charAt(0)}
+                    </span>
                   )}
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{r.name}</p>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
-                      {r.store_type && <span className="capitalize">{r.store_type.replace('_', ' ')}</span>}
+                    <p className="truncate text-body text-primary">{r.name}</p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-caption text-muted">
+                      {r.store_type && <span>{r.store_type.charAt(0).toUpperCase() + r.store_type.slice(1).replace(/_/g, ' ')}</span>}
                       {r.city && (
                         <>
                           <MapPin className="h-3 w-3" />
                           <span>{r.city}</span>
                         </>
                       )}
-                    </div>
+                    </p>
                   </div>
                 </div>
-                {r.description && (
-                  <p className="text-xs text-gray-500 mt-3 line-clamp-2 flex-1">{r.description}</p>
-                )}
-                <button
+                {r.description && <p className="mt-3 line-clamp-2 flex-1 text-caption text-muted">{r.description}</p>}
+                <Button
+                  variant="secondary"
+                  className="mt-4"
                   onClick={() => handleRequestRetailer(r.id)}
-                  disabled={requestingId === r.id}
-                  className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-cirkle-600 px-4 py-2.5 text-sm text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
+                  loading={requestingId === r.id}
+                  leftIcon={<Handshake className="h-4 w-4" />}
                 >
-                  {requestingId === r.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Handshake className="h-4 w-4" />
-                  )}
                   Request partnership
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Incoming requests from retailers */}
-      {requested.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            Incoming requests
-          </h2>
-          <div className="space-y-3">
-            {requested.map((p) => (
-              <div
-                key={p.id}
-                className="bg-white rounded-xl border border-amber-200 p-4 flex items-center justify-between"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {p.retailer_name ?? 'Store'}
-                  </p>
-                  <p className="text-sm text-gray-500">Wants to partner</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleUpdateStatus(p.id, 'active')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition"
-                  >
-                    <Check className="h-3.5 w-3.5" /> Accept
-                  </button>
-                  <button
-                    onClick={() => handleUpdateStatus(p.id, 'declined')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition"
-                  >
-                    <X className="h-3.5 w-3.5" /> Decline
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Pending invitations */}
-      {invited.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">
-            Pending invitations
-          </h2>
-          <div className="space-y-3">
-            {invited.map((p) => (
-              <div
-                key={p.id}
-                className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {p.retailer_name ?? p.invitation_email ?? 'Unknown'}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <Clock className="h-3.5 w-3.5 text-amber-500" />
-                    <span className="text-xs text-amber-600">Awaiting response</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-gray-400">
-                  <span>
-                    {formatCommission(p.commission_direct)} / {formatCommission(p.commission_deferred)} / {formatCommission(p.commission_tier2)}
-                  </span>
-                  {p.invitation_token && (
-                    <button
-                      onClick={() =>
-                        copyUrl(
-                          `${window.location.origin}/invite/${p.invitation_token}`
-                        )
-                      }
-                      className="p-1 text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100"
-                      title="Copy invitation link"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Active partnerships */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
-          Active partnerships
-        </h2>
-        {active.length === 0 ? (
-          <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
-            <Handshake className="h-10 w-10 text-gray-300 mx-auto" />
-            <p className="mt-2 text-sm text-gray-500">No active partnerships yet</p>
-            <p className="text-xs text-gray-400 mt-1">Send an invitation above to get started</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {active.map((p) => (
-              <div
-                key={p.id}
-                className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {p.retailer_name ?? p.invitation_email ?? 'Store'}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <Check className="h-3.5 w-3.5 text-green-500" />
-                    <span className="text-xs text-green-600">Active</span>
-                  </div>
-                </div>
-                <span className="text-xs text-gray-400">
-                  {formatCommission(p.commission_direct)} / {formatCommission(p.commission_deferred)} / {formatCommission(p.commission_tier2)}
-                </span>
-              </div>
+                </Button>
+              </Card>
             ))}
           </div>
         )}
@@ -512,25 +327,59 @@ export default function BrandPartnershipsPage() {
 
       {/* Declined / Paused */}
       {other.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Inactive</h2>
-          <div className="space-y-3">
-            {other.map((p) => (
-              <div
-                key={p.id}
-                className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between opacity-60"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {p.retailer_name ?? p.invitation_email ?? 'Store'}
-                  </p>
-                  <span className="text-xs text-gray-500 capitalize">{p.status}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Section title="Inactive">
+          {other.map((p) => (
+            <Row
+              key={p.id}
+              muted
+              title={p.retailer_name ?? p.invitation_email ?? 'Store'}
+              subtitle={commission(p)}
+              badge={<StatusPill status={p.status} />}
+            />
+          ))}
+        </Section>
       )}
+
+      <InviteStoreModal open={inviteOpen} onClose={() => setInviteOpen(false)} onInvited={loadPartnerships} />
+    </div>
+  );
+}
+
+function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{title}</h2>
+        {note && <span className="text-caption text-muted">{note}</span>}
+      </div>
+      <div className="divide-y divide-line border border-line bg-surface">{children}</div>
+    </div>
+  );
+}
+
+function Row({
+  title,
+  subtitle,
+  badge,
+  trailing,
+  muted,
+}: {
+  title: string;
+  subtitle: string;
+  badge?: React.ReactNode;
+  trailing?: React.ReactNode;
+  muted?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <p className={muted ? 'truncate text-body text-muted' : 'truncate text-body text-primary'}>{title}</p>
+          {badge}
+        </div>
+        <p className="mt-0.5 text-caption text-muted">{subtitle}</p>
+      </div>
+      {trailing}
     </div>
   );
 }

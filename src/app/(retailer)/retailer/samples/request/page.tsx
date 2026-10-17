@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
 import { ArrowLeft, Plus, Trash2, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { Button, Card, EmptyState, Field, Select, Skeleton, Textarea, buttonClasses } from '@/components/ds';
 
 type BrandGroup = {
   brand_id: string;
@@ -164,50 +164,62 @@ export default function RequestSamplesPage() {
   }
 
   if (loading) {
-    return <div className="animate-pulse text-gray-400">Loading...</div>;
+    return (
+      <div className="space-y-7">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Skeleton className="h-72" />
+          <Skeleton className="h-72" />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/retailer/samples" className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-          <ArrowLeft className="h-5 w-5" />
+    <div className="space-y-7">
+      <div>
+        <Link href="/retailer/samples" className="-ml-1 inline-flex items-center gap-1.5 text-caption text-muted hover:text-primary">
+          <ArrowLeft className="h-4 w-4" /> Products in the store
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Request samples</h1>
+        <h1 className="mt-2 font-brand text-heading-xl uppercase text-primary">Request samples</h1>
+        <p className="mt-1 text-body text-muted">Pick products from your partner brands. Each sample has a deposit.</p>
       </div>
 
       {brands.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-          <ShoppingBag className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 text-gray-500">No active brand partnerships</p>
-          <p className="mt-1 text-sm text-gray-400">You need an active partnership to request samples</p>
-        </div>
+        <EmptyState
+          icon={<ShoppingBag className="h-5 w-5" />}
+          title="No active brand partnerships"
+          description="You need an active partnership to request samples."
+          action={
+            <Link href="/retailer/brands" className={buttonClasses({ variant: 'secondary' })}>
+              Find brands
+            </Link>
+          }
+        />
       ) : (
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid items-start gap-4 lg:grid-cols-2">
           {/* Product picker */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-            <h2 className="font-semibold text-gray-900">Add products</h2>
+          <Card padding="none" className="space-y-4 p-5 lg:p-6">
+            <SectionTitle>Add products</SectionTitle>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-              <select
+            <Field label="Brand" htmlFor="brand">
+              <Select
+                id="brand"
                 value={selectedBrand}
                 onChange={(e) => { setSelectedBrand(e.target.value); setSelectedProduct(''); }}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:outline-none bg-white"
               >
                 {brands.map((b) => (
                   <option key={b.brand_id} value={b.brand_id}>{b.brand_name}</option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
 
             {currentBrand && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
-                <select
+              <Field label="Product" htmlFor="product">
+                <Select
+                  id="product"
                   value={selectedProduct}
                   onChange={(e) => { setSelectedProduct(e.target.value); setSelectedSize(''); setSelectedColor(''); }}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:outline-none bg-white"
                 >
                   <option value="">Select product</option>
                   {currentBrand.products.map((p) => (
@@ -216,119 +228,116 @@ export default function RequestSamplesPage() {
                       {p.deposit_amount_dkk ? ` (deposit: ${formatDKK(p.deposit_amount_dkk)})` : ''}
                     </option>
                   ))}
-                </select>
-              </div>
+                </Select>
+              </Field>
             )}
 
             {currentProduct && (
               <>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Size</label>
-                    <select
-                      value={selectedSize}
-                      onChange={(e) => setSelectedSize(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 focus:border-cirkle-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select size</option>
+                  <Field label="Size" htmlFor="size">
+                    <Select id="size" value={selectedSize} onChange={(e) => setSelectedSize(e.target.value)}>
+                      <option value="">Select</option>
                       {currentProduct.sizes.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                    <select
-                      value={selectedColor}
-                      onChange={(e) => setSelectedColor(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 focus:border-cirkle-500 focus:outline-none bg-white"
-                    >
-                      <option value="">Select color</option>
+                    </Select>
+                  </Field>
+                  <Field label="Colour" htmlFor="color">
+                    <Select id="color" value={selectedColor} onChange={(e) => setSelectedColor(e.target.value)}>
+                      <option value="">Select</option>
                       {currentProduct.colors.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
-                    </select>
-                  </div>
+                    </Select>
+                  </Field>
                 </div>
 
                 {currentProduct.deposit_amount_dkk && (
-                  <p className="text-sm text-gray-500">
-                    Deposit: <span className="font-medium text-gray-900">{formatDKK(currentProduct.deposit_amount_dkk)}</span>
+                  <p className="text-body text-muted">
+                    Deposit: <span className="text-primary">{formatDKK(currentProduct.deposit_amount_dkk)}</span>
                   </p>
                 )}
 
-                <button
+                <Button
+                  variant="secondary"
                   onClick={addToCart}
                   disabled={!selectedSize || !selectedColor}
-                  className="flex items-center gap-2 rounded-lg bg-cirkle-600 px-4 py-2.5 text-sm text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
+                  leftIcon={<Plus className="h-4 w-4" />}
                 >
-                  <Plus className="h-4 w-4" /> Add to request
-                </button>
+                  Add to request
+                </Button>
               </>
             )}
-          </div>
+          </Card>
 
           {/* Cart / summary */}
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-              <h2 className="font-semibold text-gray-900">Your request ({cart.length} items)</h2>
+          <Card padding="none" className="space-y-4 p-5 lg:p-6">
+            <SectionTitle>
+              Your request <span className="ml-1 text-muted">{cart.length}</span>
+            </SectionTitle>
 
-              {cart.length === 0 ? (
-                <p className="text-sm text-gray-400 py-4 text-center">Add products from the left panel</p>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {cart.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between py-3">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
-                        <p className="text-xs text-gray-500">{item.size} / {item.color}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-600">{formatDKK(item.deposit_amount_dkk)}</span>
-                        <button onClick={() => removeFromCart(i)} className="p-1 text-gray-400 hover:text-red-500">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+            {cart.length === 0 ? (
+              <p className="border border-dashed border-line py-8 text-center text-caption text-muted">
+                Add products to build your request
+              </p>
+            ) : (
+              <ul className="divide-y divide-line border-y border-line">
+                {cart.map((item, i) => (
+                  <li key={i} className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-body text-primary">{item.product_name}</p>
+                      <p className="mt-0.5 text-caption text-muted">{item.size} / {item.color}</p>
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {cart.length > 0 && (
-                <div className="border-t border-gray-200 pt-3 flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Total deposit</span>
-                  <span className="text-lg font-bold text-gray-900">{formatDKK(totalDeposit)}</span>
-                </div>
-              )}
-            </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="text-body text-primary">{formatDKK(item.deposit_amount_dkk)}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(i)}
+                        aria-label={`Remove ${item.product_name}`}
+                        className="inline-flex h-8 w-8 items-center justify-center text-muted hover:text-primary"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             {cart.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Note (optional)</label>
-                  <textarea
+              <>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-label uppercase text-muted">Total deposit</span>
+                  <span className="text-heading-lg text-primary">{formatDKK(totalDeposit)}</span>
+                </div>
+
+                <Field label="Note (optional)" htmlFor="note">
+                  <Textarea
+                    id="note"
                     rows={2}
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-cirkle-500 focus:outline-none resize-none"
-                    placeholder="Any notes for the brand..."
+                    className="min-h-[72px] resize-none"
+                    placeholder="Any notes for the brand…"
                   />
-                </div>
+                </Field>
 
-                {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>}
+                {error && <p className="border border-accent bg-accent-subtle px-4 py-3 text-body text-accent-strong">{error}</p>}
 
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="w-full rounded-lg bg-cirkle-600 px-4 py-3 text-white font-medium hover:bg-cirkle-700 transition disabled:opacity-50"
-                >
-                  {submitting ? 'Submitting...' : `Submit request (${formatDKK(totalDeposit)} deposit)`}
-                </button>
-              </div>
+                <Button variant="accent" size="lg" fullWidth onClick={handleSubmit} loading={submitting} disabled={submitting}>
+                  {submitting ? 'Submitting…' : `Submit request (${formatDKK(totalDeposit)} deposit)`}
+                </Button>
+              </>
             )}
-          </div>
+          </Card>
         </div>
       )}
     </div>
   );
+}
+
+// Figma card title: 14px uppercase.
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{children}</h2>;
 }

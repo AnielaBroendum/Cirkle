@@ -4,17 +4,23 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK, formatCommission } from '@/lib/utils';
+import { ScanLine, Handshake, Coins, Wallet } from 'lucide-react';
 import {
-  ScanLine,
-  ShoppingBag,
-  TrendingUp,
-  QrCode,
-  Clock,
-  Handshake,
-  Coins,
-  Wallet,
-} from 'lucide-react';
-import { KPISkeleton, ListSkeleton } from '@/components/ui/skeleton';
+  Avatar,
+  Badge,
+  Card,
+  EmptyState,
+  KPISkeleton,
+  ListSkeleton,
+  Skeleton,
+  StatTile,
+  Tabs,
+  TBody,
+  TD,
+  TH,
+  THead,
+  TR,
+} from '@/components/ds';
 import type { Database } from '@/lib/database.types';
 
 type Sample = Database['public']['Tables']['samples']['Row'];
@@ -53,6 +59,17 @@ type CommissionDetail = {
   created_at: string;
 };
 
+type Period = 'week' | 'month' | 'year';
+
+const PERIOD_LABEL: Record<Period, string> = { week: 'this week', month: 'this month', year: 'this year' };
+
+// Week = last 7 days, Month = this calendar month, Year = this calendar year.
+function periodStart(period: Period, now: Date): string {
+  if (period === 'week') return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  return new Date(now.getFullYear(), 0, 1).toISOString();
+}
+
 export default function RetailerDashboardPage() {
   const { user } = useAuth();
   const [kpis, setKpis] = useState<KPIs>({
@@ -67,11 +84,16 @@ export default function RetailerDashboardPage() {
   const [depositTotal, setDepositTotal] = useState(0);
   const [depositByBrand, setDepositByBrand] = useState<{ brand_name: string; total: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>('month');
+  const [refreshing, setRefreshing] = useState(false);
   const [storeName, setStoreName] = useState('');
 
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
+    // Ignore responses from a previous period if the toggle changes mid-load.
+    let cancelled = false;
+    setRefreshing(true);
 
     supabase
       .from('retailer_profiles')
@@ -79,8 +101,10 @@ export default function RetailerDashboardPage() {
       .eq('user_id', user.id)
       .single()
       .then(async ({ data: rp }: { data: { id: string; name: string } | null }) => {
+        if (cancelled) return;
         if (!rp) {
           setLoading(false);
+          setRefreshing(false);
           return;
         }
 
@@ -89,8 +113,7 @@ export default function RetailerDashboardPage() {
         const retailerId = retailer.id;
 
         const now = new Date();
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const since = periodStart(period, now);
 
         const [
           samplesRes,
@@ -106,12 +129,12 @@ export default function RetailerDashboardPage() {
             .select('id', { count: 'exact', head: true })
             .eq('retailer_id', retailerId)
             .eq('status', 'active'),
-          // Scans this week
+          // Scans in the selected period
           supabase
             .from('scans')
             .select('id', { count: 'exact', head: true })
             .eq('source_retailer_id', retailerId)
-            .gte('scanned_at', weekAgo),
+            .gte('scanned_at', since),
           // Recent scans for feed
           supabase
             .from('scans')
@@ -119,17 +142,18 @@ export default function RetailerDashboardPage() {
             .eq('source_retailer_id', retailerId)
             .order('scanned_at', { ascending: false })
             .limit(10),
-          // Total attributed sales
+          // Attributed sales in the selected period
           supabase
             .from('attributions')
             .select('id', { count: 'exact', head: true })
-            .eq('source_retailer_id', retailerId),
-          // Commission this month
+            .eq('source_retailer_id', retailerId)
+            .gte('created_at', since),
+          // Commission in the selected period
           supabase
             .from('attributions')
             .select('id, commission_amount_dkk, attribution_type, created_at, order_id')
             .eq('source_retailer_id', retailerId)
-            .gte('created_at', monthStart)
+            .gte('created_at', since)
             .order('created_at', { ascending: false }),
           // Active partnerships
           supabase
@@ -138,6 +162,8 @@ export default function RetailerDashboardPage() {
             .eq('retailer_id', retailerId)
             .eq('status', 'active'),
         ]);
+
+        if (cancelled) return;
 
         // Calculate commission and build detail list
         type CommissionRow = { id: string; commission_amount_dkk: number | null; attribution_type: string; created_at: string; order_id: string };
@@ -151,6 +177,7 @@ export default function RetailerDashboardPage() {
             .select('order_id, product_name')
             .in('order_id', orderIds);
 
+          if (cancelled) return;
           const orderProductMap = new Map(
             ((orderItemsData ?? []) as { order_id: string; product_name: string }[]).map((oi) => [oi.order_id, oi.product_name])
           );
@@ -166,6 +193,8 @@ export default function RetailerDashboardPage() {
                 created_at: a.created_at,
               }))
           );
+        } else {
+          setCommissionDetails([]);
         }
 
         setKpis({
@@ -258,9 +287,15 @@ export default function RetailerDashboardPage() {
           );
         }
 
+        if (cancelled) return;
         setLoading(false);
+        setRefreshing(false);
       });
-  }, [user]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, period]);
 
   function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -275,202 +310,187 @@ export default function RetailerDashboardPage() {
 
   if (loading) {
     return (
-      <div className="space-y-8">
-        <div>
-          <div className="animate-pulse bg-gray-200 rounded h-8 w-48" />
-          <div className="animate-pulse bg-gray-100 rounded h-4 w-32 mt-2" />
+      <div className="space-y-7">
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-56" />
+          <Skeleton className="h-4 w-80" />
         </div>
         <KPISkeleton />
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
           <ListSkeleton rows={4} />
-          <ListSkeleton rows={3} />
+          <ListSkeleton rows={4} />
         </div>
       </div>
     );
   }
 
-  const KPI_CARDS = [
-    {
-      label: 'Scans this week',
-      value: kpis.scansThisWeek,
-      icon: ScanLine,
-      color: 'text-blue-600 bg-blue-50',
-    },
-    {
-      label: 'Attributed sales',
-      value: kpis.salesAttributed,
-      icon: ShoppingBag,
-      color: 'text-amber-600 bg-amber-50',
-    },
-    {
-      label: 'Commission this month',
-      value: formatDKK(kpis.commissionThisMonth),
-      icon: TrendingUp,
-      color: 'text-green-600 bg-green-50',
-    },
-    {
-      label: 'Active samples',
-      value: kpis.activeSamples,
-      icon: QrCode,
-      color: 'text-purple-600 bg-purple-50',
-    },
-  ];
-
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome, {storeName}
-        </h1>
-        <p className="text-gray-500 mt-1">Here is your overview</p>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {KPI_CARDS.map((card) => (
-          <div key={card.label} className="bg-white rounded-xl border border-gray-200 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`p-2 rounded-lg ${card.color}`}>
-                <card.icon className="h-5 w-5" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{card.label}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Recent scans feed */}
+    <div className="space-y-7">
+      {/* Header (Figma 02) */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent scans</h2>
+          <h1 className="font-brand text-heading-xl uppercase text-primary">Dashboard</h1>
+          <p className="mt-1 text-body text-muted">
+            Activity and earnings from products in {storeName || 'your store'}
+          </p>
+        </div>
+        <Tabs
+          className="self-start sm:self-auto"
+          value={period}
+          onValueChange={(v) => setPeriod(v as Period)}
+          items={[
+            { value: 'week', label: 'Week' },
+            { value: 'month', label: 'Month' },
+            { value: 'year', label: 'Year' },
+          ]}
+        />
+      </div>
+
+      {/* KPI tiles: Figma's "Saves" slot shows Active samples, which the page already loads */}
+      <div
+        aria-busy={refreshing || undefined}
+        className={`grid grid-cols-2 gap-3 transition-opacity lg:grid-cols-4 lg:gap-4 ${refreshing ? 'opacity-60' : ''}`}
+      >
+        <StatTile label="Scans in store" value={kpis.scansThisWeek} hint={capitalize(PERIOD_LABEL[period])} />
+        <StatTile label="Active samples" value={kpis.activeSamples} hint="In your store now" />
+        <StatTile label="Purchases credited" value={kpis.salesAttributed} hint={capitalize(PERIOD_LABEL[period])} />
+        <StatTile
+          tone="dark"
+          label={`Earned ${PERIOD_LABEL[period]}`}
+          value={<span className="text-accent">{formatDKK(kpis.commissionThisMonth)}</span>}
+          hint="Your commission"
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+        {/* Latest credited purchases */}
+        <Card padding="none" className="p-5 lg:p-6">
+          <SectionTitle
+            title={`Credited ${PERIOD_LABEL[period]}`}
+            aside={commissionDetails.length > 0 ? `${formatDKK(kpis.commissionThisMonth)} total` : undefined}
+          />
+          {commissionDetails.length === 0 ? (
+            <EmptyState
+              className="border-none py-8"
+              icon={<Coins className="h-5 w-5" />}
+              title={`Nothing credited ${PERIOD_LABEL[period]}`}
+              description="When someone buys after scanning a product in your store, your cut shows up here."
+            />
+          ) : (
+            <div className="-mx-1 overflow-x-auto">
+              <table className="w-full border-collapse font-brand text-body text-primary">
+                <THead>
+                  <tr>
+                    <TH className="px-3 py-2 text-label font-medium">Product</TH>
+                    <TH className="px-3 py-2 text-label font-medium">Type</TH>
+                    <TH className="px-3 py-2 text-right text-label font-medium">Your cut</TH>
+                  </tr>
+                </THead>
+                <TBody>
+                  {commissionDetails.map((c) => {
+                    const typeLabel = c.type === 'direct' ? 'Direct' : c.type === 'deferred' ? 'Deferred' : 'Tier 2';
+                    const typeTone = c.type === 'direct' ? 'accent' : c.type === 'deferred' ? 'neutral' : 'outline';
+                    return (
+                      <TR key={c.id}>
+                        <TD className="px-3 text-[13px]">
+                          <p className="truncate">{c.product_name}</p>
+                          <p className="mt-0.5 text-caption text-muted">
+                            {new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </p>
+                        </TD>
+                        <TD className="px-3">
+                          <Badge tone={typeTone}>{typeLabel}</Badge>
+                        </TD>
+                        <TD className="whitespace-nowrap px-3 text-right text-[13px]">{formatDKK(c.amount_dkk)}</TD>
+                      </TR>
+                    );
+                  })}
+                </TBody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        {/* Recent scans */}
+        <Card padding="none" className="p-5 lg:p-6">
+          <SectionTitle title="Recent scans" />
           {recentScans.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 py-8 text-center">
-              <Clock className="h-8 w-8 text-gray-300 mx-auto" />
-              <p className="mt-2 text-sm text-gray-500">No scans yet</p>
-              <p className="text-xs text-gray-400 mt-1">Place samples in visible spots to attract scans</p>
-            </div>
+            <EmptyState
+              className="border-none py-8"
+              icon={<ScanLine className="h-5 w-5" />}
+              title="No scans yet"
+              description="Place samples in visible spots to attract scans."
+            />
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            <ul className="divide-y divide-line">
               {recentScans.map((scan) => (
-                <div key={scan.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
-                    <ScanLine className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900 truncate">{scan.product_name}</p>
-                  </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">
-                    {timeAgo(scan.scanned_at)}
-                  </span>
-                </div>
+                <li key={scan.id} className="flex items-center gap-3 py-3">
+                  <span className="h-2 w-2 shrink-0 border-[1.5px] border-accent" aria-hidden />
+                  <p className="min-w-0 flex-1 truncate text-[13px] text-primary">{scan.product_name}</p>
+                  <span className="whitespace-nowrap text-caption text-muted">{timeAgo(scan.scanned_at)}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
-
-        {/* Active partnerships */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Active partnerships</h2>
-          {partnerships.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 py-8 text-center">
-              <Handshake className="h-8 w-8 text-gray-300 mx-auto" />
-              <p className="mt-2 text-sm text-gray-500">No active partnerships</p>
-              <p className="text-xs text-gray-400 mt-1">Accept brand invitations to get started</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-              {partnerships.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-                  {p.brand_logo ? (
-                    <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={p.brand_logo}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-8 h-8 rounded-lg bg-cirkle-50 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-cirkle-600">
-                        {p.brand_name.charAt(0)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {p.brand_name}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {formatCommission(p.commission_direct)} commission
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        </Card>
       </div>
-      {/* Deposit capital */}
-      {depositTotal > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Deposit capital</h2>
-            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full">
-              {formatDKK(depositTotal)} held
-            </span>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-            {depositByBrand.map((b) => (
-              <div key={b.brand_name} className="flex items-center gap-3 px-4 py-3">
-                <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
-                  <Wallet className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900">{b.brand_name}</p>
-                </div>
-                <span className="text-sm font-bold text-gray-900">{formatDKK(b.total)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Earned commission details */}
-      {commissionDetails.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Commission earned this month</h2>
-            <span className="text-sm font-bold text-green-700 bg-green-50 px-3 py-1 rounded-full">
-              {formatDKK(kpis.commissionThisMonth)} total
-            </span>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-            {commissionDetails.map((c) => {
-              const typeLabel = c.type === 'direct' ? 'Direct' : c.type === 'deferred' ? 'Deferred' : 'Tier 2';
-              const typeColor = c.type === 'direct' ? 'bg-green-100 text-green-700' : c.type === 'deferred' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
-              return (
-                <div key={c.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="p-1.5 rounded-lg bg-green-50 text-green-600">
-                    <Coins className="h-4 w-4" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Active partnerships */}
+        <Card padding="none" className="p-5 lg:p-6">
+          <SectionTitle title="Active partnerships" />
+          {partnerships.length === 0 ? (
+            <EmptyState
+              className="border-none py-8"
+              icon={<Handshake className="h-5 w-5" />}
+              title="No active partnerships"
+              description="Accept brand invitations to get started."
+            />
+          ) : (
+            <ul className="divide-y divide-line">
+              {partnerships.map((p) => (
+                <li key={p.id} className="flex items-center gap-3 py-3">
+                  <Avatar src={p.brand_logo} name={p.brand_name} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-body text-primary">{p.brand_name}</p>
+                    <p className="text-caption text-muted">{formatCommission(p.commission_direct)} commission</p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900 truncate">{c.product_name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${typeColor}`}>{typeLabel}</span>
-                      <span className="text-xs text-gray-400">
-                        {new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">{formatDKK(c.amount_dkk)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        {/* Deposit capital */}
+        {depositTotal > 0 && (
+          <Card padding="none" className="p-5 lg:p-6">
+            <SectionTitle title="Deposit capital" aside={`${formatDKK(depositTotal)} held`} />
+            <ul className="divide-y divide-line">
+              {depositByBrand.map((b) => (
+                <li key={b.brand_name} className="flex items-center gap-3 py-3">
+                  <Wallet className="h-4 w-4 shrink-0 text-muted" />
+                  <p className="min-w-0 flex-1 truncate text-body text-primary">{b.brand_name}</p>
+                  <span className="text-body font-medium text-primary">{formatDKK(b.total)}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function capitalize(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+// Figma card title: 14px uppercase, with an optional muted note on the right.
+function SectionTitle({ title, aside }: { title: string; aside?: string }) {
+  return (
+    <div className="mb-3 flex items-baseline justify-between gap-3">
+      <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{title}</h2>
+      {aside && <span className="whitespace-nowrap text-caption text-muted">{aside}</span>}
     </div>
   );
 }

@@ -4,40 +4,27 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import {
-  LayoutDashboard,
-  Package,
-  QrCode,
-  Handshake,
-  ShoppingBag,
-  LogOut,
-  Menu,
-  X,
-  Inbox,
-  ArrowLeftRight,
-  Receipt,
-} from 'lucide-react';
+import { LayoutDashboard, Package, QrCode, ShoppingBag, Undo2, Settings, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Database } from '@/lib/database.types';
+import { Logo, SidebarNav, cn, type NavItem } from '@/components/ds';
 
 type BrandProfile = Database['public']['Tables']['brand_profiles']['Row'];
 
-const NAV_ITEMS = [
+// Figma "Brand Portal" nav. Stores & QR tags covers samples, sample requests,
+// swaps, deposits and partnerships (sub-tabs on those pages).
+const NAV_ITEMS: NavItem[] = [
   { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/brand/products', label: 'Products', icon: Package },
-  { href: '/brand/samples', label: 'Samples', icon: QrCode },
-  { href: '/brand/samples/requests', label: 'Sample requests', icon: Inbox },
-  { href: '/brand/samples/swaps', label: 'Swap requests', icon: ArrowLeftRight },
-  { href: '/brand/samples/transactions', label: 'Transactions', icon: Receipt },
-  { href: '/brand/partnerships', label: 'Partnerships', icon: Handshake },
+  { href: '/brand/samples', label: 'Stores & QR tags', icon: QrCode, match: ['/brand/partnerships'] },
   { href: '/brand/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/brand/returns', label: 'Returns', icon: Undo2 },
 ];
 
 export default function BrandLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, profile, loading, signOut } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
@@ -69,96 +56,60 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
 
   if (loading || checkingOnboarding) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-pulse text-gray-400">Loading...</div>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas-warm font-brand">
+        <Logo height={24} framed />
+        <p className="animate-pulse text-caption uppercase tracking-[0.7px] text-muted">Loading…</p>
       </div>
     );
   }
 
   if (pathname.startsWith('/brand/onboarding')) {
-    return <div className="min-h-screen bg-gray-50">{children}</div>;
+    return <div className="min-h-screen bg-canvas-warm font-brand text-primary">{children}</div>;
   }
 
+  const brandName = brandProfile?.name || profile?.name;
+  const accountActive = pathname === '/brand/account' || pathname.startsWith('/brand/account/');
+  const footerLink = 'flex w-full items-center gap-3 border-l-2 px-5 py-2.5 text-body transition-colors';
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between bg-white border-b border-gray-200 px-4 h-14">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="p-2 -ml-2 text-gray-600 hover:text-gray-900"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <span className="font-bold text-cirkle-950">Cirkle</span>
-        <div className="w-9" />
-      </header>
-
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-50 bg-black/50"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-200 lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="flex items-center justify-between h-14 px-4 border-b border-gray-200">
-          <Link href="/brand/dashboard" className="font-bold text-lg text-cirkle-950">
-            Cirkle
-          </Link>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {(brandProfile || profile) && (
-          <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {brandProfile?.name || profile?.name}
-            </p>
-            <p className="text-xs text-gray-500">Brand</p>
+    <div className="min-h-screen bg-canvas-warm font-brand text-primary">
+      <SidebarNav
+        items={NAV_ITEMS}
+        homeHref="/brand/dashboard"
+        account={brandName ? { name: brandName, role: 'Brand Portal' } : undefined}
+        footer={(close) => (
+          <div className="-mx-3 -my-3 py-3">
+            <Link
+              href="/brand/account"
+              onClick={close}
+              aria-current={accountActive ? 'page' : undefined}
+              className={cn(
+                footerLink,
+                accountActive
+                  ? 'border-accent bg-on-primary/5 text-on-primary'
+                  : 'border-transparent text-on-primary/60 hover:text-on-primary'
+              )}
+            >
+              <Settings className={cn('h-[18px] w-[18px] shrink-0', accountActive && 'text-accent')} />
+              Account
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                close();
+                signOut();
+              }}
+              className={cn(footerLink, 'border-transparent text-on-primary/60 hover:text-on-primary')}
+            >
+              <LogOut className="h-[18px] w-[18px] shrink-0" />
+              Log out
+            </button>
           </div>
         )}
-
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-cirkle-50 text-cirkle-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-3 border-t border-gray-200">
-          <button
-            onClick={signOut}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-          >
-            <LogOut className="h-5 w-5" />
-            Sign out
-          </button>
-        </div>
-      </aside>
+      />
 
       <main className="lg:pl-64">
-        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="mx-auto max-w-[1144px] px-4 py-6 sm:px-6 lg:px-12 lg:py-9">{children}</div>
       </main>
     </div>
   );

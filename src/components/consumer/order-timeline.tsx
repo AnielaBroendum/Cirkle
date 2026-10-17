@@ -1,6 +1,7 @@
 'use client';
 
-import { Check, Clock, Package, Truck, Home, X } from 'lucide-react';
+import { cn } from '@/components/ds';
+import { FlameIcon } from './checkout-parts';
 
 type OrderEvent = {
   id: string;
@@ -9,13 +10,14 @@ type OrderEvent = {
   created_at: string;
 };
 
-const STATUS_CONFIG: Record<string, { label: string; icon: typeof Check; color: string }> = {
-  pending: { label: 'Order received', icon: Clock, color: 'text-yellow-600 bg-yellow-100' },
-  confirmed: { label: 'Confirmed', icon: Check, color: 'text-blue-600 bg-blue-100' },
-  packed: { label: 'Packed', icon: Package, color: 'text-purple-600 bg-purple-100' },
-  shipped: { label: 'Shipped', icon: Truck, color: 'text-cirkle-600 bg-cirkle-100' },
-  delivered: { label: 'Delivered', icon: Home, color: 'text-green-600 bg-green-100' },
-  cancelled: { label: 'Cancelled', icon: X, color: 'text-red-600 bg-red-100' },
+// Figma 15 "Tracking" wording for each order status.
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Order received',
+  confirmed: 'Confirmed',
+  packed: 'Being packed',
+  shipped: 'On its way',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
 };
 
 const STATUS_ORDER = ['pending', 'confirmed', 'packed', 'shipped', 'delivered'];
@@ -25,42 +27,44 @@ export default function OrderTimeline({ events }: { events: OrderEvent[] }) {
   const eventMap = new Map(events.map((e) => [e.status, e]));
   const isCancelled = completedStatuses.has('cancelled');
 
-  const steps = isCancelled
-    ? events.map((e) => e.status)
-    : STATUS_ORDER;
+  const steps = isCancelled ? events.map((e) => e.status) : STATUS_ORDER;
+  // The latest completed step is shown in medium weight ("On its way" in Figma).
+  const currentIndex = steps.reduce((last, s, i) => (completedStatuses.has(s) ? i : last), -1);
 
   return (
-    <div className="space-y-0">
+    <ol>
       {steps.map((status, i) => {
-        const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
         const event = eventMap.get(status);
         const isComplete = completedStatuses.has(status);
         const isLast = i === steps.length - 1;
-        const Icon = config.icon;
+        const nextComplete = completedStatuses.has(steps[i + 1]);
 
         return (
-          <div key={status} className="flex gap-3">
-            {/* Vertical line + icon */}
-            <div className="flex flex-col items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                isComplete ? config.color : 'bg-gray-100 text-gray-300'
-              }`}>
-                <Icon className="h-4 w-4" />
-              </div>
-              {!isLast && (
-                <div className={`w-0.5 flex-1 min-h-[24px] ${
-                  isComplete ? 'bg-cirkle-200' : 'bg-gray-100'
-                }`} />
-              )}
+          <li key={status} className="flex gap-4">
+            {/* Flame (done) or open step, joined by a 2px line */}
+            <div className="flex w-3.5 flex-col items-center">
+              <span className="grid h-[17px] place-items-center">
+                {isComplete ? (
+                  <FlameIcon />
+                ) : (
+                  <span className="h-3.5 w-3.5 rounded-pill border-2 border-muted bg-canvas-dark" />
+                )}
+              </span>
+              {!isLast && <span className={cn('my-1 w-0.5 flex-1', isComplete && nextComplete ? 'bg-accent' : 'bg-line-dark')} />}
             </div>
 
-            {/* Content */}
-            <div className={`pb-4 ${!isLast ? '' : ''}`}>
-              <p className={`text-sm font-medium ${isComplete ? 'text-gray-900' : 'text-gray-400'}`}>
-                {config.label}
+            <div className="min-h-[41px] pb-3">
+              <p
+                className={cn(
+                  'text-[15px] leading-[17px]',
+                  isComplete ? 'text-on-primary' : 'text-muted',
+                  i === currentIndex && 'font-medium'
+                )}
+              >
+                {STATUS_LABELS[status] ?? STATUS_LABELS.pending}
               </p>
               {event && (
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="mt-1 text-caption text-muted">
                   {new Date(event.created_at).toLocaleDateString('en-GB', {
                     day: 'numeric',
                     month: 'short',
@@ -69,13 +73,11 @@ export default function OrderTimeline({ events }: { events: OrderEvent[] }) {
                   })}
                 </p>
               )}
-              {event?.note && (
-                <p className="text-xs text-gray-500 mt-0.5">{event.note}</p>
-              )}
+              {event?.note && <p className="mt-0.5 text-caption text-line">{event.note}</p>}
             </div>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

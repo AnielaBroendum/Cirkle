@@ -71,7 +71,7 @@ export async function POST(
         type: 'png',
         width: 400,
         margin: 2,
-        color: { dark: '#071a2e', light: '#ffffff' },
+        color: { dark: '#2C2324', light: '#FFFFFF' },
       });
 
       const fileName = `qr-codes/${sample.id}.png`;

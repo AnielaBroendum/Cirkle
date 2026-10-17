@@ -16,7 +16,9 @@ export default function PageTransition({ children }: { children: React.ReactNode
   return (
     <div
       className={`transition-opacity duration-150 ease-out ${
-        isTransitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
+        // No transform at rest: a transform would make fixed children (bottom
+        // action bars) position against this wrapper instead of the viewport.
+        isTransitioning ? 'opacity-0 translate-y-1' : 'opacity-100'
       }`}
       style={{ transition: 'opacity 150ms ease-out, transform 150ms ease-out' }}
     >

@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { formatDKK } from '@/lib/utils';
-import { ShoppingBag, ChevronRight, Package } from 'lucide-react';
+import { buttonClasses, cn } from '@/components/ds';
+import { ScreenHeader } from '@/components/consumer/checkout-parts';
+import { ACTIVE_STATUSES, expectedDelivery, formatDay, isPastDay } from '@/components/consumer/order-utils';
 
 type Order = {
   id: string;
@@ -14,24 +15,72 @@ type Order = {
   status: string;
   total_dkk: number;
   created_at: string;
+  tracking_number: string | null;
+  brand_profiles: { name: string } | null;
   order_items: {
     product_name: string;
     size: string | null;
     color: string | null;
     products: { images: string[] };
   }[];
+  order_events: { status: string; created_at: string }[];
 };
 
-const STATUS_LABELS: Record<string, { text: string; className: string }> = {
-  pending: { text: 'Pending', className: 'bg-yellow-100 text-yellow-700' },
-  confirmed: { text: 'Confirmed', className: 'bg-blue-100 text-blue-700' },
-  packed: { text: 'Packed', className: 'bg-purple-100 text-purple-700' },
-  shipped: { text: 'Shipped', className: 'bg-cirkle-100 text-cirkle-700' },
-  delivered: { text: 'Delivered', className: 'bg-green-100 text-green-700' },
-  cancelled: { text: 'Cancelled', className: 'bg-red-100 text-red-700' },
-};
+function fmt(iso: string, withTime = false) {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+  });
+}
+
+/** Figma 07 card: three steps, Placed → Shipped → Delivered. */
+function OrderCard({ order }: { order: Order }) {
+  const at = (status: string) => order.order_events?.find((e) => e.status === status)?.created_at;
+  const cancelled = order.status === 'cancelled';
+  const shippedAt = at('shipped');
+  const deliveredAt = at('delivered');
+  const steps = [
+    { label: 'Order placed', done: true, meta: fmt(at('pending') ?? order.created_at, true) },
+    {
+      label: 'Shipped',
+      done: !!shippedAt || order.status === 'delivered',
+      meta: shippedAt ? [fmt(shippedAt), order.tracking_number].filter(Boolean).join(' · ') : null,
+    },
+    cancelled
+      ? { label: 'Cancelled', done: true, meta: null }
+      : { label: 'Delivered', done: order.status === 'delivered', meta: deliveredAt ? fmt(deliveredAt) : 'Moves to Owned' },
+  ];
+  const count = order.order_items?.length ?? 0;
+
+  return (
+    <Link href={`/consumer/orders/${order.id}`} className="block bg-surface-dark p-4 transition-colors hover:bg-surface-dark/80">
+      <div className="flex items-start justify-between gap-3">
+        <p className="min-w-0 truncate text-body text-on-primary">
+          {order.brand_profiles?.name ?? order.order_items?.[0]?.product_name ?? 'Order'} · {count} {count === 1 ? 'item' : 'items'}
+        </p>
+        <span className="shrink-0 rounded-pill bg-line-dark px-2.5 py-0.5 text-caption font-medium text-on-primary">#{order.order_number}</span>
+      </div>
+      <ol className="mt-4 space-y-4">
+        {steps.map((s) => (
+          <li key={s.label} className="flex gap-3.5">
+            <span
+              className={cn('mt-0.5 h-3.5 w-3.5 shrink-0 rounded-pill border-2', s.done ? 'border-accent bg-accent' : 'border-muted bg-canvas-dark')}
+              aria-hidden
+            />
+            <div>
+              <p className={cn('text-body', s.done ? 'text-on-primary' : 'text-muted')}>{s.label}</p>
+              {s.meta && <p className="mt-1 text-caption text-muted">{s.meta}</p>}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </Link>
+  );
+}
 
 export default function ConsumerOrdersPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,11 +92,13 @@ export default function ConsumerOrdersPage() {
     supabase
       .from('orders')
       .select(`
-        id, order_number, status, total_dkk, created_at,
+        id, order_number, status, total_dkk, created_at, tracking_number,
+        brand_profiles (name),
         order_items (
           product_name, size, color,
           products (images)
-        )
+        ),
+        order_events (status, created_at)
       `)
       .eq('consumer_user_id', user.id)
       .order('created_at', { ascending: false })
@@ -57,75 +108,41 @@ export default function ConsumerOrdersPage() {
       });
   }, [user]);
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse bg-gray-200 rounded h-8 w-36" />
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100">
-            <div className="animate-pulse bg-gray-200 rounded-lg h-16 w-16" />
-            <div className="flex-1 space-y-2">
-              <div className="animate-pulse bg-gray-200 rounded h-4 w-40" />
-              <div className="animate-pulse bg-gray-100 rounded h-3 w-24" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
+  // "Arriving": the soonest expected delivery among orders still on their way.
+  const nextArrival = orders
+    .filter((o) => ACTIVE_STATUSES.includes(o.status))
+    .map((o) => expectedDelivery(o.created_at).from)
+    .sort((a, b) => a.getTime() - b.getTime())[0];
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">My orders</h1>
+    <div className="pb-6">
+      <ScreenHeader title="Your orders" onBack={() => router.back()} />
 
-      {orders.length === 0 ? (
-        <div className="text-center py-16">
-          <ShoppingBag className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 font-medium text-gray-700">No orders yet</p>
-          <p className="text-sm text-gray-400 mt-1">Scan a QR code to discover and buy products</p>
+      {loading ? (
+        <div className="space-y-4 px-5 pt-5" aria-busy>
+          <div className="h-[99px] animate-pulse bg-surface-dark" />
+          <div className="h-[195px] animate-pulse bg-surface-dark" />
+          <div className="h-[195px] animate-pulse bg-surface-dark" />
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="flex flex-col items-center px-5 pt-24 text-center">
+          <p className="font-brand text-[18px] uppercase tracking-[0.4px] text-on-primary">No orders yet</p>
+          <p className="mt-3 max-w-[260px] text-body text-line">Scan a Flaym tag in a store to discover and buy something.</p>
+          <Link href="/consumer/home" className={buttonClasses({ variant: 'accent', className: 'mt-8 w-full max-w-[280px]' })}>
+            Scan a tag
+          </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {orders.map((order) => {
-            const firstItem = order.order_items?.[0];
-            const statusConfig = STATUS_LABELS[order.status] || STATUS_LABELS.pending;
-            const imageUrl = firstItem?.products?.images?.[0];
-
-            return (
-              <Link
-                key={order.id}
-                href={`/consumer/orders/${order.id}`}
-                className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-200 transition"
-              >
-                {imageUrl ? (
-                  <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                    <Image src={imageUrl} alt={firstItem?.product_name || ''} fill className="object-cover" sizes="64px" />
-                  </div>
-                ) : (
-                  <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <Package className="h-6 w-6 text-gray-300" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {firstItem?.product_name || 'Order'}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusConfig.className}`}>
-                      {statusConfig.text}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      #{order.order_number}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(order.created_at).toLocaleDateString('en-GB')} — {formatDKK(order.total_dkk)}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
-              </Link>
-            );
-          })}
+        <div className="space-y-4 px-5 pt-5">
+          {nextArrival && (
+            <div className="bg-accent px-5 py-5 text-on-primary">
+              <p className="text-label uppercase">{isPastDay(nextArrival) ? 'Was expected' : 'Arriving'}</p>
+              <p className="mt-1 text-[30px] font-medium leading-tight">{formatDay(nextArrival)}</p>
+            </div>
+          )}
+          {orders.map((order) => (
+            <OrderCard key={order.id} order={order} />
+          ))}
         </div>
       )}
     </div>

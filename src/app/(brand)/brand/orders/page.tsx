@@ -4,18 +4,23 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
+import { ShoppingBag, ChevronRight } from 'lucide-react';
 import {
-  ShoppingBag,
-  Check,
-  Package,
-  Truck,
-  Home,
-  Clock,
-  ChevronDown,
-  ChevronUp,
-  MapPin,
-  X,
-} from 'lucide-react';
+  Button,
+  EmptyState,
+  Field,
+  Input,
+  ListSkeleton,
+  Modal,
+  Skeleton,
+  StatusPill,
+  Tabs,
+  THead,
+  TBody,
+  TH,
+  TD,
+  cn,
+} from '@/components/ds';
 
 type OrderItem = {
   id: string;
@@ -51,14 +56,18 @@ type Order = {
   profiles: { name: string; email: string } | null;
 };
 
-const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; color: string; bg: string }> = {
-  pending: { label: 'Pending', icon: Clock, color: 'text-yellow-700', bg: 'bg-yellow-100' },
-  confirmed: { label: 'Confirmed', icon: Check, color: 'text-blue-700', bg: 'bg-blue-100' },
-  packed: { label: 'Packed', icon: Package, color: 'text-purple-700', bg: 'bg-purple-100' },
-  shipped: { label: 'Shipped', icon: Truck, color: 'text-cirkle-700', bg: 'bg-cirkle-100' },
-  delivered: { label: 'Delivered', icon: Home, color: 'text-green-700', bg: 'bg-green-100' },
-  cancelled: { label: 'Cancelled', icon: X, color: 'text-red-700', bg: 'bg-red-100' },
+// Figma pills: pending orders read "New".
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'New',
+  confirmed: 'Confirmed',
+  packed: 'Packed',
+  shipped: 'Shipped',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
 };
+
+// Who the sale is credited to (attributions)
+type Credit = { store: string | null; peer: boolean };
 
 const STATUS_SORT_ORDER: Record<string, number> = {
   pending: 0,
@@ -76,7 +85,14 @@ const NEXT_STATUS: Record<string, { status: string; label: string; needsTracking
   shipped: { status: 'delivered', label: 'Mark as delivered' },
 };
 
-type FilterStatus = 'all' | 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered';
+type FilterStatus = 'all' | 'new' | 'in_progress' | 'shipped' | 'delivered';
+
+const FILTER_STATUSES: Record<Exclude<FilterStatus, 'all'>, string[]> = {
+  new: ['pending'],
+  in_progress: ['confirmed', 'packed'],
+  shipped: ['shipped'],
+  delivered: ['delivered'],
+};
 
 export default function BrandOrdersPage() {
   const { user } = useAuth();
@@ -87,6 +103,17 @@ export default function BrandOrdersPage() {
   const [trackingUrlInput, setTrackingUrlInput] = useState('');
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterStatus>('all');
+  const [credits, setCredits] = useState<Map<string, Credit>>(new Map());
+  // xl and up show the detail panel beside the table; smaller screens use a sheet.
+  const [wide, setWide] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1280px)');
+    const update = () => setWide(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   const loadOrders = useCallback(async () => {
     if (!user) return;
@@ -123,6 +150,29 @@ export default function BrandOrdersPage() {
 
     setOrders(allOrders);
     setLoading(false);
+
+    // Credited store per order (attributions → retailer_profiles)
+    const orderIds = allOrders.map((o) => o.id);
+    if (orderIds.length) {
+      const { data: attrs } = await supabase
+        .from('attributions')
+        .select('order_id, source_retailer_id, source_user_id')
+        .in('order_id', orderIds);
+      const rows = (attrs ?? []) as { order_id: string; source_retailer_id: string | null; source_user_id: string | null }[];
+      const retailerIds = Array.from(new Set(rows.map((r) => r.source_retailer_id).filter(Boolean))) as string[];
+      const { data: retailers } = retailerIds.length
+        ? await supabase.from('retailer_profiles').select('id, name').in('id', retailerIds)
+        : { data: [] };
+      const names = new Map(((retailers ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name]));
+      setCredits(
+        new Map(
+          rows.map((r) => [
+            r.order_id,
+            { store: r.source_retailer_id ? names.get(r.source_retailer_id) ?? null : null, peer: !!r.source_user_id },
+          ])
+        )
+      );
+    }
   }, [user]);
 
   useEffect(() => {
@@ -155,7 +205,7 @@ export default function BrandOrdersPage() {
     }
   }
 
-  const filteredOrders = filter === 'all' ? orders : orders.filter((o) => o.status === filter);
+  const filteredOrders = filter === 'all' ? orders : orders.filter((o) => FILTER_STATUSES[filter].includes(o.status));
 
   const counts = orders.reduce(
     (acc, o) => {
@@ -165,246 +215,270 @@ export default function BrandOrdersPage() {
     {} as Record<string, number>,
   );
 
+  const header = (
+    <div>
+      <h1 className="font-brand text-heading-xl uppercase text-primary">Orders</h1>
+      <p className="mt-1 text-body text-muted">Paid to Flaym. You ship by hand and mark each step.</p>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="space-y-6">
-        <div>
-          <div className="animate-pulse bg-gray-200 rounded h-8 w-24" />
-          <div className="animate-pulse bg-gray-100 rounded h-4 w-48 mt-2" />
-        </div>
-        <div className="flex gap-2">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-200 rounded-full h-8 w-24" />
-          ))}
-        </div>
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
-              <div className="animate-pulse bg-gray-200 rounded-lg h-10 w-10" />
-              <div className="flex-1 space-y-2">
-                <div className="animate-pulse bg-gray-200 rounded h-4 w-32" />
-                <div className="animate-pulse bg-gray-100 rounded h-3 w-48" />
-              </div>
-            </div>
-          ))}
+        {header}
+        <Skeleton className="h-9 w-full max-w-xl" />
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <ListSkeleton rows={5} />
+          <Skeleton className="hidden h-96 w-full xl:block" />
         </div>
       </div>
     );
   }
 
-  const FILTER_TABS: { key: FilterStatus; label: string }[] = [
-    { key: 'all', label: `All (${orders.length})` },
-    { key: 'pending', label: `Pending (${counts.pending || 0})` },
-    { key: 'confirmed', label: `Confirmed (${counts.confirmed || 0})` },
-    { key: 'packed', label: `Packed (${counts.packed || 0})` },
-    { key: 'shipped', label: `Shipped (${counts.shipped || 0})` },
-    { key: 'delivered', label: `Delivered (${counts.delivered || 0})` },
-  ];
+  const count = (key: Exclude<FilterStatus, 'all'>) => orders.filter((o) => FILTER_STATUSES[key].includes(o.status)).length;
+  const selected = orders.find((o) => o.id === expandedOrder) ?? null;
+  const select = (id: string) => setExpandedOrder(id === expandedOrder ? null : id);
+  const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const creditLabel = (orderId: string) => {
+    const c = credits.get(orderId);
+    if (c?.store) return c.store;
+    if (c?.peer) return 'Passed on by a friend';
+    return '—';
+  };
+
+  // Order detail: ship to, items, the chain, history and the next step
+  const detail = (order: Order) => {
+    const nextAction = NEXT_STATUS[order.status];
+    const isUpdating = updatingOrder === order.id;
+    const credit = credits.get(order.id);
+    return (
+      <div className="flex flex-col gap-5 font-brand">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-heading-lg">#{order.order_number}</p>
+          <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
+        </div>
+
+        <div>
+          <p className="mb-1 text-label uppercase text-muted">Ship to</p>
+          <p className="text-[13px] text-primary">{order.shipping_name}</p>
+          {order.profiles?.name && order.profiles.name !== order.shipping_name && (
+            <p className="text-caption text-muted">Ordered by {order.profiles.name}</p>
+          )}
+          <p className="mt-0.5 text-[13px] text-muted">
+            {order.shipping_address}, {order.shipping_postal_code} {order.shipping_city}, {order.shipping_country}
+          </p>
+        </div>
+
+        <ul className="divide-y divide-line border-y border-line">
+          {order.order_items.map((item) => (
+            <li key={item.id} className="flex items-start justify-between gap-3 py-3 text-[13px]">
+              <div className="min-w-0">
+                <p className="truncate text-primary">{item.product_name}</p>
+                <p className="text-caption text-muted">
+                  {[item.size && `Size ${item.size}`, item.color].filter(Boolean).join(' · ') || 'One size'} · ×{item.quantity}
+                </p>
+              </div>
+              <span className="whitespace-nowrap tabular-nums text-primary">{formatDKK(item.unit_price_dkk * item.quantity)}</span>
+            </li>
+          ))}
+          <li className="flex justify-between py-3 text-[13px]">
+            <span className="text-label uppercase text-muted">Total</span>
+            <span className="font-medium tabular-nums text-primary">{formatDKK(order.total_dkk)}</span>
+          </li>
+        </ul>
+
+        <div>
+          <p className="mb-1 text-label uppercase text-muted">The chain</p>
+          {credit?.store && <p className="text-[13px] text-primary">Store: {credit.store}</p>}
+          {credit?.peer && <p className="text-[13px] text-primary">Passed on by a friend</p>}
+          {!credit && <p className="text-caption text-muted">Bought without a scan</p>}
+        </div>
+
+        {order.tracking_number && (
+          <div>
+            <p className="mb-1 text-label uppercase text-muted">Tracking</p>
+            <p className="text-[13px] text-primary">{order.tracking_number}</p>
+          </div>
+        )}
+
+        <div>
+          <p className="mb-2 text-label uppercase text-muted">History</p>
+          <ol className="space-y-1.5">
+            {[...order.order_events]
+              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+              .map((event, i) => (
+                <li key={event.id} className="flex items-center gap-2.5 text-[13px]">
+                  <span className={cn('h-2 w-2 shrink-0', i === 0 ? 'bg-accent' : 'bg-line')} />
+                  <span className="text-primary">{STATUS_LABEL[event.status] === 'New' ? 'Placed' : STATUS_LABEL[event.status] ?? event.status}</span>
+                  <span className="text-caption text-muted">
+                    {new Date(event.created_at).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </li>
+              ))}
+          </ol>
+        </div>
+
+        {/* Next step */}
+        {nextAction && (
+          <div className="space-y-3 border-t border-line pt-5">
+            {nextAction.needsTracking && (
+              <>
+                <Field label="Tracking number" htmlFor={`tracking-${order.id}`}>
+                  <Input
+                    id={`tracking-${order.id}`}
+                    type="text"
+                    placeholder="e.g. 00370712345678901"
+                    value={trackingInput}
+                    onChange={(e) => setTrackingInput(e.target.value)}
+                  />
+                </Field>
+                <Field label="Tracking URL (optional)" htmlFor={`tracking-url-${order.id}`}>
+                  <Input
+                    id={`tracking-url-${order.id}`}
+                    type="url"
+                    placeholder="https://"
+                    value={trackingUrlInput}
+                    onChange={(e) => setTrackingUrlInput(e.target.value)}
+                  />
+                </Field>
+              </>
+            )}
+            <Button
+              fullWidth
+              size="lg"
+              onClick={() => updateStatus(order.id, nextAction.status)}
+              disabled={isUpdating || (nextAction.needsTracking && !trackingInput)}
+              loading={isUpdating}
+            >
+              {isUpdating ? 'Updating…' : nextAction.label}
+            </Button>
+            {order.status === 'pending' && (
+              <Button fullWidth variant="secondary" onClick={() => updateStatus(order.id, 'cancelled')} disabled={isUpdating}>
+                Cancel order
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-        <p className="mt-1 text-gray-500">Manage and fulfill your orders</p>
-      </div>
+      {header}
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {FILTER_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-              filter === tab.key
-                ? 'bg-cirkle-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        variant="underline"
+        items={[
+          { value: 'new', label: 'New', count: count('new') },
+          { value: 'in_progress', label: 'In progress', count: count('in_progress') },
+          { value: 'shipped', label: 'Shipped', count: count('shipped') },
+          { value: 'delivered', label: 'Delivered', count: count('delivered') },
+          { value: 'all', label: 'All', count: orders.length },
+        ]}
+        value={filter}
+        onValueChange={(v) => setFilter(v as FilterStatus)}
+        className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      />
 
       {filteredOrders.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-          <ShoppingBag className="h-12 w-12 text-gray-300 mx-auto" />
-          <p className="mt-3 font-medium text-gray-700">No orders yet</p>
-          <p className="text-sm text-gray-400 mt-1">Orders will appear here when customers purchase through QR scans</p>
-        </div>
+        <EmptyState
+          className="bg-surface"
+          icon={<ShoppingBag className="h-5 w-5" />}
+          title={orders.length === 0 ? 'No orders yet' : 'Nothing here'}
+          description={
+            orders.length === 0
+              ? 'Orders will appear here when customers purchase through QR scans'
+              : 'No orders with this status right now.'
+          }
+        />
       ) : (
-        <div className="space-y-3">
-          {filteredOrders.map((order) => {
-            const config = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
-            const StatusIcon = config.icon;
-            const isExpanded = expandedOrder === order.id;
-            const nextAction = NEXT_STATUS[order.status];
-            const isUpdating = updatingOrder === order.id;
-            const customerName = order.profiles?.name || order.shipping_name;
-
-            return (
-              <div
-                key={order.id}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden"
-              >
-                {/* Order header */}
-                <button
-                  onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
-                  className="w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 transition"
-                >
-                  <div className={`p-2 rounded-lg ${config.bg} ${config.color} flex-shrink-0`}>
-                    <StatusIcon className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+          {/* Mobile: list */}
+          <ul className="divide-y divide-line border border-line bg-surface md:hidden">
+            {filteredOrders.map((order) => (
+              <li key={order.id}>
+                <button type="button" onClick={() => select(order.id)} className="flex w-full items-center gap-3 p-4 text-left">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-gray-900">
-                        #{order.order_number}
-                      </span>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
-                        {config.label}
-                      </span>
+                      <span className="text-[13px] font-medium text-primary">#{order.order_number}</span>
+                      <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
                     </div>
-                    <p className="text-sm text-gray-600 truncate mt-0.5">{customerName}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(order.created_at).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                      {' — '}
-                      {formatDKK(order.total_dkk)}
+                    <p className="mt-1 truncate text-caption text-muted">
+                      {shortDate(order.created_at)} · {order.order_items.length} item{order.order_items.length !== 1 ? 's' : ''} · {creditLabel(order.id)}
                     </p>
                   </div>
-                  <div className="flex-shrink-0 text-gray-400">
-                    {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                  </div>
+                  <span className="whitespace-nowrap text-[13px] tabular-nums text-primary">{formatDKK(order.total_dkk)}</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
                 </button>
+              </li>
+            ))}
+          </ul>
 
-                {/* Expanded details */}
-                {isExpanded && (
-                  <div className="border-t border-gray-100 p-4 space-y-4">
-                    {/* Items */}
-                    <div>
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        Products
-                      </h3>
-                      <div className="space-y-2">
-                        {order.order_items.map((item) => (
-                          <div key={item.id} className="flex justify-between text-sm">
-                            <div>
-                              <span className="text-gray-900">{item.product_name}</span>
-                              {(item.size || item.color) && (
-                                <span className="text-gray-400 ml-1">
-                                  ({[item.size, item.color].filter(Boolean).join(' / ')})
-                                </span>
-                              )}
-                              <span className="text-gray-400 ml-1">x{item.quantity}</span>
-                            </div>
-                            <span className="text-gray-600 font-medium">
-                              {formatDKK(item.unit_price_dkk * item.quantity)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+          {/* Desktop: table */}
+          <div className="hidden overflow-x-auto border border-line bg-surface md:block">
+            <table className="w-full border-collapse font-brand text-[13px] text-primary">
+              <THead>
+                <tr>
+                  <TH className="px-5">Order</TH>
+                  <TH>Date</TH>
+                  <TH className="text-right">Items</TH>
+                  <TH>Credited store</TH>
+                  <TH className="text-right">Total</TH>
+                  <TH className="px-5">Status</TH>
+                </tr>
+              </THead>
+              <TBody>
+                {filteredOrders.map((order) => (
+                  <tr
+                    key={order.id}
+                    onClick={() => select(order.id)}
+                    aria-selected={order.id === expandedOrder}
+                    className={cn('cursor-pointer transition-colors', order.id === expandedOrder ? 'bg-canvas-warm' : 'hover:bg-surface-muted/40')}
+                  >
+                    <TD className="px-5">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); select(order.id); }} className="font-medium hover:underline">
+                        #{order.order_number}
+                      </button>
+                    </TD>
+                    <TD className="whitespace-nowrap">{shortDate(order.created_at)}</TD>
+                    <TD className="text-right tabular-nums">{order.order_items.reduce((n, i) => n + i.quantity, 0)}</TD>
+                    <TD className="max-w-[200px] truncate">{creditLabel(order.id)}</TD>
+                    <TD className="whitespace-nowrap text-right tabular-nums">{formatDKK(order.total_dkk)}</TD>
+                    <TD className="px-5">
+                      <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
+                    </TD>
+                  </tr>
+                ))}
+              </TBody>
+            </table>
+          </div>
 
-                    {/* Shipping address */}
-                    <div>
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        <MapPin className="h-3 w-3 inline mr-1" />
-                        Shipping address
-                      </h3>
-                      <div className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">
-                        <p className="font-medium">{order.shipping_name}</p>
-                        <p>{order.shipping_address}</p>
-                        <p>{order.shipping_postal_code} {order.shipping_city}</p>
-                        <p>{order.shipping_country}</p>
-                      </div>
-                    </div>
-
-                    {/* Tracking info (if shipped) */}
-                    {order.tracking_number && (
-                      <div className="bg-cirkle-50 rounded-lg p-3">
-                        <p className="text-xs font-semibold text-cirkle-800">Tracking</p>
-                        <p className="text-sm text-cirkle-700 mt-0.5">{order.tracking_number}</p>
-                      </div>
-                    )}
-
-                    {/* Timeline */}
-                    <div>
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        History
-                      </h3>
-                      <div className="space-y-1">
-                        {order.order_events
-                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                          .map((event) => {
-                            const evConfig = STATUS_CONFIG[event.status];
-                            return (
-                              <div key={event.id} className="flex items-center gap-2 text-sm">
-                                <span className={`w-2 h-2 rounded-full ${evConfig?.bg || 'bg-gray-200'}`} />
-                                <span className="text-gray-700">{evConfig?.label || event.status}</span>
-                                <span className="text-gray-400 text-xs">
-                                  {new Date(event.created_at).toLocaleDateString('en-GB', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    {nextAction && (
-                      <div className="pt-2 border-t border-gray-100 space-y-3">
-                        {nextAction.needsTracking && (
-                          <div className="space-y-2">
-                            <input
-                              type="text"
-                              placeholder="Tracking number"
-                              value={trackingInput}
-                              onChange={(e) => setTrackingInput(e.target.value)}
-                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cirkle-500"
-                            />
-                            <input
-                              type="url"
-                              placeholder="Tracking URL (optional)"
-                              value={trackingUrlInput}
-                              onChange={(e) => setTrackingUrlInput(e.target.value)}
-                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cirkle-500"
-                            />
-                          </div>
-                        )}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => updateStatus(order.id, nextAction.status)}
-                            disabled={isUpdating || (nextAction.needsTracking && !trackingInput)}
-                            className="flex-1 px-4 py-2.5 bg-cirkle-600 text-white text-sm font-medium rounded-lg hover:bg-cirkle-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                          >
-                            {isUpdating ? 'Updating...' : nextAction.label}
-                          </button>
-                          {order.status === 'pending' && (
-                            <button
-                              onClick={() => updateStatus(order.id, 'cancelled')}
-                              disabled={isUpdating}
-                              className="px-4 py-2.5 bg-red-50 text-red-700 text-sm font-medium rounded-lg hover:bg-red-100 disabled:opacity-50 transition"
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {/* Detail panel (desktop) */}
+          <aside className="sticky top-6 hidden border border-line bg-surface p-6 xl:block">
+            {selected ? (
+              detail(selected)
+            ) : (
+              <EmptyState
+                className="border-none py-16"
+                icon={<ShoppingBag className="h-5 w-5" />}
+                title="Select an order"
+                description="Pick an order to see where it goes and mark the next step."
+              />
+            )}
+          </aside>
         </div>
       )}
+
+      {/* Detail sheet (mobile and tablet) */}
+      <Modal open={!!selected && !wide} onClose={() => setExpandedOrder(null)} variant="sheet" className="sm:max-w-lg">
+        {selected && detail(selected)}
+      </Modal>
     </div>
   );
 }

@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { sample_id, product_id, source_type, source_retailer_id, source_user_id, scanner_user_id } = body;
+  const { sample_id, product_id, source_type, source_retailer_id, source_user_id } = body;
+
+  // The scanner is whoever is signed in (or nobody). Never trust a user ID
+  // sent by the browser: it decides who gets credited for the sale.
+  const session = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await session.auth.getUser();
+  const scanner_user_id = user?.id ?? null;
 
   if (!product_id || !source_type) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });

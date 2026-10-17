@@ -8,8 +8,8 @@ A three-sided marketplace for fashion. Brands upload products and send physical 
 
 - **Framework**: Next.js 14+ (App Router, TypeScript, server components)
 - **Database**: Supabase (PostgreSQL + Auth + Storage + Realtime)
-- **Auth**: Supabase Auth (email/password + Google + Apple Sign In)
-- **Styling**: Tailwind CSS + shadcn/ui
+- **Auth**: Supabase Auth (email/password; Google and Apple Sign In are planned but not wired up)
+- **Styling**: Tailwind CSS + the Flaym design system (`src/components/ds`)
 - **QR Codes**: `qrcode` npm package
 - **Email**: Resend (transactional emails)
 - **Hosting**: Vercel
@@ -67,6 +67,8 @@ Scans QR code (phone camera) → lands on public product page (no auth needed to
 - **Retailer sample**: `https://cirkle.dk/p/{sample_id}` — resolves to product page with retailer attribution
 - **Peer discovery**: `https://cirkle.dk/d/{product_id}?ref={owner_user_id}` — resolves to product page with peer attribution
 
+The host is not hardcoded: `src/lib/base-url.ts` uses `NEXT_PUBLIC_QR_BASE_URL`, then `NEXT_PUBLIC_APP_URL`, and falls back to the request's own origin when those point at localhost. Set both to the public domain in production, or printed tags and shared peer links will point somewhere friends can't reach. Sample tags are rendered to PNG when the sample is created, so they keep the host they were made with; peer QR codes are generated on demand.
+
 ## Database
 
 See `supabase/migrations/001_initial_schema.sql` and `002_sample_deposits.sql` for the complete schema. Key tables:
@@ -111,7 +113,7 @@ src/
     points.ts               — Points calculation
     qr.ts                   — QR code generation
   components/
-    ui/                     — shadcn/ui components
+    ds/                     — Flaym design system components (see Conventions)
     brand/                  — Brand-specific components
     retailer/               — Retailer-specific components
     consumer/               — Consumer-specific components
@@ -128,9 +130,24 @@ src/
 - English language for all user-facing content and code/comments
 - Mobile-first responsive design
 - Tailwind for styling — no custom CSS files
+- Build UI from the Flaym design system (below)
 - Error handling: always return proper HTTP status codes from API routes
 - Use Supabase's `createServerClient` in server components and API routes
 - Use Supabase's `createBrowserClient` in client components
+
+### Design system (Flaym)
+
+The UI follows the Flaym Figma file. Use only these tokens (defined in `tailwind.config.ts`) and the components in `src/components/ds/`. Tailwind's default palette (`gray-*`, `red-*`, etc.) is not part of the design.
+
+- **Colours**: `canvas` (white page), `canvas-dark` (Obsidian page), `canvas-warm` (off-white portal page), `surface`, `surface-muted`, `surface-dark` (card on a dark page), `primary` (Obsidian: text, primary buttons, nav), `on-primary`, `muted` (secondary text), `line`, `line-dark`, `accent` (Flaym orange: CTAs, active states), `accent-subtle`, `accent-strong`, `success`, `success-subtle`, `warning`, `warning-subtle`
+- **No danger colour and no shadows**: Figma has neither. Errors use the accent tones (`text-accent-strong`, or an accent icon on `bg-primary`). Don't add red or box shadows.
+- **Font**: `font-brand` (IBM Plex Mono 400/500) is the body default. Headings and labels are uppercase via `uppercase`.
+- **Type scale**: `text-display`, `text-heading-xl`, `text-heading-lg`, `text-body`, `text-caption`, `text-label`
+- **Radius**: `rounded-control` (square, 0px) for buttons, inputs and cards; `rounded-pill` for pills, avatars and toggles
+- **Gradients**: `bg-flaym-gradient` (welcome and auth art), `bg-flaym-scan` (consumer Scan screen)
+- **Page backgrounds per area**: consumer app `bg-canvas-dark`; brand and retailer portals `bg-canvas-warm`; landing and auth `bg-flaym-gradient` with a `bg-canvas` form column; error and 404 `bg-canvas`
+- **Components** (import from `@/components/ds`): `Logo`, `Button` / `buttonClasses`, `Field`, `Input`, `Textarea`, `Select`, `Checkbox`, `Toggle`, `Card`, `CardHeader`, `Badge`, `StatusPill`, `Avatar`, `Modal` (sheet on mobile), `Tabs`, `TopBar`, `BottomNav`, `SidebarNav`, `EmptyState`, `StatTile`, skeletons (`Skeleton`, `KPISkeleton`, `ListSkeleton`, `CardSkeleton`), `Toast` / `ToastProvider` / `useToast` (mounted in the root layout), `List` / `ListRow`, `Table` (`THead`, `TBody`, `TR`, `TH`, `TD`), `ProductCard`, and `cn` for class merging
+- Shared layout pieces that aren't generic live next to their area, e.g. `components/shared/auth-shell.tsx` (login, signup, invite) and `components/consumer/checkout-parts.tsx`.
 
 ## Environment Variables
 
@@ -146,7 +163,7 @@ See `.env.example` for required variables. Key ones:
 - No Stripe / no real payments — all purchases are mock
 - No NFC — QR codes only
 - No carrier integration — brand manually enters tracking numbers
-- No returns flow in MVP
+- Returns: consumers request a return on a delivered order; the brand approves, marks it received, then refunded (`/brand/returns`, migration 003)
 - No multi-user roles within accounts (just owner)
 - DPP fields are placeholder only (materials text field, no structured EU compliance)
 - Email notifications via Resend for: order confirmation, status updates, retailer invitations
