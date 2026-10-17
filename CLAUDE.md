@@ -8,7 +8,7 @@ A three-sided marketplace for fashion. Brands upload products and send physical 
 
 - **Framework**: Next.js 14+ (App Router, TypeScript, server components)
 - **Database**: Supabase (PostgreSQL + Auth + Storage + Realtime)
-- **Auth**: Supabase Auth (email/password + Google + Apple Sign In)
+- **Auth**: Supabase Auth (email/password; Google and Apple Sign In are planned but not wired up)
 - **Styling**: Tailwind CSS + the Flaym design system (`src/components/ds`)
 - **QR Codes**: `qrcode` npm package
 - **Email**: Resend (transactional emails)
@@ -66,6 +66,8 @@ Scans QR code (phone camera) → lands on public product page (no auth needed to
 
 - **Retailer sample**: `https://cirkle.dk/p/{sample_id}` — resolves to product page with retailer attribution
 - **Peer discovery**: `https://cirkle.dk/d/{product_id}?ref={owner_user_id}` — resolves to product page with peer attribution
+
+The host is not hardcoded: `src/lib/base-url.ts` uses `NEXT_PUBLIC_QR_BASE_URL`, then `NEXT_PUBLIC_APP_URL`, and falls back to the request's own origin when those point at localhost. Set both to the public domain in production, or printed tags and shared peer links will point somewhere friends can't reach. Sample tags are rendered to PNG when the sample is created, so they keep the host they were made with; peer QR codes are generated on demand.
 
 ## Database
 
@@ -161,7 +163,7 @@ See `.env.example` for required variables. Key ones:
 - No Stripe / no real payments — all purchases are mock
 - No NFC — QR codes only
 - No carrier integration — brand manually enters tracking numbers
-- No returns flow in MVP
+- Returns: consumers request a return on a delivered order; the brand approves, marks it received, then refunded (`/brand/returns`, migration 003)
 - No multi-user roles within accounts (just owner)
 - DPP fields are placeholder only (materials text field, no structured EU compliance)
 - Email notifications via Resend for: order confirmation, status updates, retailer invitations

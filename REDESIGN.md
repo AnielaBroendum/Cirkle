@@ -101,7 +101,7 @@ Layout `(brand)/layout.tsx` (C): dark ds `SidebarNav` (Dashboard, Products, Stor
 | `/brand/samples` | 05 | Products-in-stores hub: store list (partner stores, waiting invitations / requests, available stores), the store's samples with QR tag, scans, deposit and open swap; select + print QR tags (client-only print window); Invite store modal; request partnership; delete sample | `brand_profiles`, `samples`, `products`, `retailer_profiles`, `scans`, `brand_retailer_partnerships`, `swap_requests` | `DELETE /api/samples?id=`, `POST /api/partnerships/invite`, `POST /api/partnerships/request-retailer` |
 | `/brand/samples/new` | — (after 04) | Add sample: product + partner store, generates the QR | `brand_profiles`, `products`, `brand_retailer_partnerships`, `retailer_profiles` | `POST /api/samples` |
 | `/brand/samples/requests` | — | Sample requests: approve, reject (reason), ship (tracking) | `brand_profiles`, `sample_requests`, `sample_request_items`, `retailer_profiles`, `products` | `POST /api/sample-requests/[id]/approve`, `PATCH /api/sample-requests/[id]/status` |
-| `/brand/samples/swaps` | — | Swap lifecycle: approve / cancel, inspect (note), ship replacement, complete | `brand_profiles`, `swap_requests`, `samples`, `products`, `retailer_profiles` | `PATCH /api/swap-requests/[id]/status` |
+| `/brand/samples/swaps` | — | Swap lifecycle: approve / cancel, mark returned sample received, inspect (note), ship replacement, complete | `brand_profiles`, `swap_requests`, `samples`, `products`, `retailer_profiles` | `PATCH /api/swap-requests/[id]/status` |
 | `/brand/samples/transactions` | — | Deposits ledger (table on desktop, list on mobile; money out shows "−") | `brand_profiles`, `sample_transactions`, `samples`, `retailer_profiles`, `products` | — |
 | `/brand/partnerships` | — (part of 05) | Incoming requests (accept / decline), pending invitations (copy link), active, available stores (request with commission), inactive; Invite store modal | `brand_profiles`, `brand_retailer_partnerships`, `retailer_profiles` | `POST /api/partnerships/invite`, `POST /api/partnerships/request-retailer` |
 | `/brand/orders` | 06 | New / In progress / Shipped / Delivered / All; table + detail panel (bottom sheet below xl): ship to, items, the chain (credited store or "Passed on by a friend"), history, next step with tracking | `brand_profiles`, `orders` (+ items, events, profile), `attributions`, `retailer_profiles` | `POST /api/orders/[orderId]/status` |
@@ -160,10 +160,15 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 
 ## Open decisions
 
-- **Sending email (no emails arrive yet).** Tested 2026-10-16: a brand invite to a real address returned 200 but no email arrived. `RESEND_API_KEY` is set, but no sender domain has been set up: `EMAIL_FROM` is unset, so `src/lib/email.ts` sends from `noreply@cirkle.dk`, and that domain isn't verified in Resend, so Resend rejects the send. `sendEmail` also ignores the result Resend returns, so failures leave no error in the logs. Affects every email: retailer invitations, order confirmation, new order to brand, order status updates. To decide:
+- **Public domain for QR and share links.** `.env.local` sets `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_QR_BASE_URL` to the Mac's LAN name (`Anielas-MacBook-Air.local:3000`), so peer share links and newly printed sample tags only open on the same Wi-Fi. Set both to the public domain (locally and in Vercel). Sample tag PNGs keep the host they were created with, so tags made before the switch need reprinting; peer QR codes are generated on demand and update by themselves.
+- **Store commission rates.** `/api/checkout` attributes every store sale as `deferred` at a hardcoded 15%. The spec's direct (25%, same session) and tier-2 (10%, another product from the same brand) rates are never used, and the per-partnership rates in `brand_retailer_partnerships` are ignored. Decide how "direct" is detected (e.g. bought within 24 h of the scan, or the scan id carried through checkout) before changing it.
+- **Welcome points timing.** CLAUDE.md says 100 points on account creation; the code grants them in `/api/checkout` on the first purchase, so a new shopper sees 0 and can't redeem anything on their first order. Options: a migration with a trigger on consumer profile creation (keep the checkout grant as an idempotent fallback), or keep it and change the docs.
+- **Returned items can still be passed on.** A delivered order that was later returned and refunded still shows its peer QR as "ready to pass on" (`/api/orders/[orderId]/qr` only checks `status = delivered`), so the owner can earn Flayms on an item they no longer have. Decide whether a refunded return should hide the QR.
+- **Migrations not applied:** 006 (dashboard Saves, `get_brand_save_counts`) and 007 (brand payout details). Run them in the Supabase SQL editor; the pages already handle both being missing.
+
+- **Sending email (no emails arrive yet).** Tested 2026-10-16: a brand invite to a real address returned 200 but no email arrived. `RESEND_API_KEY` is set, but no sender domain has been set up: `EMAIL_FROM` is unset, so `src/lib/email.ts` sends from `noreply@cirkle.dk`, and that domain isn't verified in Resend, so Resend rejects the send. Affects every email: retailer invitations, order confirmation, new order to brand, order status updates. To decide:
   - Which domain and sender address to use (e.g. a Flaym domain, since the product is now Flaym rather than Cirkle), then verify it in Resend (DNS records) and set `EMAIL_FROM`.
-  - Whether `sendEmail` should log or surface Resend errors (a change to `src/lib`, so outside the redesign rules).
-  - The email templates still say "Cirkle" with the old blue styling; rebrand them to Flaym at the same time.
+  - ~~Whether `sendEmail` should log Resend errors~~: done 2026-10-17, rejected sends are now logged with Resend's error. The templates are rebranded to Flaym; the fallback sender is `Flaym <noreply@cirkle.dk>` until `EMAIL_FROM` is set.
 
 ---
 
@@ -203,7 +208,7 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 - [ ] Request an existing retailer; the request appears for the retailer (skipped: the only other stores belong to non-test accounts)
 - [x] Create a sample for a partner retailer: the QR is generated and shown; delete the sample
 - [x] Approve a retailer's sample request: samples, QR codes and a deposit transaction are created
-- [~] Swap lifecycle: approve → retailer ships back → inspect → refund or forfeit → new sample is created. **Gap (since Phase 7, not the redesign):** no screen moves a swap from `return_shipped` to `return_received`; the API allows it but nothing calls it. Tested by calling the API once, then the rest worked in the UI
+- [x] Swap lifecycle: approve → retailer ships back → brand marks received → inspect → refund or forfeit → new sample is created (the "Mark received" button was missing until 2026-10-17)
 - [x] Transactions page shows deposits held; dashboard KPIs match
 - [~] Advance an order pending → confirmed → packed → shipped (tracking) → delivered. No status emails arrive (Resend, see Open decisions)
 - [x] Returns: a consumer return request appears on `/brand/returns`; approve → mark received → mark refunded (needs 003)
@@ -219,7 +224,7 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 
 ### Consumer
 - [x] Scan `/p/[sampleId]` logged out: product page renders and the scan is recorded
-- [x] Save a product, which then appears in `/consumer/saved`; remove it (the "Saved n" count in the header only updates on reload)
+- [x] Save a product, which then appears in `/consumer/saved`; remove it
 - [x] Buy now while logged out goes to signup with a redirect, then back to checkout (via the basket)
 - [~] Checkout with points redeemed: order is created, points are deducted. Emails don't arrive (Resend)
 - [x] Order detail shows the timeline updating as the brand changes the status
@@ -229,6 +234,6 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 - [~] Home is now the Scan screen (Figma App 03); camera is blocked in the test browser so only the fallback was seen. Discoveries and saved items are under Profile → History / Saved
 
 ### PWA / responsive
-- [ ] Install prompt appears; app installs; service worker registers (not testable in dev: `sw-register` unregisters in development. Also `manifest.json` lists `/icon-192.png` and `/icon-512.png`, which don't exist)
+- [ ] Install prompt appears; app installs; service worker registers (not testable in dev: `sw-register` unregisters in development. Manifest name and icons fixed 2026-10-17; check on a production deploy)
 - [x] Every redesigned screen works at 375px width with no horizontal scroll
 - [~] Error page and 404 render in the new design (404 checked under `/auth/…`; logged out, other unknown paths go to login via the middleware. `error.tsx` checked by build only)
