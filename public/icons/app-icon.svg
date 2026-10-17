@@ -1,0 +1,5 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#FF5000"/>
+  <!-- Flame (public/icons/flame-white.svg, 18x26) scaled 8x and centred; stays inside the maskable safe zone. -->
+  <path transform="translate(184 152) scale(8)" d="M9 0C9 0 0 11.4706 0 16.8235C0 19.2573 0.948211 21.5914 2.63604 23.3123C4.32387 25.0332 6.61305 26 9 26C11.3869 26 13.6761 25.0332 15.364 23.3123C17.0518 21.5914 18 19.2573 18 16.8235C18 11.4706 9 0 9 0Z" fill="#FFFFFF"/>
+</svg>

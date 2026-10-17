@@ -14,13 +14,17 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Cirkle — Discover Fashion Everywhere',
-  description: 'Scan, discover, and buy fashion from your favourite brands — in stores and from friends.',
+  title: 'Flaym — Scan it. Save it. Pass it on.',
+  description: 'Scan, discover and buy fashion from your favourite brands, in stores and from friends.',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/apple-touch-icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Cirkle',
+    title: 'Flaym',
   },
 };
 
