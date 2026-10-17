@@ -164,7 +164,7 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 - **Store commission rates.** `/api/checkout` attributes every store sale as `deferred` at a hardcoded 15%. The spec's direct (25%, same session) and tier-2 (10%, another product from the same brand) rates are never used, and the per-partnership rates in `brand_retailer_partnerships` are ignored. Decide how "direct" is detected (e.g. bought within 24 h of the scan, or the scan id carried through checkout) before changing it.
 - **Welcome points timing.** CLAUDE.md says 100 points on account creation; the code grants them in `/api/checkout` on the first purchase, so a new shopper sees 0 and can't redeem anything on their first order. Options: a migration with a trigger on consumer profile creation (keep the checkout grant as an idempotent fallback), or keep it and change the docs.
 - **Returned items can still be passed on.** A delivered order that was later returned and refunded still shows its peer QR as "ready to pass on" (`/api/orders/[orderId]/qr` only checks `status = delivered`), so the owner can earn Flayms on an item they no longer have. Decide whether a refunded return should hide the QR.
-- **Migrations not applied:** 006 (dashboard Saves, `get_brand_save_counts`) and 007 (brand payout details). Run them in the Supabase SQL editor; the pages already handle both being missing.
+- ~~Migrations not applied: 006 and 007~~: applied 2026-10-17 through the Supabase connector (they're the only entries in Supabase's migration history; 001–005 were pasted into the SQL editor earlier, so they aren't tracked there).
 
 - **Sending email (no emails arrive yet).** Tested 2026-10-16: a brand invite to a real address returned 200 but no email arrived. `RESEND_API_KEY` is set, but no sender domain has been set up: `EMAIL_FROM` is unset, so `src/lib/email.ts` sends from `noreply@cirkle.dk`, and that domain isn't verified in Resend, so Resend rejects the send. Affects every email: retailer invitations, order confirmation, new order to brand, order status updates. To decide:
   - Which domain and sender address to use (e.g. a Flaym domain, since the product is now Flaym rather than Cirkle), then verify it in Resend (DNS records) and set `EMAIL_FROM`.
@@ -212,8 +212,8 @@ Lib (do not change): `supabase*.ts`, `email.ts` (Resend), `utils.ts` (`formatDKK
 - [x] Transactions page shows deposits held; dashboard KPIs match
 - [~] Advance an order pending → confirmed → packed → shipped (tracking) → delivered. No status emails arrive (Resend, see Open decisions)
 - [x] Returns: a consumer return request appears on `/brand/returns`; approve → mark received → mark refunded (needs 003)
-- [~] Account: brand details save and persist. Payouts and return policy link show the "database update" notice: migration 007 isn't applied (`brand_payout_details` 404)
-- [ ] Dashboard Saves shows a number after 006 is applied (006 isn't applied: `get_brand_save_counts` 404, card shows "Not available yet")
+- [x] Account: edit brand details, return policy link and payouts, save, reload, values persist (007 applied 2026-10-17)
+- [x] Dashboard Saves shows a number (006 applied 2026-10-17)
 
 ### Retailer
 - [x] Accept an invite, complete onboarding (photos), land on the dashboard
