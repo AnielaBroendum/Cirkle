@@ -100,7 +100,7 @@ export async function PATCH(
       try {
         const qrBuffer = await QRCode.toBuffer(`${qrBaseUrl}/p/${newSample.id}`, {
           type: 'png', width: 400, margin: 2,
-          color: { dark: '#071a2e', light: '#ffffff' },
+          color: { dark: '#2C2324', light: '#FFFFFF' },
         });
         const fileName = `qr-codes/${newSample.id}.png`;
         const { error: uploadErr } = await admin.storage

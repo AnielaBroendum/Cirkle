@@ -19,10 +19,14 @@ export function flaymPathFromQR(text: string): string | null {
     return null;
   }
   const known = new Set([window.location.host, 'cirkle.dk', 'www.cirkle.dk']);
-  try {
-    if (process.env.NEXT_PUBLIC_APP_URL) known.add(new URL(process.env.NEXT_PUBLIC_APP_URL).host);
-  } catch {
-    /* ignore a malformed env value */
+  // QR links are built from NEXT_PUBLIC_QR_BASE_URL (falling back to the app URL),
+  // so accept both hosts.
+  for (const configured of [process.env.NEXT_PUBLIC_QR_BASE_URL, process.env.NEXT_PUBLIC_APP_URL]) {
+    try {
+      if (configured) known.add(new URL(configured).host);
+    } catch {
+      /* ignore a malformed env value */
+    }
   }
   if (!known.has(url.host)) return null;
   if (!/^\/(p|d)\/[A-Za-z0-9-]+\/?$/.test(url.pathname)) return null;
