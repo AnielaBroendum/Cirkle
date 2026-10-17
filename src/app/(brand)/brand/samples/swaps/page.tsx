@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { ArrowLeftRight, Check, X, Truck, ArrowRight } from 'lucide-react';
+import { ArrowLeftRight, Check, X, Truck, ArrowRight, Package } from 'lucide-react';
 import { Button, Card, EmptyState, Input, ListSkeleton, StatusPill } from '@/components/ds';
 import { StoresPageHeader } from '@/components/brand/stores-tabs';
 
@@ -267,7 +267,14 @@ export default function BrandSwapsPage() {
                 )}
 
                 {sw.status === 'approved' && <p className="text-caption text-muted">Waiting for the store to ship the sample back.</p>}
-                {sw.status === 'return_shipped' && <p className="text-caption text-muted">On its way back. The store marked it shipped.</p>}
+                {sw.status === 'return_shipped' && (
+                  <>
+                    <p className="w-full text-caption text-muted">On its way back. The store marked it shipped.</p>
+                    <Button onClick={() => updateStatus(sw.id, 'return_received')} disabled={actionLoading === sw.id} leftIcon={<Package className="h-4 w-4" />}>
+                      Mark received
+                    </Button>
+                  </>
+                )}
               </div>
             </Card>
           ))}
