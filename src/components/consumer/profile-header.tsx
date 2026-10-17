@@ -41,10 +41,12 @@ const TABS = [
   { href: '/consumer/history', label: 'History', key: 'history' },
 ] as const;
 
-export default function ProfileHeader() {
+/** `savedCount` lets the Saved page keep its tab count in step after a remove. */
+export default function ProfileHeader({ savedCount }: { savedCount?: number } = {}) {
   const { profile } = useAuth();
   const pathname = usePathname();
-  const counts = useProfileCounts();
+  const fetched = useProfileCounts();
+  const counts = fetched && savedCount !== undefined ? { ...fetched, saved: savedCount } : fetched;
   const { stats } = useFlayms();
   const name = profile?.name?.trim() || 'You';
 

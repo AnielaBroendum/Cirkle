@@ -68,7 +68,7 @@ export default function ConsumerSavedPage() {
 
   return (
     <div className="pb-8">
-      <ProfileHeader />
+      <ProfileHeader savedCount={loading ? undefined : items.length} />
 
       <div className="px-5 pt-1.5">
         {loading ? (

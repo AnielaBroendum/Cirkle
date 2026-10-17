@@ -237,7 +237,7 @@ export default function RequestSamplesPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Size" htmlFor="size">
                     <Select id="size" value={selectedSize} onChange={(e) => setSelectedSize(e.target.value)}>
-                      <option value="">Select size</option>
+                      <option value="">Select</option>
                       {currentProduct.sizes.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
@@ -245,7 +245,7 @@ export default function RequestSamplesPage() {
                   </Field>
                   <Field label="Colour" htmlFor="color">
                     <Select id="color" value={selectedColor} onChange={(e) => setSelectedColor(e.target.value)}>
-                      <option value="">Select colour</option>
+                      <option value="">Select</option>
                       {currentProduct.colors.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
