@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { sendOrderStatusUpdate } from './email';
 import { VALID_TRANSITIONS, isCarrier, trackingUrl, type Carrier } from './orders';
+import { returnPeriodEnd } from './payouts';
 import { sendPush } from './push';
 
 export type OrderForUpdate = {
@@ -73,7 +74,10 @@ export async function applyOrderStatus(
     // A known carrier gets its own tracking page; "Other" can pass a link.
     link = update.tracking_url = trackingUrl(carrier, number) ?? (change.tracking_url?.trim() || null);
   }
-  if (status === 'delivered') update.delivered_at = now;
+  if (status === 'delivered') {
+    update.delivered_at = now;
+    update.return_period_ends_at = returnPeriodEnd(new Date(now)).toISOString();
+  }
 
   const { error } = await admin.from('orders').update(update).eq('id', order.id);
   if (error) return { ok: false, status: 500, error: error.message };

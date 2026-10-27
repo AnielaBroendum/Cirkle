@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK, formatCommission } from '@/lib/utils';
-import { ScanLine, Handshake, Coins, Wallet } from 'lucide-react';
+import { nextPayoutDate, PAYOUT_STATUSES, PAYOUT_STATUS_LABEL, type PayoutStatus } from '@/lib/payouts';
+import { ScanLine, Handshake, Coins, Wallet, BarChart3 } from 'lucide-react';
 import {
   Avatar,
   Badge,
@@ -14,6 +15,7 @@ import {
   ListSkeleton,
   Skeleton,
   StatTile,
+  StatusPill,
   Tabs,
   TBody,
   TD,
@@ -26,7 +28,6 @@ import type { Database } from '@/lib/database.types';
 type Sample = Database['public']['Tables']['samples']['Row'];
 type Scan = Database['public']['Tables']['scans']['Row'];
 type Product = Database['public']['Tables']['products']['Row'];
-type Attribution = Database['public']['Tables']['attributions']['Row'];
 type Partnership = Database['public']['Tables']['brand_retailer_partnerships']['Row'];
 type BrandProfile = Database['public']['Tables']['brand_profiles']['Row'];
 
@@ -51,13 +52,11 @@ type PartnershipItem = {
   status: string;
 };
 
-type CommissionDetail = {
-  id: string;
-  product_name: string;
-  type: string;
-  amount_dkk: number;
-  created_at: string;
-};
+type Payout = Database['public']['Functions']['get_retailer_payouts']['Returns'][number];
+type MostScanned = Database['public']['Functions']['get_retailer_most_scanned']['Returns'][number];
+
+/** How many credited purchases the list shows; the totals cover all of them. */
+const LATEST_PAYOUTS = 8;
 
 type Period = 'week' | 'month' | 'year';
 
@@ -80,7 +79,8 @@ export default function RetailerDashboardPage() {
   });
   const [recentScans, setRecentScans] = useState<ScanFeedItem[]>([]);
   const [partnerships, setPartnerships] = useState<PartnershipItem[]>([]);
-  const [commissionDetails, setCommissionDetails] = useState<CommissionDetail[]>([]);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [mostScanned, setMostScanned] = useState<MostScanned[]>([]);
   const [depositTotal, setDepositTotal] = useState(0);
   const [depositByBrand, setDepositByBrand] = useState<{ brand_name: string; total: number }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,8 +119,8 @@ export default function RetailerDashboardPage() {
           samplesRes,
           scansWeekRes,
           recentScansRes,
-          attributionsRes,
-          commissionRes,
+          payoutsRes,
+          mostScannedRes,
           partnershipsRes,
         ] = await Promise.all([
           // Active samples count
@@ -129,12 +129,13 @@ export default function RetailerDashboardPage() {
             .select('id', { count: 'exact', head: true })
             .eq('retailer_id', retailerId)
             .eq('status', 'active'),
-          // Scans in the selected period
+          // Scans in the selected period, from the same events as Most scanned
           supabase
-            .from('scans')
+            .from('events')
             .select('id', { count: 'exact', head: true })
-            .eq('source_retailer_id', retailerId)
-            .gte('scanned_at', since),
+            .eq('retailer_id', retailerId)
+            .eq('type', 'scan')
+            .gte('occurred_at', since),
           // Recent scans for feed
           supabase
             .from('scans')
@@ -142,19 +143,10 @@ export default function RetailerDashboardPage() {
             .eq('source_retailer_id', retailerId)
             .order('scanned_at', { ascending: false })
             .limit(10),
-          // Attributed sales in the selected period
-          supabase
-            .from('attributions')
-            .select('id', { count: 'exact', head: true })
-            .eq('source_retailer_id', retailerId)
-            .gte('created_at', since),
-          // Commission in the selected period
-          supabase
-            .from('attributions')
-            .select('id, commission_amount_dkk, attribution_type, created_at, order_id')
-            .eq('source_retailer_id', retailerId)
-            .gte('created_at', since)
-            .order('created_at', { ascending: false }),
+          // Every credited purchase with its payout status (returns and cancellations left out)
+          supabase.rpc('get_retailer_payouts'),
+          // Scans and purchases per product in the selected period
+          supabase.rpc('get_retailer_most_scanned', { p_start: since, p_end: now.toISOString() }),
           // Active partnerships
           supabase
             .from('brand_retailer_partnerships')
@@ -165,42 +157,15 @@ export default function RetailerDashboardPage() {
 
         if (cancelled) return;
 
-        // Calculate commission and build detail list
-        type CommissionRow = { id: string; commission_amount_dkk: number | null; attribution_type: string; created_at: string; order_id: string };
-        const commissionRows = (commissionRes.data ?? []) as CommissionRow[];
-        const commissionTotal = commissionRows.reduce((sum, a) => sum + (a.commission_amount_dkk ?? 0), 0);
-
-        if (commissionRows.length > 0) {
-          const orderIds = Array.from(new Set(commissionRows.map((a) => a.order_id)));
-          const { data: orderItemsData } = await supabase
-            .from('order_items')
-            .select('order_id, product_name')
-            .in('order_id', orderIds);
-
-          if (cancelled) return;
-          const orderProductMap = new Map(
-            ((orderItemsData ?? []) as { order_id: string; product_name: string }[]).map((oi) => [oi.order_id, oi.product_name])
-          );
-
-          setCommissionDetails(
-            commissionRows
-              .filter((a) => a.commission_amount_dkk)
-              .map((a) => ({
-                id: a.id,
-                product_name: orderProductMap.get(a.order_id) ?? 'Unknown product',
-                type: a.attribution_type,
-                amount_dkk: a.commission_amount_dkk!,
-                created_at: a.created_at,
-              }))
-          );
-        } else {
-          setCommissionDetails([]);
-        }
+        const payoutRows = (payoutsRes.data ?? []) as Payout[];
+        const credited = payoutRows.filter((p) => p.ordered_at >= since);
+        setPayouts(payoutRows);
+        setMostScanned((mostScannedRes.data ?? []) as MostScanned[]);
 
         setKpis({
           scansThisWeek: scansWeekRes.count ?? 0,
-          salesAttributed: attributionsRes.count ?? 0,
-          commissionThisMonth: commissionTotal,
+          salesAttributed: credited.length,
+          commissionThisMonth: credited.reduce((sum, p) => sum + p.amount_dkk, 0),
           activeSamples: samplesRes.count ?? 0,
         });
 
@@ -358,80 +323,100 @@ export default function RetailerDashboardPage() {
           tone="dark"
           label={`Earned ${PERIOD_LABEL[period]}`}
           value={<span className="text-accent">{formatDKK(kpis.commissionThisMonth)}</span>}
-          hint="Your commission"
+          hint={`Paid out ${shortDate(nextPayoutDate().toISOString())}`}
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-        {/* Latest credited purchases */}
+      <div className="grid items-start gap-4 lg:grid-cols-[3fr_2fr]">
+        <div className="space-y-4">
+          {/* Most scanned in your store (Figma 02) */}
+          <Card
+            padding="none"
+            aria-busy={refreshing || undefined}
+            className={`p-5 transition-opacity lg:p-6 ${refreshing ? 'opacity-60' : ''}`}
+          >
+            <SectionTitle title="Most scanned in your store" />
+            <p className="-mt-2 mb-3 text-caption text-slate">See what catches people&apos;s eye on the rail</p>
+            {mostScanned.length === 0 ? (
+              <EmptyState
+                className="border-none py-8"
+                icon={<BarChart3 className="h-5 w-5" />}
+                title={`No scans ${PERIOD_LABEL[period]}`}
+                description="Products show up here once people scan their QR tags in your store."
+              />
+            ) : (
+              <MostScannedTable rows={mostScanned} />
+            )}
+          </Card>
+
+          {/* Recent scans */}
+          <Card padding="none" className="p-5 lg:p-6">
+            <SectionTitle title="Recent scans" />
+            {recentScans.length === 0 ? (
+              <EmptyState
+                className="border-none py-8"
+                icon={<ScanLine className="h-5 w-5" />}
+                title="No scans yet"
+                description="Place samples in visible spots to attract scans."
+              />
+            ) : (
+              <ul className="divide-y divide-line">
+                {recentScans.map((scan) => (
+                  <li key={scan.id} className="flex items-center gap-3 py-3">
+                    <span className="h-2 w-2 shrink-0 border-[1.5px] border-accent" aria-hidden />
+                    <p className="min-w-0 flex-1 truncate text-body-sm text-primary">{scan.product_name}</p>
+                    <span className="whitespace-nowrap text-caption text-slate">{timeAgo(scan.scanned_at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+
+        {/* Latest credited purchases with payout status (Figma 02) */}
         <Card padding="none" className="p-5 lg:p-6">
-          <SectionTitle
-            title={`Credited ${PERIOD_LABEL[period]}`}
-            aside={commissionDetails.length > 0 ? `${formatDKK(kpis.commissionThisMonth)} total` : undefined}
-          />
-          {commissionDetails.length === 0 ? (
+          <SectionTitle title="Latest credited purchases" />
+          {payouts.length === 0 ? (
             <EmptyState
               className="border-none py-8"
               icon={<Coins className="h-5 w-5" />}
-              title={`Nothing credited ${PERIOD_LABEL[period]}`}
+              title="Nothing credited yet"
               description="When someone buys after scanning a product in your store, your cut shows up here."
             />
           ) : (
-            <div className="-mx-1 overflow-x-auto">
-              <table className="w-full border-collapse font-brand text-body text-primary">
-                <THead>
-                  <tr>
-                    <TH className="px-3 py-2 text-label font-medium">Product</TH>
-                    <TH className="px-3 py-2 text-label font-medium">Type</TH>
-                    <TH className="px-3 py-2 text-right text-label font-medium">Your cut</TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {commissionDetails.map((c) => {
-                    const typeLabel = c.type === 'direct' ? 'Direct' : c.type === 'deferred' ? 'Deferred' : 'Tier 2';
-                    const typeTone = c.type === 'direct' ? 'accent' : c.type === 'deferred' ? 'neutral' : 'outline';
-                    return (
-                      <TR key={c.id}>
+            <>
+              <PayoutTotals payouts={payouts} />
+              <div className="-mx-1 overflow-x-auto">
+                <table className="w-full border-collapse font-brand text-body text-primary">
+                  <THead>
+                    <tr>
+                      <TH className="px-3 py-2 text-label font-medium">Product</TH>
+                      <TH className="px-3 py-2 text-label font-medium">Status</TH>
+                      <TH className="px-3 py-2 text-right text-label font-medium">Your cut</TH>
+                    </tr>
+                  </THead>
+                  <TBody>
+                    {payouts.slice(0, LATEST_PAYOUTS).map((p) => (
+                      <TR key={p.id}>
                         <TD className="px-3 text-body-sm">
-                          <p className="truncate">{c.product_name}</p>
-                          <p className="mt-0.5 text-caption text-slate">
-                            {new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                          </p>
+                          <p className="truncate">{p.product_name ?? 'Unknown product'}</p>
+                          <p className="mt-0.5 text-caption text-slate">{payoutDateNote(p)}</p>
                         </TD>
                         <TD className="px-3">
-                          <Badge tone={typeTone}>{typeLabel}</Badge>
+                          <StatusPill status={p.payout_status} label={PAYOUT_STATUS_LABEL[p.payout_status]} />
                         </TD>
-                        <TD className="whitespace-nowrap px-3 text-right text-body-sm">{formatDKK(c.amount_dkk)}</TD>
+                        <TD className="whitespace-nowrap px-3 text-right text-body-sm">{formatDKK(p.amount_dkk)}</TD>
                       </TR>
-                    );
-                  })}
-                </TBody>
-              </table>
-            </div>
+                    ))}
+                  </TBody>
+                </table>
+              </div>
+            </>
           )}
-        </Card>
-
-        {/* Recent scans */}
-        <Card padding="none" className="p-5 lg:p-6">
-          <SectionTitle title="Recent scans" />
-          {recentScans.length === 0 ? (
-            <EmptyState
-              className="border-none py-8"
-              icon={<ScanLine className="h-5 w-5" />}
-              title="No scans yet"
-              description="Place samples in visible spots to attract scans."
-            />
-          ) : (
-            <ul className="divide-y divide-line">
-              {recentScans.map((scan) => (
-                <li key={scan.id} className="flex items-center gap-3 py-3">
-                  <span className="h-2 w-2 shrink-0 border-[1.5px] border-accent" aria-hidden />
-                  <p className="min-w-0 flex-1 truncate text-body-sm text-primary">{scan.product_name}</p>
-                  <span className="whitespace-nowrap text-caption text-slate">{timeAgo(scan.scanned_at)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <p className="mt-4 text-caption text-slate">
+            Return period: your cut is paid out once the brand&apos;s return period has ended. Ready: paid out on the
+            next payout date, {shortDate(nextPayoutDate().toISOString())}.
+          </p>
         </Card>
       </div>
 
@@ -477,6 +462,75 @@ export default function RetailerDashboardPage() {
           </Card>
         )}
       </div>
+    </div>
+  );
+}
+
+function shortDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function payoutDateNote(p: Payout): string {
+  if (p.payout_status === 'paid_out' && p.paid_out_at) return `Paid out ${shortDate(p.paid_out_at)}`;
+  if (p.payout_status === 'ready') return `Payout on ${shortDate(nextPayoutDate().toISOString())}`;
+  if (p.return_period_ends_at) return `Return period ends ${shortDate(p.return_period_ends_at)}`;
+  return `Bought ${shortDate(p.ordered_at)} · not delivered yet`;
+}
+
+// Totals per payout status over every credited purchase.
+function PayoutTotals({ payouts }: { payouts: Payout[] }) {
+  const totals = PAYOUT_STATUSES.map((status) => {
+    const rows = payouts.filter((p) => p.payout_status === status);
+    return { status, count: rows.length, amount: rows.reduce((sum, p) => sum + p.amount_dkk, 0) };
+  });
+  return (
+    <dl className="mb-4 grid grid-cols-3 gap-px border border-line bg-line">
+      {totals.map((t: { status: PayoutStatus; count: number; amount: number }) => (
+        <div key={t.status} className="bg-surface px-3 py-2.5">
+          <dt className="text-label uppercase text-slate">{PAYOUT_STATUS_LABEL[t.status]}</dt>
+          <dd className="mt-1 text-body font-medium text-primary">{formatDKK(t.amount)}</dd>
+          <dd className="text-caption text-slate">
+            {t.count} {t.count === 1 ? 'purchase' : 'purchases'}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+// Figma "Most scanned": product, brand, a bar scaled to the top row, scans and buys.
+function MostScannedTable({ rows }: { rows: MostScanned[] }) {
+  const max = Math.max(...rows.map((r) => r.scans), 1);
+  return (
+    <div className="-mx-1 overflow-x-auto">
+      <table className="w-full border-collapse font-brand text-body text-primary">
+        <THead>
+          <tr>
+            <TH className="px-3 py-2 text-label font-medium">Product</TH>
+            <TH className="hidden px-3 py-2 text-label font-medium sm:table-cell">Brand</TH>
+            <TH className="px-3 py-2 text-right text-label font-medium" colSpan={2}>
+              Scans
+            </TH>
+            <TH className="px-3 py-2 text-right text-label font-medium">Buys</TH>
+          </tr>
+        </THead>
+        <TBody>
+          {rows.map((r) => (
+            <TR key={r.product_id}>
+              <TD className="max-w-[10rem] px-3 text-body-sm">
+                <p className="truncate">{r.product_name}</p>
+                <p className="truncate text-caption text-slate sm:hidden">{r.brand_name}</p>
+              </TD>
+              <TD className="hidden whitespace-nowrap px-3 text-body-sm text-slate sm:table-cell">{r.brand_name}</TD>
+              <TD className="w-full px-3" aria-hidden>
+                <div className="h-1.5 bg-accent" style={{ width: `${(r.scans / max) * 100}%` }} />
+              </TD>
+              <TD className="whitespace-nowrap px-3 text-right text-body-sm">{r.scans}</TD>
+              <TD className="whitespace-nowrap px-3 text-right text-body-sm">{r.buys}</TD>
+            </TR>
+          ))}
+        </TBody>
+      </table>
     </div>
   );
 }

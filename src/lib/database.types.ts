@@ -341,6 +341,7 @@ export type Database = {
           carrier: 'PostNord' | 'GLS' | 'DAO' | 'Bring' | 'Other' | null;
           shipped_at: string | null;
           delivered_at: string | null;
+          return_period_ends_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -362,6 +363,7 @@ export type Database = {
           carrier?: 'PostNord' | 'GLS' | 'DAO' | 'Bring' | 'Other' | null;
           shipped_at?: string | null;
           delivered_at?: string | null;
+          return_period_ends_at?: string | null;
         };
         Update: {
           id?: string;
@@ -381,6 +383,7 @@ export type Database = {
           carrier?: 'PostNord' | 'GLS' | 'DAO' | 'Bring' | 'Other' | null;
           shipped_at?: string | null;
           delivered_at?: string | null;
+          return_period_ends_at?: string | null;
         };
         Relationships: [];
       };
@@ -453,6 +456,7 @@ export type Database = {
           source_user_id: string | null;
           commission_rate: number | null;
           commission_amount_dkk: number | null;
+          paid_out_at: string | null;
           points_amount: number | null;
           status: 'pending' | 'confirmed' | 'paid' | 'reversed';
           attribution_window_expires_at: string | null;
@@ -468,6 +472,7 @@ export type Database = {
           source_user_id?: string | null;
           commission_rate?: number | null;
           commission_amount_dkk?: number | null;
+          paid_out_at?: string | null;
           points_amount?: number | null;
           status?: 'pending' | 'confirmed' | 'paid' | 'reversed';
           attribution_window_expires_at?: string | null;
@@ -481,6 +486,7 @@ export type Database = {
           source_user_id?: string | null;
           commission_rate?: number | null;
           commission_amount_dkk?: number | null;
+          paid_out_at?: string | null;
           points_amount?: number | null;
           status?: 'pending' | 'confirmed' | 'paid' | 'reversed';
           attribution_window_expires_at?: string | null;
@@ -858,6 +864,25 @@ export type Database = {
       get_brand_dashboard_stores: {
         Args: Record<string, never>;
         Returns: { id: string; name: string }[];
+      };
+      get_retailer_payouts: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          order_id: string;
+          product_name: string | null;
+          brand_name: string;
+          ordered_at: string;
+          delivered_at: string | null;
+          return_period_ends_at: string | null;
+          paid_out_at: string | null;
+          amount_dkk: number;
+          payout_status: 'return_period' | 'ready' | 'paid_out';
+        }[];
+      };
+      get_retailer_most_scanned: {
+        Args: { p_start: string; p_end: string; p_limit?: number };
+        Returns: { product_id: string; product_name: string; brand_name: string; scans: number; buys: number }[];
       };
     };
   };

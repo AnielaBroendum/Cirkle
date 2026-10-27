@@ -35,6 +35,7 @@ export function Badge({ tone = 'neutral', className, ...props }: BadgeProps) {
 const STATUS_TONES: Record<string, BadgeTone> = {
   // waiting on someone
   pending: 'warning',
+  return_period: 'warning',
   requested: 'warning',
   invited: 'warning',
   paused: 'warning',
@@ -52,6 +53,7 @@ const STATUS_TONES: Record<string, BadgeTone> = {
   swap_out: 'neutral',
   swap_in: 'neutral',
   deposit_paid: 'neutral',
+  paid_out: 'neutral',
   // done / good
   delivered: 'success',
   received: 'success',
@@ -59,6 +61,7 @@ const STATUS_TONES: Record<string, BadgeTone> = {
   active: 'success',
   paid: 'success',
   inspected_ok: 'success',
+  ready: 'success',
   deposit_refunded: 'success',
   // negative
   cancelled: 'outline',

@@ -4,7 +4,10 @@
 //   npm run db:seed-events -- --reset # only remove it
 //
 // Needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (.env.local) and
-// TEST_BRAND_EMAIL (.env.test-accounts.local). Everything it writes is marked:
+// TEST_BRAND_EMAIL (.env.test-accounts.local). With TEST_RETAILER_EMAIL it also
+// credits the QA store with orders in every payout status (Return period,
+// Ready, Paid out) plus a returned and a cancelled one that aren't credited.
+// Everything it writes is marked:
 // events have origin = 'seed', orders have a shipping address starting with
 // "[seed]", and the extra products use the fixed ids below. --reset removes
 // exactly those rows and nothing else.
@@ -14,6 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const brandEmail = process.env.TEST_BRAND_EMAIL;
+const retailerEmail = process.env.TEST_RETAILER_EMAIL;
 if (!url || !key || !brandEmail) {
   console.error('Missing NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY or TEST_BRAND_EMAIL.');
   process.exit(1);
@@ -27,6 +31,7 @@ const SEED_PRODUCTS = [
   { id: '5eed0000-0000-4000-8000-000000000003', name: 'Knit Scarf', price_dkk: 49900, sizes: ['One size'], category: 'Accessories' },
 ];
 const SEED_ADDRESS = '[seed] Testvej 1';
+const RETURN_PERIOD_DAYS = 14; // keep in step with src/lib/payouts.ts
 const DAY = 24 * 60 * 60 * 1000;
 
 // Deterministic randomness, so two runs give the same numbers.
@@ -146,21 +151,16 @@ for (let i = 0; i < events.length; i += 500) {
   await must(db.from('events').insert(events.slice(i, i + 500)), 'insert events');
 }
 
-// --- A few real New orders, so the Orders page has work to do ---------------
-// Ages 0, 1, 3 and 4 days: the last two are past the 2-day "Waiting" limit.
-const orderAges = [0, 1, 3, 4];
-for (const [i, age] of orderAges.entries()) {
-  const product = products[i % products.length];
-  const store = stores[i % stores.length];
+// One real order with its item, timeline, store credit and purchase event.
+async function createOrder({ product, store, createdAt, status = 'pending', shippedAt = null, deliveredAt = null, paidOutAt = null }) {
   const size = product.sizes?.length ? product.sizes[Math.floor(product.sizes.length / 2)] : null;
-  const createdAt = new Date(now - age * DAY - 2 * 60 * 60 * 1000).toISOString();
   const order = await must(
     db
       .from('orders')
       .insert({
         consumer_user_id: shopper.id,
         brand_id: brand.id,
-        status: 'pending',
+        status,
         total_dkk: product.price_dkk,
         shipping_name: 'QA Shopper',
         shipping_address: SEED_ADDRESS,
@@ -168,6 +168,9 @@ for (const [i, age] of orderAges.entries()) {
         shipping_postal_code: '2200',
         shipping_country: 'DK',
         created_at: createdAt,
+        shipped_at: shippedAt,
+        delivered_at: deliveredAt,
+        return_period_ends_at: deliveredAt ? new Date(new Date(deliveredAt).getTime() + RETURN_PERIOD_DAYS * DAY).toISOString() : null,
       })
       .select('id')
       .single(),
@@ -181,7 +184,14 @@ for (const [i, age] of orderAges.entries()) {
       .single(),
     'insert order item'
   );
-  await must(db.from('order_events').insert({ order_id: order.id, status: 'pending', note: 'Order placed', created_at: createdAt }), 'insert order event');
+  const steps = [['pending', createdAt, 'Order placed']];
+  if (shippedAt) steps.push(['shipped', shippedAt, null]);
+  if (deliveredAt) steps.push(['delivered', deliveredAt, null]);
+  if (status === 'cancelled') steps.push(['cancelled', createdAt, null]);
+  await must(
+    db.from('order_events').insert(steps.map(([s, at, note]) => ({ order_id: order.id, status: s, note, created_at: at }))),
+    'insert order events'
+  );
   await must(
     db.from('attributions').insert({
       order_id: order.id,
@@ -189,7 +199,8 @@ for (const [i, age] of orderAges.entries()) {
       source_retailer_id: store.id,
       commission_rate: 1500,
       commission_amount_dkk: Math.round(product.price_dkk * 0.15),
-      status: 'pending',
+      status: paidOutAt ? 'paid' : 'pending',
+      paid_out_at: paidOutAt,
       attribution_window_expires_at: new Date(now + 90 * DAY).toISOString(),
     }),
     'insert attribution'
@@ -211,11 +222,65 @@ for (const [i, age] of orderAges.entries()) {
     }),
     'insert order purchase event'
   );
+  return { order, item };
+}
+
+// --- A few real New orders, so the Orders page has work to do ---------------
+// Ages 0, 1, 3 and 4 days: the last two are past the 2-day "Waiting" limit.
+const orderAges = [0, 1, 3, 4];
+for (const [i, age] of orderAges.entries()) {
+  await createOrder({
+    product: products[i % products.length],
+    store: stores[i % stores.length],
+    createdAt: new Date(now - age * DAY - 2 * 60 * 60 * 1000).toISOString(),
+  });
+}
+
+// --- Payouts for the QA store: one or more orders in every status ----------
+// Delivered N days ago: under 14 days is still in the return period.
+let payoutOrders = 0;
+const qaStoreUser = retailerEmail
+  ? (await db.from('profiles').select('id').eq('email', retailerEmail).maybeSingle()).data
+  : null;
+const qaStore = qaStoreUser
+  ? (await db.from('retailer_profiles').select('id, name').eq('user_id', qaStoreUser.id).maybeSingle()).data
+  : null;
+if (qaStore) {
+  const ago = (days) => new Date(now - days * DAY).toISOString();
+  const plan = [
+    { label: 'shipped, not delivered', status: 'shipped', created: 4, shipped: 2 },
+    { label: 'delivered 3 days ago', status: 'delivered', created: 8, shipped: 6, delivered: 3 },
+    { label: 'return requested', status: 'delivered', created: 9, shipped: 7, delivered: 3, returnStatus: 'requested' },
+    { label: 'ready', status: 'delivered', created: 25, shipped: 23, delivered: 20 },
+    { label: 'ready', status: 'delivered', created: 30, shipped: 28, delivered: 26 },
+    { label: 'paid out', status: 'delivered', created: 50, shipped: 48, delivered: 45, paidOut: 27 },
+    { label: 'returned (not credited)', status: 'delivered', created: 25, shipped: 23, delivered: 20, returnStatus: 'refunded' },
+    { label: 'cancelled (not credited)', status: 'cancelled', created: 6 },
+  ];
+  for (const [i, o] of plan.entries()) {
+    const { order, item } = await createOrder({
+      product: products[i % products.length],
+      store: qaStore,
+      status: o.status,
+      createdAt: ago(o.created),
+      shippedAt: o.shipped ? ago(o.shipped) : null,
+      deliveredAt: o.delivered ? ago(o.delivered) : null,
+      paidOutAt: o.paidOut ? ago(o.paidOut) : null,
+    });
+    if (o.returnStatus) {
+      await must(
+        db.from('returns').insert({ order_id: order.id, order_item_id: item.id, user_id: shopper.id, reason: 'too_big', status: o.returnStatus }),
+        'insert return'
+      );
+    }
+  }
+  payoutOrders = plan.length;
 }
 
 const count = (t) => events.filter((e) => e?.type === t).length;
 console.log(
   `Seeded ${brand.name}: ${products.length} products, ${stores.length} stores, ` +
     `${count('scan')} scans, ${count('save')} saves, ${count('purchase') + orderAges.length} purchases, ` +
-    `${events.filter((e) => e?.giver_user_id).length} events passed on by a friend, ${orderAges.length} New orders.`
+    `${events.filter((e) => e?.giver_user_id).length} events passed on by a friend, ${orderAges.length} New orders` +
+    (qaStore ? `, ${payoutOrders} payout orders for ${qaStore.name}.` : '. No TEST_RETAILER_EMAIL store, so no payout orders.')
 );

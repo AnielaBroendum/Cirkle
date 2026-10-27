@@ -48,10 +48,10 @@ Ticking an item means it's built and verified.
 - [x] **Carrier and tracking** (Part C)
   - **Today:** `orders.tracking_number` and `tracking_url`, set on the move to `shipped`.
   - **Missing:** a carrier column.
-- [ ] **Return-period end date**
+- [x] **Return-period end date** (`orders.return_period_ends_at`, run 2 Part A)
   - **Today:** nothing.
   - **Missing:** a return deadline (e.g. delivered + N days), which the return rules and payouts depend on.
-- [ ] **Payout date**
+- [x] **Payout date** (`attributions.paid_out_at`, run 2 Part A; no payout job yet)
   - **Today:** `attributions.status` (`commission_status`: pending, confirmed, paid, reversed) exists, but no code moves it past `pending`. Bank details are in `retailer_payout_details` (004) and `brand_payout_details` (007).
   - **Missing:** a payout date / `paid_at`, any payout table or job, and the confirm-after-return-period step.
 
@@ -133,6 +133,29 @@ Ticking an item means it's built and verified.
   - Edit product (and onboarding) → Images: up to 8, first is the main image, drag to reorder. New uploads go to the `product-images` bucket; existing `brand-assets` images keep working.
   - Rules are checked in the browser before upload and again on the server from the stored bytes (`src/lib/media-probe.ts`, `src/lib/media-rules.ts`), with messages like "Video is 26 s. Max is 20 s." The buckets also enforce size and file type. Files that fail the server check are deleted.
   - H.264: the browser's `<video>` can tell length and size but not the codec, so the codec is read from the MP4/MOV header instead (HEVC from iPhones is refused with a clear message).
+
+---
+
+## Build parts (second October 2026 run)
+
+- [x] **A Retail payouts and most scanned** (migration 013)
+  - Every purchase credited to a store has a status, derived from dates and never stored:
+    - **Return period**: not delivered yet, the return period hasn't ended, or a return request is open.
+    - **Ready**: the period has ended. It is paid on the next payout date (`PAYOUT_DAY_OF_MONTH = 1`).
+    - **Paid out**: `attributions.paid_out_at` is set.
+  - Cancelled orders and returned items (return approved, received or refunded) aren't credited.
+  - `orders.return_period_ends_at` = delivered + `RETURN_PERIOD_DAYS = 14` (`src/lib/payouts.ts`). It is written on delivery, and existing delivered orders were backfilled with 14 days.
+  - `attributions.paid_out_at` is new. Nothing sets it yet (no payout job). It can be set by hand or by the seed.
+  - Retail dashboard → Latest credited purchases: totals per status (all-time), the latest 8 with a status pill and date note, and the Figma footnote with the next payout date. "Purchases credited" and "Earned" use the same credited set for the selected period.
+  - Most scanned in your store: scans and buys per product for Week / Month / Year from `events` (`get_retailer_most_scanned`). Buys on cancelled orders don't count. "Scans in store" now counts the same events.
+  - Both RPCs are security definer and only return the calling store's rows. A brand gets nothing back.
+  - Seed: `npm run db:seed-events` also gives the QA store eight orders:
+    - Return period ×5: shipped; delivered 3 days ago; open return; and two New orders.
+    - Ready ×2.
+    - Paid out ×1.
+    - Not credited: one returned and one cancelled order.
+
+    The RPC totals matched hand-written SQL (749.25 / 157.20 / 134.85 kr), and so did the screen.
 
 ---
 
