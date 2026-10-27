@@ -178,7 +178,7 @@ export function ImageUpload({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-line font-brand text-body text-muted hover:border-primary hover:text-primary transition disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-line font-brand text-body text-slate hover:border-primary hover:text-primary transition disabled:opacity-50"
         >
           {uploading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

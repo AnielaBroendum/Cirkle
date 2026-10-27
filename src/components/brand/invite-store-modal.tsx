@@ -71,7 +71,7 @@ export function InviteStoreModal({ open, onClose, onInvited }: InviteStoreModalP
   return (
     <Modal open={open} onClose={close} title="Invite store" variant="sheet">
       <form onSubmit={handleInvite} className="space-y-4">
-        <p className="text-muted">We email the store a link to join Flaym and partner with you.</p>
+        <p className="text-slate">We email the store a link to join Flaym and partner with you.</p>
         <Field label="Store email *" htmlFor="invite-email">
           <Input
             id="invite-email"
@@ -84,7 +84,7 @@ export function InviteStoreModal({ open, onClose, onInvited }: InviteStoreModalP
         </Field>
 
         <div>
-          <p className="mb-1.5 text-label uppercase text-muted">Store commission</p>
+          <p className="mb-1.5 text-label uppercase text-slate">Store commission</p>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Direct %" htmlFor="invite-direct">
               <Input id="invite-direct" type="number" min={0} max={100} value={commDirect} onChange={(e) => setCommDirect(Number(e.target.value))} />

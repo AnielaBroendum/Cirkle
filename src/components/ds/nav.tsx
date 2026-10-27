@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, Menu, X, type LucideIcon } from 'lucide-react';
+import { ChevronLeft, Menu, X } from 'lucide-react';
 import { cn } from './cn';
 import { Logo } from './logo';
 
@@ -11,7 +11,8 @@ import { Logo } from './logo';
 export type NavItem = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  /** A lucide icon or a Flaym icon from `ds/icons`. */
+  icon: React.ComponentType<{ className?: string; strokeWidth?: string | number }>;
   /** Extra route prefixes that also mark this item active (e.g. Profile's sub-tabs). */
   match?: string[];
 };
@@ -105,7 +106,7 @@ export function BottomNav({ items, fixed = true, className }: BottomNavProps) {
                 aria-current={on ? 'page' : undefined}
                 className={cn(
                   'flex h-full flex-col items-center justify-start gap-1.5 pt-2.5 text-label leading-none tracking-normal transition-colors',
-                  on ? 'text-accent' : 'text-muted hover:text-on-primary'
+                  on ? 'text-accent' : 'text-smoke hover:text-on-primary'
                 )}
               >
                 <item.icon className="h-6 w-6" strokeWidth={on ? 2 : 1.5} />

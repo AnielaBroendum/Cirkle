@@ -100,7 +100,7 @@ export default function InvitePage() {
   if (loading || authLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-canvas" aria-busy>
-        <Loader2 className="h-6 w-6 animate-spin text-muted" aria-label="Loading invitation" />
+        <Loader2 className="h-6 w-6 animate-spin text-slate" aria-label="Loading invitation" />
       </main>
     );
   }
@@ -139,7 +139,7 @@ export default function InvitePage() {
       </div>
 
       <div>
-        <p className="mb-1.5 text-label uppercase text-muted">Commission rates</p>
+        <p className="mb-1.5 text-label uppercase text-slate">Commission rates</p>
         <List>
           <ListRow title="Direct sale" trailing={<span className="text-body font-medium text-primary">{formatCommission(invitation.commission_direct)}</span>} />
           <ListRow title="Deferred sale (90 days)" trailing={<span className="text-body font-medium text-primary">{formatCommission(invitation.commission_deferred)}</span>} />
@@ -167,7 +167,7 @@ export default function InvitePage() {
           >
             Create retailer account
           </Link>
-          <p className="text-[13px] text-muted">
+          <p className="text-body-sm text-slate">
             Already have an account?{' '}
             <Link href={`/auth/login?redirect=/invite/${token}`} className="text-primary underline">
               Log in

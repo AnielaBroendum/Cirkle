@@ -111,7 +111,7 @@ export default function BrandAccountPage() {
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 className="font-brand text-heading-xl uppercase text-primary">Account</h1>
-        <p className="mt-1 text-body text-muted">Brand profile and payout details</p>
+        <p className="mt-1 text-body text-slate">Brand profile and payout details</p>
       </div>
       {action}
     </div>
@@ -192,7 +192,7 @@ export default function BrandAccountPage() {
             />
           </Field>
           <div className="flex flex-col gap-1.5">
-            <span className="text-label uppercase text-muted">Logo</span>
+            <span className="text-label uppercase text-slate">Logo</span>
             <ImageUpload
               bucket="brand-assets"
               folder="logos"
@@ -236,7 +236,7 @@ export default function BrandAccountPage() {
               onChange={(e) => { setCvr(e.target.value); setSaved(false); }}
             />
           </Field>
-          <p className="text-caption text-muted">
+          <p className="text-caption text-slate">
             {accountTablesReady
               ? "Flaym pays out your share monthly after settlement, minus the store's cut and Flaym's fee. Only you can see these details."
               : 'Payout details can be saved once the database update for accounts is applied.'}

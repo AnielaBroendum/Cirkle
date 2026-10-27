@@ -8,7 +8,7 @@ const TONES: Record<BadgeTone, string> = {
   neutral: 'bg-surface-muted text-primary',
   success: 'bg-success-subtle text-success',
   warning: 'bg-warning-subtle text-warning',
-  outline: 'border border-line text-muted',
+  outline: 'border border-line text-slate',
   dark: 'bg-primary text-on-primary',
 };
 

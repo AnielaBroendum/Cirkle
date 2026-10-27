@@ -25,11 +25,11 @@ function LatestRow({ item }: { item: FlaymsStats['latest'][number] }) {
       <Thumb src={item.image} alt={item.productName} className="h-[60px] w-12" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-body text-on-primary">{item.productName}</p>
-        <p className="truncate text-caption text-muted">
+        <p className="truncate text-caption text-smoke">
           {item.type === 'lit' ? `Lit by ${who}` : `Passed on to ${who}`} · {timeAgo(item.at)}
         </p>
       </div>
-      <span className={cn('text-[16px]', item.type === 'lit' ? 'text-accent' : 'text-muted')} aria-label={item.type === 'lit' ? 'Lit' : 'Passed on'}>
+      <span className={cn('text-[16px]', item.type === 'lit' ? 'text-accent' : 'text-smoke')} aria-label={item.type === 'lit' ? 'Lit' : 'Passed on'}>
         {item.type === 'lit' ? '●' : '○'}
       </span>
     </Link>
@@ -72,7 +72,7 @@ export default function FlaymsPage() {
   return (
     <div className="px-5 pb-6">
       <header className="flex h-[52px] items-end justify-between pb-1">
-        <h1 className="font-brand text-[18px] font-normal uppercase leading-none tracking-[0.4px] text-on-primary">Your Flayms</h1>
+        <h1 className="font-brand text-title font-normal uppercase leading-none tracking-[0.4px] text-on-primary">Your Flayms</h1>
         <Logo height={20} />
       </header>
 
@@ -80,14 +80,14 @@ export default function FlaymsPage() {
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="h-[104px] bg-surface-dark p-4">
           <p className="text-[40px] font-medium leading-none text-on-primary">{stats ? stats.passedOn : '–'}</p>
-          <p className="mt-4 text-label uppercase text-muted">Passed on</p>
+          <p className="mt-4 text-label uppercase text-smoke">Passed on</p>
         </div>
         <div className="h-[104px] bg-accent p-4 text-on-primary">
           <p className="text-[40px] font-medium leading-none">{stats ? stats.lit : '–'}</p>
           <p className="mt-4 text-label uppercase">Lit</p>
         </div>
       </div>
-      <p className="mt-4 text-caption text-line">A flame is lit when someone buys something you passed on.</p>
+      <p className="mt-4 text-caption text-ash">A flame is lit when someone buys something you passed on.</p>
 
       {/* Spendable balance (points) */}
       {stats && (
@@ -95,15 +95,15 @@ export default function FlaymsPage() {
           <FlameIcon className="mt-0.5 h-3 w-auto" />
           <p className="text-caption text-on-primary">
             {stats.balance} Flayms to spend
-            <span className="block text-muted">1 Flaym = 1 kr off at checkout</span>
+            <span className="block text-smoke">1 Flaym = 1 kr off at checkout</span>
           </p>
         </div>
       )}
 
       {/* Latest */}
-      <p className="mt-6 text-label uppercase text-muted">Latest</p>
+      <p className="mt-6 text-label uppercase text-smoke">Latest</p>
       {error ? (
-        <p className="mt-3 text-caption text-line">We couldn&rsquo;t load your flames. Try again in a moment.</p>
+        <p className="mt-3 text-caption text-ash">We couldn&rsquo;t load your flames. Try again in a moment.</p>
       ) : !stats ? (
         <div className="mt-3 space-y-3" aria-busy>
           {[0, 1, 2].map((i) => (
@@ -116,7 +116,7 @@ export default function FlaymsPage() {
       ) : stats.latest.length === 0 ? (
         <div className="mt-3 bg-surface-dark p-4">
           <p className="text-body text-on-primary">Nothing passed on yet</p>
-          <p className="mt-1 text-caption text-muted">
+          <p className="mt-1 text-caption text-smoke">
             When something you own arrives, let a friend scan its code from{' '}
             <Link href="/consumer/profile" className="text-accent">
               Profile → Owned
@@ -137,15 +137,15 @@ export default function FlaymsPage() {
       {/* Earned & spent */}
       {history && history.length > 0 && (
         <>
-          <p className="mt-6 text-label uppercase text-muted">Earned &amp; spent</p>
+          <p className="mt-6 text-label uppercase text-smoke">Earned &amp; spent</p>
           <ul className="mt-1 divide-y divide-line-dark">
             {history.map((entry) => (
               <li key={entry.id} className="flex items-center justify-between py-3">
                 <div>
                   <p className="text-body text-on-primary">{REASON_LABELS[entry.reason] || entry.reason}</p>
-                  <p className="text-caption text-muted">{new Date(entry.created_at).toLocaleDateString('en-GB')}</p>
+                  <p className="text-caption text-smoke">{new Date(entry.created_at).toLocaleDateString('en-GB')}</p>
                 </div>
-                <span className={cn('text-body', entry.amount > 0 ? 'text-accent' : 'text-muted')}>
+                <span className={cn('text-body', entry.amount > 0 ? 'text-accent' : 'text-smoke')}>
                   {entry.amount > 0 ? '+' : ''}
                   {entry.amount}
                 </span>
@@ -158,7 +158,7 @@ export default function FlaymsPage() {
       <button
         type="button"
         onClick={copyInvite}
-        className="mt-8 flex h-[52px] w-full items-center justify-center border border-muted text-[15px] font-medium text-on-primary hover:border-on-primary"
+        className="mt-8 flex h-[52px] w-full items-center justify-center border border-char text-body-lg font-medium text-on-primary hover:border-on-primary"
       >
         {copied ? 'Link copied' : 'Invite a friend · copy link'}
       </button>

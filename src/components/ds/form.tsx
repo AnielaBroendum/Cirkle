@@ -20,7 +20,7 @@ export function Field({ label, htmlFor, hint, error, className, children }: Fiel
   return (
     <div className={cn('flex flex-col gap-1.5 font-brand', className)}>
       {label && (
-        <label htmlFor={htmlFor} className="text-label uppercase text-muted">
+        <label htmlFor={htmlFor} className="text-label uppercase text-slate">
           {label}
         </label>
       )}
@@ -28,7 +28,7 @@ export function Field({ label, htmlFor, hint, error, className, children }: Fiel
       {error ? (
         <p className="text-caption text-accent-strong">{error}</p>
       ) : hint ? (
-        <p className="text-caption text-muted">{hint}</p>
+        <p className="text-caption text-slate">{hint}</p>
       ) : null}
     </div>
   );
@@ -40,7 +40,7 @@ export function Field({ label, htmlFor, hint, error, className, children }: Fiel
 // No danger colour in Figma — errors use the accent tones.
 export function controlClasses(invalid?: boolean, className?: string) {
   return cn(
-    'w-full rounded-control border bg-surface font-brand text-body text-primary placeholder:text-muted',
+    'w-full rounded-control border bg-surface font-brand text-body text-primary placeholder:text-slate',
     'outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-60',
     invalid ? 'border-accent focus:border-accent' : 'border-line',
     className
@@ -89,7 +89,7 @@ export const Select = forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<H
         >
           {children}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+        <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate" />
       </div>
     );
   }

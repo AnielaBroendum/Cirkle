@@ -45,7 +45,7 @@ export default function ScanPage() {
               className="relative grid h-[34px] w-[34px] place-items-center rounded-pill border border-on-primary text-on-primary"
             >
               <ShoppingBag className="h-4 w-4" />
-              <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-pill bg-accent px-1 text-[10px] leading-none text-on-primary">
+              <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-pill bg-accent px-1 text-caption leading-none text-on-primary">
                 {basket.length}
               </span>
             </Link>
@@ -57,7 +57,7 @@ export default function ScanPage() {
               aria-label={torchOn ? 'Turn off the light' : 'Turn on the light'}
               aria-pressed={torchOn}
               className={cn(
-                'grid h-[34px] w-[34px] place-items-center rounded-pill border border-on-primary text-[13px]',
+                'grid h-[34px] w-[34px] place-items-center rounded-pill border border-on-primary text-body-sm',
                 torchOn ? 'bg-on-primary text-primary' : 'text-on-primary'
               )}
             >
@@ -89,7 +89,7 @@ export default function ScanPage() {
                   ? 'No camera found on this device.'
                   : 'The camera didn’t start.'}
             </p>
-            <p className="mt-1.5 text-caption text-line">
+            <p className="mt-1.5 text-caption text-ash">
               {state === 'denied'
                 ? 'Allow camera access in your browser settings, or scan the tag with your phone’s camera app.'
                 : 'You can also scan the tag with your phone’s camera app.'}

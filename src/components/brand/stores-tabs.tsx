@@ -45,7 +45,7 @@ export function StoresPageHeader({ subtitle, action }: { subtitle: string; actio
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-brand text-heading-xl uppercase text-primary">Stores and QR tags</h1>
-          <p className="mt-1 text-body text-muted">{subtitle}</p>
+          <p className="mt-1 text-body text-slate">{subtitle}</p>
         </div>
         {action}
       </div>

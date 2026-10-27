@@ -218,7 +218,7 @@ export default function BrandOrdersPage() {
   const header = (
     <div>
       <h1 className="font-brand text-heading-xl uppercase text-primary">Orders</h1>
-      <p className="mt-1 text-body text-muted">Paid to Flaym. You ship by hand and mark each step.</p>
+      <p className="mt-1 text-body text-slate">Paid to Flaym. You ship by hand and mark each step.</p>
     </div>
   );
 
@@ -259,58 +259,58 @@ export default function BrandOrdersPage() {
         </div>
 
         <div>
-          <p className="mb-1 text-label uppercase text-muted">Ship to</p>
-          <p className="text-[13px] text-primary">{order.shipping_name}</p>
+          <p className="mb-1 text-label uppercase text-slate">Ship to</p>
+          <p className="text-body-sm text-primary">{order.shipping_name}</p>
           {order.profiles?.name && order.profiles.name !== order.shipping_name && (
-            <p className="text-caption text-muted">Ordered by {order.profiles.name}</p>
+            <p className="text-caption text-slate">Ordered by {order.profiles.name}</p>
           )}
-          <p className="mt-0.5 text-[13px] text-muted">
+          <p className="mt-0.5 text-body-sm text-slate">
             {order.shipping_address}, {order.shipping_postal_code} {order.shipping_city}, {order.shipping_country}
           </p>
         </div>
 
         <ul className="divide-y divide-line border-y border-line">
           {order.order_items.map((item) => (
-            <li key={item.id} className="flex items-start justify-between gap-3 py-3 text-[13px]">
+            <li key={item.id} className="flex items-start justify-between gap-3 py-3 text-body-sm">
               <div className="min-w-0">
                 <p className="truncate text-primary">{item.product_name}</p>
-                <p className="text-caption text-muted">
+                <p className="text-caption text-slate">
                   {[item.size && `Size ${item.size}`, item.color].filter(Boolean).join(' · ') || 'One size'} · ×{item.quantity}
                 </p>
               </div>
               <span className="whitespace-nowrap tabular-nums text-primary">{formatDKK(item.unit_price_dkk * item.quantity)}</span>
             </li>
           ))}
-          <li className="flex justify-between py-3 text-[13px]">
-            <span className="text-label uppercase text-muted">Total</span>
+          <li className="flex justify-between py-3 text-body-sm">
+            <span className="text-label uppercase text-slate">Total</span>
             <span className="font-medium tabular-nums text-primary">{formatDKK(order.total_dkk)}</span>
           </li>
         </ul>
 
         <div>
-          <p className="mb-1 text-label uppercase text-muted">The chain</p>
-          {credit?.store && <p className="text-[13px] text-primary">Store: {credit.store}</p>}
-          {credit?.peer && <p className="text-[13px] text-primary">Passed on by a friend</p>}
-          {!credit && <p className="text-caption text-muted">Bought without a scan</p>}
+          <p className="mb-1 text-label uppercase text-slate">The chain</p>
+          {credit?.store && <p className="text-body-sm text-primary">Store: {credit.store}</p>}
+          {credit?.peer && <p className="text-body-sm text-primary">Passed on by a friend</p>}
+          {!credit && <p className="text-caption text-slate">Bought without a scan</p>}
         </div>
 
         {order.tracking_number && (
           <div>
-            <p className="mb-1 text-label uppercase text-muted">Tracking</p>
-            <p className="text-[13px] text-primary">{order.tracking_number}</p>
+            <p className="mb-1 text-label uppercase text-slate">Tracking</p>
+            <p className="text-body-sm text-primary">{order.tracking_number}</p>
           </div>
         )}
 
         <div>
-          <p className="mb-2 text-label uppercase text-muted">History</p>
+          <p className="mb-2 text-label uppercase text-slate">History</p>
           <ol className="space-y-1.5">
             {[...order.order_events]
               .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
               .map((event, i) => (
-                <li key={event.id} className="flex items-center gap-2.5 text-[13px]">
+                <li key={event.id} className="flex items-center gap-2.5 text-body-sm">
                   <span className={cn('h-2 w-2 shrink-0', i === 0 ? 'bg-accent' : 'bg-line')} />
                   <span className="text-primary">{STATUS_LABEL[event.status] === 'New' ? 'Placed' : STATUS_LABEL[event.status] ?? event.status}</span>
-                  <span className="text-caption text-muted">
+                  <span className="text-caption text-slate">
                     {new Date(event.created_at).toLocaleDateString('en-GB', {
                       day: 'numeric',
                       month: 'short',
@@ -406,15 +406,15 @@ export default function BrandOrdersPage() {
                 <button type="button" onClick={() => select(order.id)} className="flex w-full items-center gap-3 p-4 text-left">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[13px] font-medium text-primary">#{order.order_number}</span>
+                      <span className="text-body-sm font-medium text-primary">#{order.order_number}</span>
                       <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
                     </div>
-                    <p className="mt-1 truncate text-caption text-muted">
+                    <p className="mt-1 truncate text-caption text-slate">
                       {shortDate(order.created_at)} · {order.order_items.length} item{order.order_items.length !== 1 ? 's' : ''} · {creditLabel(order.id)}
                     </p>
                   </div>
-                  <span className="whitespace-nowrap text-[13px] tabular-nums text-primary">{formatDKK(order.total_dkk)}</span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+                  <span className="whitespace-nowrap text-body-sm tabular-nums text-primary">{formatDKK(order.total_dkk)}</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate" />
                 </button>
               </li>
             ))}
@@ -422,7 +422,7 @@ export default function BrandOrdersPage() {
 
           {/* Desktop: table */}
           <div className="hidden overflow-x-auto border border-line bg-surface md:block">
-            <table className="w-full border-collapse font-brand text-[13px] text-primary">
+            <table className="w-full border-collapse font-brand text-body-sm text-primary">
               <THead>
                 <tr>
                   <TH className="px-5">Order</TH>

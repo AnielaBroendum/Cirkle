@@ -120,14 +120,14 @@ export default function NewSamplePage() {
 
   const header = (
     <div>
-      <p className="text-body text-muted">
+      <p className="text-body text-slate">
         <Link href="/brand/samples" className="hover:text-primary">
           Stores and QR tags
         </Link>{' '}
         / New sample
       </p>
       <h1 className="mt-1 font-brand text-heading-xl uppercase text-primary">Add sample</h1>
-      <p className="mt-1 text-body text-muted">Pick a product and a partner store. We generate the store&apos;s QR tag right away.</p>
+      <p className="mt-1 text-body text-slate">Pick a product and a partner store. We generate the store&apos;s QR tag right away.</p>
     </div>
   );
 

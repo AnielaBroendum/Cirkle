@@ -1,0 +1,9 @@
+import { createIcon } from './create-icon';
+
+/** Figma "Icon / Account": person. Portal nav. */
+export const AccountIcon = createIcon('AccountIcon', 2, (
+  <>
+    <path d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z" />
+    <path d="M4 21C4 18.8783 4.84285 16.8434 6.34315 15.3431C7.84344 13.8429 9.87827 13 12 13C14.1217 13 16.1566 13.8429 17.6569 15.3431C19.1571 16.8434 20 18.8783 20 21" />
+  </>
+));

@@ -6,8 +6,10 @@ import { extendTailwindMerge } from 'tailwind-merge';
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      'font-size': [{ text: ['display', 'heading-xl', 'heading-lg', 'body', 'caption', 'label'] }],
-      'bg-image': [{ bg: ['flaym-gradient'] }],
+      'font-size': [
+        { text: ['display', 'heading-xl', 'heading-lg', 'title', 'body-lg', 'body', 'body-sm', 'caption', 'label', 'button'] },
+      ],
+      'bg-image': [{ bg: ['flaym-gradient', 'flaym-scan'] }],
     },
   },
 });

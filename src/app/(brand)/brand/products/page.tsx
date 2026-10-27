@@ -128,7 +128,7 @@ export default function BrandProductsPage() {
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 className="font-brand text-heading-xl uppercase text-primary">Product library</h1>
-        <p className="mt-1 text-body text-muted">
+        <p className="mt-1 text-body text-slate">
           {loading ? 'Loading products…' : `${products.length} product${products.length !== 1 ? 's' : ''} · shown on the product page when a tag is scanned`}
         </p>
       </div>
@@ -171,7 +171,7 @@ export default function BrandProductsPage() {
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full sm:w-[360px]">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate" />
               <Input
                 type="search"
                 value={query}
@@ -222,15 +222,15 @@ export default function BrandProductsPage() {
                       <Link href={`/brand/products/${product.id}/edit`} className="block truncate text-body text-primary">
                         {product.name}
                       </Link>
-                      <p className="mt-0.5 truncate text-caption text-muted">
+                      <p className="mt-0.5 truncate text-caption text-slate">
                         {[product.category, sizeRange(product.sizes), formatDKK(product.price_dkk)].filter(Boolean).join(' · ')}
                       </p>
-                      <p className="mt-0.5 text-caption text-muted">In {inStores(product)} store{inStores(product) !== 1 ? 's' : ''}</p>
+                      <p className="mt-0.5 text-caption text-slate">In {inStores(product)} store{inStores(product) !== 1 ? 's' : ''}</p>
                       <div className="mt-3 flex items-center justify-between gap-2">
                         <Toggle
                           checked={product.is_active}
                           onCheckedChange={() => toggleActive(product)}
-                          label={<span className="text-caption text-muted">{product.is_active ? 'Active' : 'Inactive'}</span>}
+                          label={<span className="text-caption text-slate">{product.is_active ? 'Active' : 'Inactive'}</span>}
                           aria-label={`${product.name} active`}
                         />
                         <RowActions product={product} onDelete={() => setConfirmDelete(product)} />
@@ -242,7 +242,7 @@ export default function BrandProductsPage() {
 
               {/* Desktop: table */}
               <div className="hidden md:block">
-                <Table className="text-[13px]">
+                <Table className="text-body-sm">
                   <THead>
                     <tr>
                       <TH className="px-5">Product</TH>
@@ -268,15 +268,15 @@ export default function BrandProductsPage() {
                                 {product.name}
                               </Link>
                               {product.colors?.length ? (
-                                <p className="mt-0.5 truncate text-caption text-muted">{product.colors.join(' · ')}</p>
+                                <p className="mt-0.5 truncate text-caption text-slate">{product.colors.join(' · ')}</p>
                               ) : null}
                             </div>
                           </div>
                         </TD>
-                        <TD>{product.category || <span className="text-muted">—</span>}</TD>
+                        <TD>{product.category || <span className="text-slate">—</span>}</TD>
                         <TD className="whitespace-nowrap">{sizeRange(product.sizes)}</TD>
                         <TD className="whitespace-nowrap text-right tabular-nums">{formatDKK(product.price_dkk)}</TD>
-                        <TD className="whitespace-nowrap text-right tabular-nums text-muted">
+                        <TD className="whitespace-nowrap text-right tabular-nums text-slate">
                           {product.deposit_amount_dkk ? formatDKK(product.deposit_amount_dkk) : '—'}
                         </TD>
                         <TD className="text-right tabular-nums">{inStores(product)}</TD>
@@ -321,7 +321,7 @@ export default function BrandProductsPage() {
           </>
         }
       >
-        <p className="text-muted">
+        <p className="text-slate">
           Are you sure you want to delete <span className="text-primary">{confirmDelete?.name}</span>? This can&apos;t be undone.
         </p>
       </Modal>
@@ -336,7 +336,7 @@ function Thumb({ product }: { product: Product }) {
     </div>
   ) : (
     <div className="flex h-10 w-[34px] shrink-0 items-center justify-center bg-surface-muted">
-      <Package className="h-4 w-4 text-muted" />
+      <Package className="h-4 w-4 text-slate" />
     </div>
   );
 }
@@ -347,7 +347,7 @@ function RowActions({ product, onDelete }: { product: Product; onDelete: () => v
       <Link
         href={`/brand/products/${product.id}/edit`}
         aria-label={`Edit ${product.name}`}
-        className="inline-flex h-9 w-9 items-center justify-center text-muted transition-colors hover:bg-surface-muted hover:text-primary"
+        className="inline-flex h-9 w-9 items-center justify-center text-slate transition-colors hover:bg-surface-muted hover:text-primary"
       >
         <Pencil className="h-4 w-4" />
       </Link>
@@ -355,7 +355,7 @@ function RowActions({ product, onDelete }: { product: Product; onDelete: () => v
         type="button"
         onClick={onDelete}
         aria-label={`Delete ${product.name}`}
-        className="inline-flex h-9 w-9 items-center justify-center text-muted transition-colors hover:bg-surface-muted hover:text-primary"
+        className="inline-flex h-9 w-9 items-center justify-center text-slate transition-colors hover:bg-surface-muted hover:text-primary"
       >
         <Trash2 className="h-4 w-4" />
       </button>

@@ -143,7 +143,7 @@ function ConsumerQRWalletPage() {
               <Thumb src={focused.image ?? null} alt={focused.productName} className="h-[70px] w-14" />
               <div className="min-w-0">
                 <p className="truncate text-body text-on-primary">{focused.productName}</p>
-                <p className="truncate text-caption text-muted">
+                <p className="truncate text-caption text-smoke">
                   {[focused.brandName, focused.status === 'delivered' ? 'Owned' : 'On its way'].filter(Boolean).join(' · ')}
                 </p>
               </div>
@@ -155,10 +155,10 @@ function ConsumerQRWalletPage() {
                   <img src={focused.qrDataUrl} alt="QR code to pass it on" className="h-[234px] w-[234px]" />
                 </div>
                 <p className="mt-5 text-center text-body text-on-primary">Let your friend scan this code.</p>
-                <p className="mt-1 text-center text-body text-line">If they buy, your flame is lit.</p>
+                <p className="mt-1 text-center text-body text-ash">If they buy, your flame is lit.</p>
               </>
             ) : (
-              <p className="mt-10 text-center text-body text-line">
+              <p className="mt-10 text-center text-body text-ash">
                 {focused.status === 'delivered'
                   ? 'We couldn’t load the code. Try again in a moment.'
                   : 'Your code appears once this order is delivered.'}
@@ -172,7 +172,7 @@ function ConsumerQRWalletPage() {
               <button
                 type="button"
                 onClick={() => handleShare(focused)}
-                className="flex h-[52px] w-full items-center justify-center gap-2 bg-on-primary text-[15px] font-medium text-primary hover:bg-on-primary/90"
+                className="flex h-[52px] w-full items-center justify-center gap-2 bg-on-primary text-body-lg font-medium text-primary hover:bg-on-primary/90"
               >
                 {copied === focused.key ? (
                   <>
@@ -193,7 +193,7 @@ function ConsumerQRWalletPage() {
   return (
     <div className="pb-8">
       <ScreenHeader title="Your QR codes" onBack={() => router.back()} />
-      <p className="px-5 pt-3 text-caption text-line">
+      <p className="px-5 pt-3 text-caption text-ash">
         Share what you own. When a friend scans your code and buys, your flame is lit and you get <span className="text-accent">50 Flayms</span>.
       </p>
 
@@ -207,7 +207,7 @@ function ConsumerQRWalletPage() {
         ) : cards.length === 0 ? (
           <div className="bg-surface-dark p-4">
             <p className="text-body text-on-primary">No QR codes yet</p>
-            <p className="mt-1 text-caption text-muted">Buy something. Your shareable code appears once it&rsquo;s delivered.</p>
+            <p className="mt-1 text-caption text-smoke">Buy something. Your shareable code appears once it&rsquo;s delivered.</p>
           </div>
         ) : (
           <ul className="space-y-4">
@@ -217,9 +217,9 @@ function ConsumerQRWalletPage() {
                   <Thumb src={card.image ?? null} alt={card.productName} className="h-[60px] w-12" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-body text-on-primary">{card.productName}</p>
-                    <p className="text-caption text-muted">{card.status === 'delivered' ? 'Owned · ready to pass on' : 'Unlocks when delivered'}</p>
+                    <p className="text-caption text-smoke">{card.status === 'delivered' ? 'Owned · ready to pass on' : 'Unlocks when delivered'}</p>
                   </div>
-                  {card.status !== 'delivered' && <Lock className="h-4 w-4 text-muted" aria-hidden />}
+                  {card.status !== 'delivered' && <Lock className="h-4 w-4 text-smoke" aria-hidden />}
                 </div>
                 {card.status === 'delivered' && card.qrDataUrl && (
                   <div className="flex flex-col items-center gap-4 border-t border-line-dark p-5">

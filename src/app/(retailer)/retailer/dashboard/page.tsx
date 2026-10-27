@@ -330,7 +330,7 @@ export default function RetailerDashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-brand text-heading-xl uppercase text-primary">Dashboard</h1>
-          <p className="mt-1 text-body text-muted">
+          <p className="mt-1 text-body text-slate">
             Activity and earnings from products in {storeName || 'your store'}
           </p>
         </div>
@@ -392,16 +392,16 @@ export default function RetailerDashboardPage() {
                     const typeTone = c.type === 'direct' ? 'accent' : c.type === 'deferred' ? 'neutral' : 'outline';
                     return (
                       <TR key={c.id}>
-                        <TD className="px-3 text-[13px]">
+                        <TD className="px-3 text-body-sm">
                           <p className="truncate">{c.product_name}</p>
-                          <p className="mt-0.5 text-caption text-muted">
+                          <p className="mt-0.5 text-caption text-slate">
                             {new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                           </p>
                         </TD>
                         <TD className="px-3">
                           <Badge tone={typeTone}>{typeLabel}</Badge>
                         </TD>
-                        <TD className="whitespace-nowrap px-3 text-right text-[13px]">{formatDKK(c.amount_dkk)}</TD>
+                        <TD className="whitespace-nowrap px-3 text-right text-body-sm">{formatDKK(c.amount_dkk)}</TD>
                       </TR>
                     );
                   })}
@@ -426,8 +426,8 @@ export default function RetailerDashboardPage() {
               {recentScans.map((scan) => (
                 <li key={scan.id} className="flex items-center gap-3 py-3">
                   <span className="h-2 w-2 shrink-0 border-[1.5px] border-accent" aria-hidden />
-                  <p className="min-w-0 flex-1 truncate text-[13px] text-primary">{scan.product_name}</p>
-                  <span className="whitespace-nowrap text-caption text-muted">{timeAgo(scan.scanned_at)}</span>
+                  <p className="min-w-0 flex-1 truncate text-body-sm text-primary">{scan.product_name}</p>
+                  <span className="whitespace-nowrap text-caption text-slate">{timeAgo(scan.scanned_at)}</span>
                 </li>
               ))}
             </ul>
@@ -453,7 +453,7 @@ export default function RetailerDashboardPage() {
                   <Avatar src={p.brand_logo} name={p.brand_name} size="sm" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-body text-primary">{p.brand_name}</p>
-                    <p className="text-caption text-muted">{formatCommission(p.commission_direct)} commission</p>
+                    <p className="text-caption text-slate">{formatCommission(p.commission_direct)} commission</p>
                   </div>
                 </li>
               ))}
@@ -468,7 +468,7 @@ export default function RetailerDashboardPage() {
             <ul className="divide-y divide-line">
               {depositByBrand.map((b) => (
                 <li key={b.brand_name} className="flex items-center gap-3 py-3">
-                  <Wallet className="h-4 w-4 shrink-0 text-muted" />
+                  <Wallet className="h-4 w-4 shrink-0 text-slate" />
                   <p className="min-w-0 flex-1 truncate text-body text-primary">{b.brand_name}</p>
                   <span className="text-body font-medium text-primary">{formatDKK(b.total)}</span>
                 </li>
@@ -490,7 +490,7 @@ function SectionTitle({ title, aside }: { title: string; aside?: string }) {
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3">
       <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{title}</h2>
-      {aside && <span className="whitespace-nowrap text-caption text-muted">{aside}</span>}
+      {aside && <span className="whitespace-nowrap text-caption text-slate">{aside}</span>}
     </div>
   );
 }

@@ -47,7 +47,7 @@ export default function OrderTimeline({ events }: { events: OrderEvent[] }) {
                 {isComplete ? (
                   <FlameIcon />
                 ) : (
-                  <span className="h-3.5 w-3.5 rounded-pill border-2 border-muted bg-canvas-dark" />
+                  <span className="h-3.5 w-3.5 rounded-pill border-2 border-char bg-canvas-dark" />
                 )}
               </span>
               {!isLast && <span className={cn('my-1 w-0.5 flex-1', isComplete && nextComplete ? 'bg-accent' : 'bg-line-dark')} />}
@@ -56,15 +56,15 @@ export default function OrderTimeline({ events }: { events: OrderEvent[] }) {
             <div className="min-h-[41px] pb-3">
               <p
                 className={cn(
-                  'text-[15px] leading-[17px]',
-                  isComplete ? 'text-on-primary' : 'text-muted',
+                  'text-body-lg leading-[17px]',
+                  isComplete ? 'text-on-primary' : 'text-smoke',
                   i === currentIndex && 'font-medium'
                 )}
               >
                 {STATUS_LABELS[status] ?? STATUS_LABELS.pending}
               </p>
               {event && (
-                <p className="mt-1 text-caption text-muted">
+                <p className="mt-1 text-caption text-smoke">
                   {new Date(event.created_at).toLocaleDateString('en-GB', {
                     day: 'numeric',
                     month: 'short',
@@ -73,7 +73,7 @@ export default function OrderTimeline({ events }: { events: OrderEvent[] }) {
                   })}
                 </p>
               )}
-              {event?.note && <p className="mt-0.5 text-caption text-line">{event.note}</p>}
+              {event?.note && <p className="mt-0.5 text-caption text-ash">{event.note}</p>}
             </div>
           </li>
         );

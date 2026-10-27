@@ -178,11 +178,11 @@ export default function RequestSamplesPage() {
   return (
     <div className="space-y-7">
       <div>
-        <Link href="/retailer/samples" className="-ml-1 inline-flex items-center gap-1.5 text-caption text-muted hover:text-primary">
+        <Link href="/retailer/samples" className="-ml-1 inline-flex items-center gap-1.5 text-caption text-slate hover:text-primary">
           <ArrowLeft className="h-4 w-4" /> Products in the store
         </Link>
         <h1 className="mt-2 font-brand text-heading-xl uppercase text-primary">Request samples</h1>
-        <p className="mt-1 text-body text-muted">Pick products from your partner brands. Each sample has a deposit.</p>
+        <p className="mt-1 text-body text-slate">Pick products from your partner brands. Each sample has a deposit.</p>
       </div>
 
       {brands.length === 0 ? (
@@ -254,7 +254,7 @@ export default function RequestSamplesPage() {
                 </div>
 
                 {currentProduct.deposit_amount_dkk && (
-                  <p className="text-body text-muted">
+                  <p className="text-body text-slate">
                     Deposit: <span className="text-primary">{formatDKK(currentProduct.deposit_amount_dkk)}</span>
                   </p>
                 )}
@@ -274,11 +274,11 @@ export default function RequestSamplesPage() {
           {/* Cart / summary */}
           <Card padding="none" className="space-y-4 p-5 lg:p-6">
             <SectionTitle>
-              Your request <span className="ml-1 text-muted">{cart.length}</span>
+              Your request <span className="ml-1 text-slate">{cart.length}</span>
             </SectionTitle>
 
             {cart.length === 0 ? (
-              <p className="border border-dashed border-line py-8 text-center text-caption text-muted">
+              <p className="border border-dashed border-line py-8 text-center text-caption text-slate">
                 Add products to build your request
               </p>
             ) : (
@@ -287,7 +287,7 @@ export default function RequestSamplesPage() {
                   <li key={i} className="flex items-center justify-between gap-3 py-3">
                     <div className="min-w-0">
                       <p className="truncate text-body text-primary">{item.product_name}</p>
-                      <p className="mt-0.5 text-caption text-muted">{item.size} / {item.color}</p>
+                      <p className="mt-0.5 text-caption text-slate">{item.size} / {item.color}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="text-body text-primary">{formatDKK(item.deposit_amount_dkk)}</span>
@@ -295,7 +295,7 @@ export default function RequestSamplesPage() {
                         type="button"
                         onClick={() => removeFromCart(i)}
                         aria-label={`Remove ${item.product_name}`}
-                        className="inline-flex h-8 w-8 items-center justify-center text-muted hover:text-primary"
+                        className="inline-flex h-8 w-8 items-center justify-center text-slate hover:text-primary"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -308,7 +308,7 @@ export default function RequestSamplesPage() {
             {cart.length > 0 && (
               <>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-label uppercase text-muted">Total deposit</span>
+                  <span className="text-label uppercase text-slate">Total deposit</span>
                   <span className="text-heading-lg text-primary">{formatDKK(totalDeposit)}</span>
                 </div>
 

@@ -164,7 +164,7 @@ export default function RetailerBrandsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="font-brand text-heading-xl uppercase text-primary">Brands</h1>
-        <p className="mt-1 text-body text-muted">Your partnerships and available brands</p>
+        <p className="mt-1 text-body text-slate">Your partnerships and available brands</p>
       </div>
 
       {error && <p className="border border-accent bg-accent-subtle px-4 py-3 text-body text-accent-strong">{error}</p>}
@@ -220,7 +220,7 @@ export default function RetailerBrandsPage() {
                 <Avatar src={p.brand_logo} name={p.brand_name} size="lg" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-body text-primary">{p.brand_name}</p>
-                  <p className="mt-1 text-caption text-muted">{formatCommission(p.commission_direct)} direct commission</p>
+                  <p className="mt-1 text-caption text-slate">{formatCommission(p.commission_direct)} direct commission</p>
                 </div>
                 <Badge tone="success">Active</Badge>
               </Card>
@@ -250,11 +250,11 @@ export default function RetailerBrandsPage() {
                   <Avatar src={brand.logo_url} name={brand.name} size="lg" />
                   <div className="min-w-0">
                     <p className="truncate text-body text-primary">{brand.name}</p>
-                    {brand.website && <p className="truncate text-caption text-muted">{brand.website}</p>}
+                    {brand.website && <p className="truncate text-caption text-slate">{brand.website}</p>}
                   </div>
                 </div>
 
-                {brand.description && <p className="line-clamp-2 text-caption text-muted">{brand.description}</p>}
+                {brand.description && <p className="line-clamp-2 text-caption text-slate">{brand.description}</p>}
 
                 <Button
                   className="mt-auto"
@@ -281,7 +281,7 @@ function SectionTitle({ children, count }: { children: React.ReactNode; count?: 
   return (
     <h2 className="mb-3 font-brand text-body uppercase tracking-[0.3px] text-primary">
       {children}
-      {count !== undefined && <span className="ml-2 text-muted">{count}</span>}
+      {count !== undefined && <span className="ml-2 text-slate">{count}</span>}
     </h2>
   );
 }

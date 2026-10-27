@@ -258,7 +258,7 @@ export default function BrandPartnershipsPage() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">Available stores</h2>
-            <p className="mt-1 text-caption text-muted">Browse stores on Flaym and request a partnership directly.</p>
+            <p className="mt-1 text-caption text-slate">Browse stores on Flaym and request a partnership directly.</p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:w-[340px]">
             <Field label="Direct %" htmlFor="p-direct">
@@ -298,7 +298,7 @@ export default function BrandPartnershipsPage() {
                   )}
                   <div className="min-w-0">
                     <p className="truncate text-body text-primary">{r.name}</p>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-caption text-muted">
+                    <p className="mt-0.5 flex items-center gap-1.5 text-caption text-slate">
                       {r.store_type && <span>{r.store_type.charAt(0).toUpperCase() + r.store_type.slice(1).replace(/_/g, ' ')}</span>}
                       {r.city && (
                         <>
@@ -309,7 +309,7 @@ export default function BrandPartnershipsPage() {
                     </p>
                   </div>
                 </div>
-                {r.description && <p className="mt-3 line-clamp-2 flex-1 text-caption text-muted">{r.description}</p>}
+                {r.description && <p className="mt-3 line-clamp-2 flex-1 text-caption text-slate">{r.description}</p>}
                 <Button
                   variant="secondary"
                   className="mt-4"
@@ -350,7 +350,7 @@ function Section({ title, note, children }: { title: string; note?: string; chil
     <div className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{title}</h2>
-        {note && <span className="text-caption text-muted">{note}</span>}
+        {note && <span className="text-caption text-slate">{note}</span>}
       </div>
       <div className="divide-y divide-line border border-line bg-surface">{children}</div>
     </div>
@@ -374,10 +374,10 @@ function Row({
     <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <p className={muted ? 'truncate text-body text-muted' : 'truncate text-body text-primary'}>{title}</p>
+          <p className={muted ? 'truncate text-body text-slate' : 'truncate text-body text-primary'}>{title}</p>
           {badge}
         </div>
-        <p className="mt-0.5 text-caption text-muted">{subtitle}</p>
+        <p className="mt-0.5 text-caption text-slate">{subtitle}</p>
       </div>
       {trailing}
     </div>

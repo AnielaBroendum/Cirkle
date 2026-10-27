@@ -160,7 +160,7 @@ export default function BrandSwapsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-brand text-body uppercase tracking-[0.3px] text-primary">{sw.retailer_name}</p>
-                  <p className="mt-0.5 text-caption text-muted">
+                  <p className="mt-0.5 text-caption text-slate">
                     {new Date(sw.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                 </div>
@@ -169,17 +169,17 @@ export default function BrandSwapsPage() {
 
               <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
                 <div className="border border-line p-3.5">
-                  <p className="mb-1 text-label uppercase text-muted">Returning</p>
-                  <p className="text-[13px] text-primary">{sw.return_product_name}</p>
-                  <p className="text-caption text-muted">{sw.return_size} / {sw.return_color}</p>
-                  <p className="mt-1 text-caption text-muted">Deposit: {formatDKK(sw.return_deposit)}</p>
+                  <p className="mb-1 text-label uppercase text-slate">Returning</p>
+                  <p className="text-body-sm text-primary">{sw.return_product_name}</p>
+                  <p className="text-caption text-slate">{sw.return_size} / {sw.return_color}</p>
+                  <p className="mt-1 text-caption text-slate">Deposit: {formatDKK(sw.return_deposit)}</p>
                 </div>
-                <ArrowRight className="mx-auto hidden h-4 w-4 text-muted sm:block" aria-hidden />
+                <ArrowRight className="mx-auto hidden h-4 w-4 text-slate sm:block" aria-hidden />
                 <div className="border border-line bg-canvas-warm p-3.5">
                   <p className="mb-1 text-label uppercase text-accent-strong">Requesting</p>
-                  <p className="text-[13px] text-primary">{sw.new_product_name}</p>
-                  <p className="text-caption text-muted">{sw.new_size} / {sw.new_color}</p>
-                  <p className="mt-1 text-caption text-muted">Deposit: {formatDKK(sw.new_deposit)}</p>
+                  <p className="text-body-sm text-primary">{sw.new_product_name}</p>
+                  <p className="text-caption text-slate">{sw.new_size} / {sw.new_color}</p>
+                  <p className="mt-1 text-caption text-slate">Deposit: {formatDKK(sw.new_deposit)}</p>
                 </div>
               </div>
 
@@ -266,10 +266,10 @@ export default function BrandSwapsPage() {
                   </Button>
                 )}
 
-                {sw.status === 'approved' && <p className="text-caption text-muted">Waiting for the store to ship the sample back.</p>}
+                {sw.status === 'approved' && <p className="text-caption text-slate">Waiting for the store to ship the sample back.</p>}
                 {sw.status === 'return_shipped' && (
                   <>
-                    <p className="w-full text-caption text-muted">On its way back. The store marked it shipped.</p>
+                    <p className="w-full text-caption text-slate">On its way back. The store marked it shipped.</p>
                     <Button onClick={() => updateStatus(sw.id, 'return_received')} disabled={actionLoading === sw.id} leftIcon={<Package className="h-4 w-4" />}>
                       Mark received
                     </Button>
@@ -287,7 +287,7 @@ export default function BrandSwapsPage() {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2">
-      <dt className="shrink-0 text-muted">{label}:</dt>
+      <dt className="shrink-0 text-slate">{label}:</dt>
       <dd className="min-w-0 break-words text-primary">{value}</dd>
     </div>
   );

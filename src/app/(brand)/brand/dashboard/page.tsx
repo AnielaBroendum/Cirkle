@@ -425,7 +425,7 @@ export default function BrandDashboardPage() {
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 className="font-brand text-heading-xl uppercase text-primary">Dashboard</h1>
-        <p className="mt-1 text-body text-muted">Demand, orders and settlement in one place</p>
+        <p className="mt-1 text-body text-slate">Demand, orders and settlement in one place</p>
       </div>
       <Tabs
         items={[
@@ -494,7 +494,7 @@ export default function BrandDashboardPage() {
             <Badge tone="accent">New</Badge>
             {kpis.pendingOrders} order{kpis.pendingOrders !== 1 ? 's' : ''} waiting to be shipped
           </span>
-          <ArrowRight className="h-4 w-4 text-muted transition-transform group-hover:translate-x-1" />
+          <ArrowRight className="h-4 w-4 text-slate transition-transform group-hover:translate-x-1" />
         </Link>
       )}
 
@@ -503,7 +503,7 @@ export default function BrandDashboardPage() {
         <Card padding="none" className="rounded-none p-5 lg:p-6">
           <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
             <SectionTitle title="Activity over time" />
-            <div className="flex flex-wrap gap-4 text-caption text-muted">
+            <div className="flex flex-wrap gap-4 text-caption text-slate">
               <Legend className="bg-line" label="Scans" />
               <Legend className="bg-accent/50" label="Saves" />
               <Legend className="bg-accent" label="Purchases" />
@@ -529,7 +529,7 @@ export default function BrandDashboardPage() {
               </div>
               <div className="mt-2 flex gap-[3px] sm:gap-1.5">
                 {chart.map((b, i) => (
-                  <span key={b.label} className="flex-1 text-center text-[10px] text-muted">
+                  <span key={b.label} className="flex-1 text-center text-caption text-slate">
                     {i % labelEvery === 0 ? b.label : ''}
                   </span>
                 ))}
@@ -542,10 +542,10 @@ export default function BrandDashboardPage() {
         <Card padding="none" className="rounded-none p-5 lg:p-6">
           <SectionTitle title="By store" />
           {byStore.length === 0 ? (
-            <p className="mb-6 mt-3 text-caption text-muted">No store scans or purchases {PERIOD_LABEL[period]}.</p>
+            <p className="mb-6 mt-3 text-caption text-slate">No store scans or purchases {PERIOD_LABEL[period]}.</p>
           ) : (
             <div className="-mx-1 mb-6 mt-3 overflow-x-auto">
-              <table className="w-full border-collapse font-brand text-[13px] text-primary">
+              <table className="w-full border-collapse font-brand text-body-sm text-primary">
                 <THead>
                   <tr>
                     <TH className="px-3 py-2 text-label font-medium">Store</TH>
@@ -570,10 +570,10 @@ export default function BrandDashboardPage() {
 
           <SectionTitle title="Top products" />
           {topProducts.length === 0 ? (
-            <p className="mt-3 text-caption text-muted">No product scans or purchases {PERIOD_LABEL[period]}.</p>
+            <p className="mt-3 text-caption text-slate">No product scans or purchases {PERIOD_LABEL[period]}.</p>
           ) : (
             <div className="-mx-1 mt-3 overflow-x-auto">
-              <table className="w-full border-collapse font-brand text-[13px] text-primary">
+              <table className="w-full border-collapse font-brand text-body-sm text-primary">
                 <THead>
                   <tr>
                     <TH className="px-3 py-2 text-label font-medium">Product</TH>
@@ -618,13 +618,13 @@ export default function BrandDashboardPage() {
                 return (
                   <li key={c.id} className="flex items-center gap-3 py-3">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] text-primary">{c.retailer_name}</p>
+                      <p className="truncate text-body-sm text-primary">{c.retailer_name}</p>
                       <div className="mt-1 flex items-center gap-2">
                         <Badge tone={typeTone}>{typeLabel}</Badge>
-                        {c.order_number && <span className="text-caption text-muted">Order #{c.order_number}</span>}
+                        {c.order_number && <span className="text-caption text-slate">Order #{c.order_number}</span>}
                       </div>
                     </div>
-                    <span className="whitespace-nowrap text-[13px] font-medium tabular-nums text-primary">{formatDKK(c.amount_dkk)}</span>
+                    <span className="whitespace-nowrap text-body-sm font-medium tabular-nums text-primary">{formatDKK(c.amount_dkk)}</span>
                   </li>
                 );
               })}
@@ -638,7 +638,7 @@ export default function BrandDashboardPage() {
             title="Deposits held"
             aside={depositsHeld > 0 ? `${formatDKK(depositsHeld)} total` : undefined}
           />
-          <p className="text-caption text-muted">
+          <p className="text-caption text-slate">
             {kpis.activeSamples} active sample{kpis.activeSamples !== 1 ? 's' : ''} in stores
           </p>
           {depositsByRetailer.length === 0 ? (
@@ -651,7 +651,7 @@ export default function BrandDashboardPage() {
           ) : (
             <ul className="mt-2 divide-y divide-line">
               {depositsByRetailer.map((r) => (
-                <li key={r.retailer_name} className="flex items-center justify-between gap-3 py-3 text-[13px]">
+                <li key={r.retailer_name} className="flex items-center justify-between gap-3 py-3 text-body-sm">
                   <span className="truncate text-primary">{r.retailer_name}</span>
                   <span className="whitespace-nowrap font-medium tabular-nums text-primary">{formatDKK(r.total)}</span>
                 </li>
@@ -674,11 +674,11 @@ export default function BrandDashboardPage() {
             <ul className="mt-2 divide-y divide-line">
               {activity.map((item) => (
                 <li key={item.id} className="flex items-center gap-3 py-3">
-                  <span className={cn('shrink-0', item.type === 'scan' ? 'text-muted' : 'text-accent')}>
+                  <span className={cn('shrink-0', item.type === 'scan' ? 'text-slate' : 'text-accent')}>
                     {item.type === 'scan' ? <ScanLine className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
                   </span>
-                  <p className="min-w-0 flex-1 truncate text-[13px] text-primary">{item.description}</p>
-                  <span className="whitespace-nowrap text-caption text-muted">{timeAgo(item.time)}</span>
+                  <p className="min-w-0 flex-1 truncate text-body-sm text-primary">{item.description}</p>
+                  <span className="whitespace-nowrap text-caption text-slate">{timeAgo(item.time)}</span>
                 </li>
               ))}
             </ul>
@@ -694,7 +694,7 @@ function SectionTitle({ title, aside }: { title: string; aside?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{title}</h2>
-      {aside && <span className="whitespace-nowrap text-caption text-muted">{aside}</span>}
+      {aside && <span className="whitespace-nowrap text-caption text-slate">{aside}</span>}
     </div>
   );
 }

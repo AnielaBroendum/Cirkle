@@ -33,7 +33,7 @@ export function ProductCard({ name, price, brand, imageUrl, href, badge, saved, 
         )}
       </div>
       <div className="space-y-1 p-3">
-        {brand && <p className="truncate text-label uppercase text-muted">{brand}</p>}
+        {brand && <p className="truncate text-label uppercase text-slate">{brand}</p>}
         <p className="line-clamp-2 text-body text-primary">{name}</p>
         <p className="text-body font-medium text-primary">{formatDKK(price)}</p>
       </div>

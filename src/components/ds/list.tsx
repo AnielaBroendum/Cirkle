@@ -23,10 +23,10 @@ export function ListRow({ leading, title, subtitle, trailing, href, onClick, che
       {leading && <div className="shrink-0">{leading}</div>}
       <div className="min-w-0 flex-1">
         <p className="truncate text-body text-primary">{title}</p>
-        {subtitle && <p className="mt-0.5 truncate text-caption text-muted">{subtitle}</p>}
+        {subtitle && <p className="mt-0.5 truncate text-caption text-slate">{subtitle}</p>}
       </div>
       {trailing && <div className="shrink-0 text-right">{trailing}</div>}
-      {interactive && chevron && <ChevronRight className="h-4 w-4 shrink-0 text-muted" />}
+      {interactive && chevron && <ChevronRight className="h-4 w-4 shrink-0 text-slate" />}
     </>
   );
   const classes = cn(
@@ -69,7 +69,7 @@ export function TR({ className, ...props }: React.HTMLAttributes<HTMLTableRowEle
 export function TH({ className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={cn('border-b border-line px-4 py-3 text-left text-label font-normal uppercase text-muted', className)}
+      className={cn('border-b border-line px-4 py-3 text-left text-label font-normal uppercase text-slate', className)}
       {...props}
     />
   );

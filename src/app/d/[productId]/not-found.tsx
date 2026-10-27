@@ -9,8 +9,8 @@ export default function ProductNotFound() {
         <Logo height={22} />
       </div>
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <p className="font-brand text-[18px] uppercase tracking-[0.4px]">No longer available</p>
-        <p className="mt-3 max-w-[280px] text-body text-line">The brand has stopped selling this piece, or the link is wrong.</p>
+        <p className="font-brand text-title uppercase tracking-[0.4px]">No longer available</p>
+        <p className="mt-3 max-w-[280px] text-body text-ash">The brand has stopped selling this piece, or the link is wrong.</p>
         <Link href="/consumer/home" className={buttonClasses({ variant: 'accent', className: 'mt-8 w-full max-w-[280px]' })}>
           Scan a tag
         </Link>

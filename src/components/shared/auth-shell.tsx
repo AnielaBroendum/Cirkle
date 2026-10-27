@@ -27,9 +27,9 @@ export function AuthShell({ eyebrow, title, intro, children }: AuthShellProps) {
         <div className="w-full max-w-[440px] space-y-5">
           {(eyebrow || title || intro) && (
             <div>
-              {eyebrow && <p className="text-label uppercase text-muted">{eyebrow}</p>}
+              {eyebrow && <p className="text-label uppercase text-slate">{eyebrow}</p>}
               {title && <h1 className="mt-4 font-brand text-display uppercase text-primary">{title}</h1>}
-              {intro && <p className="mt-3 text-body leading-[22.4px] text-muted">{intro}</p>}
+              {intro && <p className="mt-3 text-body leading-[22.4px] text-slate">{intro}</p>}
             </div>
           )}
           {children}

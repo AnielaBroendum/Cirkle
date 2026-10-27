@@ -126,10 +126,10 @@ export default function RequestReturnPage() {
       <div>
         <ScreenHeader title="Return" onBack={back} />
         <div className="flex flex-col items-center px-5 pt-24 text-center">
-          <p className="font-brand text-[18px] uppercase tracking-[0.4px] text-on-primary">
+          <p className="font-brand text-title uppercase tracking-[0.4px] text-on-primary">
             {order ? 'Not delivered yet' : 'Order not found'}
           </p>
-          <p className="mt-3 max-w-[260px] text-body text-line">
+          <p className="mt-3 max-w-[260px] text-body text-ash">
             {order ? 'You can request a return once your order has arrived.' : 'It may belong to another account, or the link is wrong.'}
           </p>
           <Link href={order ? `/consumer/orders/${order.id}` : '/consumer/orders'} className={buttonClasses({ variant: 'accent', className: 'mt-8 w-full max-w-[280px]' })}>
@@ -147,7 +147,7 @@ export default function RequestReturnPage() {
       <div className="px-5 pb-28 pt-[117px] text-center">
         <div className="mx-auto grid h-[88px] w-[88px] place-items-center rounded-pill border-[3px] border-accent text-[40px] leading-none text-accent">✓</div>
         <h1 className="mt-6 font-brand text-[24px] font-normal uppercase tracking-[0.5px] text-on-primary">Return requested</h1>
-        <p className="mx-auto mt-4 max-w-[280px] text-body text-line">
+        <p className="mx-auto mt-4 max-w-[280px] text-body text-ash">
           {brand} will review it. Flaym refunds you once the brand approves.
         </p>
         <BottomAction href={`/consumer/orders/${order.id}`}>Back to your order</BottomAction>
@@ -172,7 +172,7 @@ export default function RequestReturnPage() {
                 <Thumb src={item.products?.images?.[0] ?? null} alt={item.product_name} className="h-[70px] w-14" />
                 <div className="min-w-0 text-left">
                   <p className="truncate text-body text-on-primary">{item.product_name}</p>
-                  <p className="truncate text-caption text-muted">
+                  <p className="truncate text-caption text-smoke">
                     {[item.size && `Size ${item.size}`, formatDKK(item.unit_price_dkk), `#${order.order_number}`].filter(Boolean).join(' · ')}
                   </p>
                 </div>
@@ -181,7 +181,7 @@ export default function RequestReturnPage() {
             return (
               <li key={item.id}>
                 {pickable ? (
-                  <button type="button" onClick={() => setItemId(item.id)} className="flex w-full items-center gap-3.5 bg-surface-dark p-3 hover:outline hover:outline-1 hover:outline-muted">
+                  <button type="button" onClick={() => setItemId(item.id)} className="flex w-full items-center gap-3.5 bg-surface-dark p-3 hover:outline hover:outline-1 hover:outline-char">
                     {content}
                   </button>
                 ) : (
@@ -191,18 +191,18 @@ export default function RequestReturnPage() {
             );
           })}
         </ul>
-        {!selected && order.order_items.length > 1 && <p className="mt-3 text-caption text-line">Which item do you want to return?</p>}
+        {!selected && order.order_items.length > 1 && <p className="mt-3 text-caption text-ash">Which item do you want to return?</p>}
         {selected && order.order_items.length > 1 && (
-          <button type="button" onClick={() => setItemId(null)} className="mt-2 text-caption text-muted underline-offset-2 hover:underline">
+          <button type="button" onClick={() => setItemId(null)} className="mt-2 text-caption text-smoke underline-offset-2 hover:underline">
             Choose another item
           </button>
         )}
 
         {already ? (
           <div className="mt-6 bg-surface-dark p-4">
-            <p className="text-label uppercase text-muted">Already requested</p>
+            <p className="text-label uppercase text-smoke">Already requested</p>
             <p className="mt-2 text-body text-on-primary">{STATUS_TEXT[already.status] ?? already.status}</p>
-            <p className="mt-1 text-caption text-muted">
+            <p className="mt-1 text-caption text-smoke">
               Sent {new Date(already.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
             </p>
           </div>
@@ -210,7 +210,7 @@ export default function RequestReturnPage() {
           selected && (
             <>
               <fieldset className="mt-4">
-                <legend className="text-label uppercase text-muted">Why are you returning it?</legend>
+                <legend className="text-label uppercase text-smoke">Why are you returning it?</legend>
                 <div className="mt-3 space-y-4">
                   {REASONS.map((r) => {
                     const on = reason === r.id;
@@ -228,7 +228,7 @@ export default function RequestReturnPage() {
                           className="sr-only"
                         />
                         <span className="text-body text-on-primary">{r.label}</span>
-                        <span className={cn('h-[18px] w-[18px] rounded-pill', on ? 'border-[5px] border-accent' : 'border-[1.5px] border-muted')} aria-hidden />
+                        <span className={cn('h-[18px] w-[18px] rounded-pill', on ? 'border-[5px] border-accent' : 'border-[1.5px] border-char')} aria-hidden />
                       </label>
                     );
                   })}
@@ -236,18 +236,18 @@ export default function RequestReturnPage() {
               </fieldset>
 
               <label className="mt-4 block">
-                <span className="text-label uppercase text-muted">Anything else? (optional)</span>
+                <span className="text-label uppercase text-smoke">Anything else? (optional)</span>
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   rows={3}
                   maxLength={1000}
-                  className="mt-2 w-full resize-none border border-line-dark bg-transparent p-3 text-body text-on-primary placeholder:text-muted focus:border-accent focus:outline-none"
+                  className="mt-2 w-full resize-none border border-line-dark bg-transparent p-3 text-body text-on-primary placeholder:text-smoke focus:border-accent focus:outline-none"
                   placeholder="E.g. the colour looked different"
                 />
               </label>
 
-              <p className="mt-4 text-caption leading-[19px] text-line">
+              <p className="mt-4 text-caption leading-[19px] text-ash">
                 {brand}&rsquo;s return policy applies: 30 days, unused, with tags. Flaym refunds you once the brand approves.
               </p>
             </>

@@ -15,7 +15,7 @@ export function EmptyState({ icon, title, description, action, className }: Empt
     <div className={cn('flex flex-col items-center border border-dashed border-line px-6 py-12 text-center font-brand', className)}>
       {icon && <div className="mb-4 inline-flex h-12 w-12 items-center justify-center bg-surface-muted text-primary">{icon}</div>}
       <h3 className="font-brand text-heading-lg uppercase text-primary">{title}</h3>
-      {description && <p className="mt-2 max-w-sm text-body text-muted">{description}</p>}
+      {description && <p className="mt-2 max-w-sm text-body text-slate">{description}</p>}
       {action && <div className="mt-6">{action}</div>}
     </div>
   );
@@ -89,7 +89,7 @@ export function StatTile({ label, value, hint, delta, icon, tone = 'default', cl
     accent: 'bg-accent text-on-primary',
     dark: 'bg-primary text-on-primary',
   }[tone];
-  const sub = tone === 'default' ? 'text-muted' : 'text-on-primary/70';
+  const sub = tone === 'default' ? 'text-slate' : 'text-on-primary/70';
   return (
     <div className={cn('flex flex-col gap-2 p-5 font-brand', toneClasses, className)}>
       <div className="flex items-center justify-between gap-2">

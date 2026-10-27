@@ -8,7 +8,7 @@ import './globals.css';
 // Flaym brand font (used via `font-brand`).
 const plexMono = IBM_Plex_Mono({
   subsets: ['latin'],
-  weight: ['400', '500'],
+  weight: ['400', '500', '600'],
   variable: '--font-plex-mono',
   display: 'swap',
 });

@@ -15,7 +15,7 @@ export default function Error({
         <AlertTriangle className="h-7 w-7 text-accent" />
       </div>
       <h1 className="font-brand text-heading-xl uppercase text-primary">Something went wrong</h1>
-      <p className="mt-2 max-w-sm text-body text-muted">
+      <p className="mt-2 max-w-sm text-body text-slate">
         An unexpected error occurred. Please try again.
       </p>
       <Button variant="accent" onClick={reset} className="mt-6">

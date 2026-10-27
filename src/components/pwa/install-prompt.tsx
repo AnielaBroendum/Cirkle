@@ -50,7 +50,7 @@ export default function InstallPrompt() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-body text-on-primary">Install Flaym</p>
-          <p className="text-caption text-muted">Scan faster from your home screen</p>
+          <p className="text-caption text-smoke">Scan faster from your home screen</p>
         </div>
         <button
           type="button"
@@ -59,7 +59,7 @@ export default function InstallPrompt() {
         >
           Install
         </button>
-        <button type="button" onClick={handleDismiss} aria-label="Dismiss" className="shrink-0 p-1 text-muted hover:text-on-primary">
+        <button type="button" onClick={handleDismiss} aria-label="Dismiss" className="shrink-0 p-1 text-smoke hover:text-on-primary">
           <X className="h-4 w-4" />
         </button>
       </div>

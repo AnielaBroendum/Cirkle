@@ -338,7 +338,7 @@ export default function RetailerSamplesPage() {
       )
       .join('');
     win.document.write(
-      `<!doctype html><title>QR tags</title><style>body{font-family:'IBM Plex Mono',monospace;margin:24px;color:#2C2324}main{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}figure{margin:0;border:1px solid #D5D1C8;padding:16px;text-align:center;break-inside:avoid}img{width:140px;height:140px}figcaption{font-size:11px;margin-top:8px;line-height:1.4}</style><main>${tags}</main><script>window.onload=()=>window.print()</script>`
+      `<!doctype html><title>QR tags</title><style>body{font-family:'IBM Plex Mono',monospace;margin:24px;color:#2C2324}main{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}figure{margin:0;border:1px solid #D5D1C8;padding:16px;text-align:center;break-inside:avoid}img{width:140px;height:140px}figcaption{font-size:12px;margin-top:8px;line-height:1.4}</style><main>${tags}</main><script>window.onload=()=>window.print()</script>`
     );
     win.document.close();
   }
@@ -366,7 +366,7 @@ export default function RetailerSamplesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-brand text-heading-xl uppercase text-primary">Products in the store</h1>
-          <p className="mt-1 text-body text-muted">Placed here by the brands. Print a tag if one is missing or worn.</p>
+          <p className="mt-1 text-body text-slate">Placed here by the brands. Print a tag if one is missing or worn.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/retailer/samples/request" className={buttonClasses({ variant: 'secondary' })}>
@@ -430,7 +430,7 @@ export default function RetailerSamplesPage() {
                     <div className="mt-3.5 flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-body text-primary">{sample.product_name}</p>
-                        <p className="mt-1 truncate text-caption text-muted">
+                        <p className="mt-1 truncate text-caption text-slate">
                           {[sample.brand_name, [sample.size, sample.color].filter(Boolean).join(' / ')].filter(Boolean).join(' · ')}
                         </p>
                       </div>
@@ -440,7 +440,7 @@ export default function RetailerSamplesPage() {
                           <img src={sample.qr_code_url} alt="" width={44} height={44} className="h-11 w-11" />
                         </a>
                       ) : (
-                        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-line text-muted">
+                        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-line text-slate">
                           <QrCode className="h-5 w-5" />
                         </span>
                       )}
@@ -456,7 +456,7 @@ export default function RetailerSamplesPage() {
                     <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3">
                       <p className="whitespace-nowrap text-caption text-primary">
                         {sample.scan_count} scans
-                        {sample.last_scanned && <span className="text-muted"> · {formatDate(sample.last_scanned)}</span>}
+                        {sample.last_scanned && <span className="text-slate"> · {formatDate(sample.last_scanned)}</span>}
                       </p>
                       {sample.status === 'active' && (
                         <Button size="sm" variant="ghost" onClick={() => openSwapModal(sample)} leftIcon={<ArrowLeftRight className="h-3.5 w-3.5" />}>
@@ -494,7 +494,7 @@ export default function RetailerSamplesPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-body text-primary">{r.brand_name}</p>
-                        <p className="mt-1 text-caption text-muted">
+                        <p className="mt-1 text-caption text-slate">
                           Sent {formatDate(r.created_at)} · {r.items.length} {r.items.length === 1 ? 'item' : 'items'} · {formatDKK(deposit)} deposit
                         </p>
                       </div>
@@ -505,15 +505,15 @@ export default function RetailerSamplesPage() {
                       {r.items.map((i) => (
                         <li key={i.id} className="flex items-center justify-between gap-3 py-2.5">
                           <p className="min-w-0 truncate text-body text-primary">
-                            {i.product_name} <span className="text-caption text-muted">· {i.size} / {i.color}</span>
+                            {i.product_name} <span className="text-caption text-slate">· {i.size} / {i.color}</span>
                           </p>
-                          <span className="shrink-0 text-caption text-muted">{formatDKK(i.deposit_amount_dkk)}</span>
+                          <span className="shrink-0 text-caption text-slate">{formatDKK(i.deposit_amount_dkk)}</span>
                         </li>
                       ))}
                     </ul>
 
                     {(r.note || r.review_note) && (
-                      <div className="space-y-1 text-caption text-muted">
+                      <div className="space-y-1 text-caption text-slate">
                         {r.note && <p>Your note: {r.note}</p>}
                         {r.review_note && <p>From {r.brand_name}: {r.review_note}</p>}
                       </div>
@@ -547,9 +547,9 @@ export default function RetailerSamplesPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-body text-primary">
-                        {sw.return_product_name} <span className="text-muted">→</span> {sw.new_product_name}
+                        {sw.return_product_name} <span className="text-slate">→</span> {sw.new_product_name}
                       </p>
-                      <p className="mt-1 text-caption text-muted">
+                      <p className="mt-1 text-caption text-slate">
                         {sw.new_size} / {sw.new_color}
                         {sw.reason && ` · ${sw.reason}`}
                       </p>
@@ -579,7 +579,7 @@ export default function RetailerSamplesPage() {
                   )}
 
                   {sw.return_tracking_number && (
-                    <p className="text-caption text-muted">Return tracking: {sw.return_tracking_number}</p>
+                    <p className="text-caption text-slate">Return tracking: {sw.return_tracking_number}</p>
                   )}
                 </Card>
               ))}
@@ -611,7 +611,7 @@ export default function RetailerSamplesPage() {
       >
         {swapSample && (
           <div className="space-y-4">
-            <p className="text-body text-muted">
+            <p className="text-body text-slate">
               Returning: <span className="text-primary">{swapSample.product_name}</span>
               {swapSample.size && ` (${swapSample.size})`}
             </p>

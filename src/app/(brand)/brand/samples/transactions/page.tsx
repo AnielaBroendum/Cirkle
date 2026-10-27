@@ -113,13 +113,13 @@ export default function BrandTransactionsPage() {
               <li key={t.id} className="flex items-start gap-3 p-4">
                 <div className="min-w-0 flex-1">
                   <StatusPill status={t.transaction_type} label={TYPE_LABELS[t.transaction_type] ?? t.transaction_type} />
-                  <p className="mt-1.5 truncate text-[13px] text-primary">{t.product_name}</p>
-                  <p className="truncate text-caption text-muted">{t.retailer_name}</p>
-                  {t.note && <p className="mt-0.5 truncate text-caption text-muted">{t.note}</p>}
+                  <p className="mt-1.5 truncate text-body-sm text-primary">{t.product_name}</p>
+                  <p className="truncate text-caption text-slate">{t.retailer_name}</p>
+                  {t.note && <p className="mt-0.5 truncate text-caption text-slate">{t.note}</p>}
                 </div>
                 <div className="text-right">
                   <Amount value={t.amount_dkk} />
-                  <p className="text-caption text-muted">
+                  <p className="text-caption text-slate">
                     {new Date(t.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                   </p>
                 </div>
@@ -129,7 +129,7 @@ export default function BrandTransactionsPage() {
 
           {/* Desktop: table */}
           <div className="hidden md:block">
-            <Table className="text-[13px]">
+            <Table className="text-body-sm">
               <THead>
                 <tr>
                   <TH className="px-5">Date</TH>
@@ -143,7 +143,7 @@ export default function BrandTransactionsPage() {
               <TBody>
                 {transactions.map((t) => (
                   <TR key={t.id}>
-                    <TD className="whitespace-nowrap px-5 text-muted">
+                    <TD className="whitespace-nowrap px-5 text-slate">
                       {new Date(t.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </TD>
                     <TD>
@@ -151,7 +151,7 @@ export default function BrandTransactionsPage() {
                     </TD>
                     <TD>{t.product_name}</TD>
                     <TD>{t.retailer_name}</TD>
-                    <TD className="max-w-[220px] truncate text-muted">{t.note ?? '—'}</TD>
+                    <TD className="max-w-[220px] truncate text-slate">{t.note ?? '—'}</TD>
                     <TD className="px-5 text-right">
                       <Amount value={t.amount_dkk} />
                     </TD>
@@ -169,7 +169,7 @@ export default function BrandTransactionsPage() {
 // Money in is "+", money out is "−" (Figma has no danger colour).
 function Amount({ value }: { value: number }) {
   return (
-    <span className={cn('whitespace-nowrap font-medium tabular-nums', value > 0 ? 'text-success' : value < 0 ? 'text-primary' : 'text-muted')}>
+    <span className={cn('whitespace-nowrap font-medium tabular-nums', value > 0 ? 'text-success' : value < 0 ? 'text-primary' : 'text-slate')}>
       {value > 0 ? '+' : value < 0 ? '−' : ''}
       {formatDKK(Math.abs(value))}
     </span>

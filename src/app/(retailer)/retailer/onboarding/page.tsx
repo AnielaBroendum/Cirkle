@@ -96,9 +96,9 @@ export default function RetailerOnboardingPage() {
       <div className="flex flex-1 justify-center px-4 py-10 sm:px-8 lg:items-center lg:py-16">
         <form onSubmit={handleSubmit} className="w-full max-w-[440px] space-y-5">
           <div>
-            <p className="text-label uppercase text-muted">Retail Portal</p>
+            <p className="text-label uppercase text-slate">Retail Portal</p>
             <h1 className="mt-4 font-brand text-display uppercase text-primary">Set up your store</h1>
-            <p className="mt-3 text-body leading-[1.6] text-muted">
+            <p className="mt-3 text-body leading-[1.6] text-slate">
               This is what people see when they scan a product in your store.
             </p>
           </div>

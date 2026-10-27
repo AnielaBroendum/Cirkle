@@ -126,8 +126,8 @@ export default function OrderDetailPage() {
       <div>
         <ScreenHeader title="" onBack={() => router.back()} />
         <div className="flex flex-col items-center px-5 pt-24 text-center">
-          <p className="font-brand text-[18px] uppercase tracking-[0.4px] text-on-primary">Order not found</p>
-          <p className="mt-3 max-w-[260px] text-body text-line">It may belong to another account, or the link is wrong.</p>
+          <p className="font-brand text-title uppercase tracking-[0.4px] text-on-primary">Order not found</p>
+          <p className="mt-3 max-w-[260px] text-body text-ash">It may belong to another account, or the link is wrong.</p>
           <Link href="/consumer/orders" className={buttonClasses({ variant: 'accent', className: 'mt-8 w-full max-w-[280px]' })}>
             See your orders
           </Link>
@@ -147,7 +147,7 @@ export default function OrderDetailPage() {
       <ScreenHeader
         title=""
         onBack={() => router.back()}
-        right={<span className="text-caption leading-none text-line">#{order.order_number}</span>}
+        right={<span className="text-caption leading-none text-ash">#{order.order_number}</span>}
       />
 
       <div className="px-5">
@@ -155,29 +155,29 @@ export default function OrderDetailPage() {
           /* Figma 17 "Delivered" */
           <section className="pt-6 text-center">
             <h1 className="font-brand text-[28px] font-normal uppercase tracking-[0.6px] text-on-primary">It&rsquo;s here.</h1>
-            <p className="mt-3 text-body text-line">Now it&rsquo;s yours.</p>
+            <p className="mt-3 text-body text-ash">Now it&rsquo;s yours.</p>
             <div className="relative mx-auto mt-6 aspect-square w-full max-w-[260px] bg-flaym-gradient">
               {firstImage && <Image src={firstImage} alt={order.order_items[0].product_name} fill className="object-cover" sizes="260px" />}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/icons/flame-white.svg" alt="" width={18} height={26} className="absolute right-3.5 top-3.5" />
             </div>
             <span className="mt-6 inline-block rounded-pill bg-accent-subtle px-2.5 py-0.5 text-caption font-medium text-accent-strong">Moved to Owned</span>
-            <p className="mt-4 text-body text-line">
+            <p className="mt-4 text-body text-ash">
               When someone asks,
               <br />
               pass the flame on.
             </p>
-            <a href="#pass-it-on" className="mt-8 flex h-[52px] w-full items-center justify-center bg-accent text-[15px] font-medium text-on-primary hover:bg-accent/90">
+            <a href="#pass-it-on" className="mt-8 flex h-[52px] w-full items-center justify-center bg-accent text-body-lg font-medium text-on-primary hover:bg-accent/90">
               Pass it on
             </a>
-            {deliveredAt && <p className="mt-3 text-caption text-muted">Delivered {new Date(deliveredAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</p>}
+            {deliveredAt && <p className="mt-3 text-caption text-smoke">Delivered {new Date(deliveredAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</p>}
           </section>
         ) : (
           /* Figma 15 "Tracking" */
           <section className="pt-4">
-            <p className="text-label uppercase text-muted">{cancelled ? 'Order' : isPastDay(to) ? 'Was expected' : 'Expected delivery'}</p>
+            <p className="text-label uppercase text-smoke">{cancelled ? 'Order' : isPastDay(to) ? 'Was expected' : 'Expected delivery'}</p>
             <p className="mt-2 text-[34px] font-medium leading-tight text-on-primary">{cancelled ? 'Cancelled' : formatRange(from, to)}</p>
-            <p className="mt-2 text-[13px] text-line">
+            <p className="mt-2 text-body-sm text-ash">
               {order.tracking_number ? `Tracking ${order.tracking_number}` : 'Ships from the brand'} · {order.brand_profiles.name}
             </p>
           </section>
@@ -185,7 +185,7 @@ export default function OrderDetailPage() {
 
         {/* Status timeline */}
         <section className={delivered ? 'mt-10' : 'mt-7'}>
-          {delivered && <p className="mb-4 text-label uppercase text-muted">Status</p>}
+          {delivered && <p className="mb-4 text-label uppercase text-smoke">Status</p>}
           <OrderTimeline
             events={order.order_events.sort(
               (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -207,17 +207,17 @@ export default function OrderDetailPage() {
 
         {/* Live map: Phase 2 in Figma */}
         {!delivered && !cancelled && (
-          <div className="mt-6 flex flex-col items-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-muted px-4 py-5 text-center">
-            <p className="text-[13px] text-line">Live map if the carrier supports it</p>
-            <span className="rounded-pill bg-warning-subtle px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.6px] text-warning">Phase 2</span>
+          <div className="mt-6 flex flex-col items-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-char px-4 py-5 text-center">
+            <p className="text-body-sm text-ash">Live map if the carrier supports it</p>
+            <span className="rounded-pill bg-warning-subtle px-2 py-0.5 text-label font-medium uppercase text-warning">Phase 2</span>
           </div>
         )}
 
         {/* Peer discovery QR (Figma 10b "Pass it on") */}
         {peerQR && peerQR.length > 0 && (
           <section id="pass-it-on" className="mt-8 scroll-mt-6 bg-surface-dark p-5">
-            <p className="text-label uppercase text-muted">Pass it on</p>
-            <p className="mt-2 text-body text-line">Friends scan this code to find it. When they buy, you get 50 Flayms.</p>
+            <p className="text-label uppercase text-smoke">Pass it on</p>
+            <p className="mt-2 text-body text-ash">Friends scan this code to find it. When they buy, you get 50 Flayms.</p>
             {peerQR.map((qr) => (
               <div key={qr.product_id} className="mt-5 space-y-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -233,7 +233,7 @@ export default function OrderDetailPage() {
                   <button
                     type="button"
                     onClick={() => downloadQR(qr.qr_data_url)}
-                    className="flex h-11 flex-1 items-center justify-center gap-2 border border-muted text-body font-medium text-on-primary hover:border-on-primary"
+                    className="flex h-11 flex-1 items-center justify-center gap-2 border border-char text-body font-medium text-on-primary hover:border-on-primary"
                   >
                     <Download className="h-4 w-4" /> Download
                   </button>
@@ -245,7 +245,7 @@ export default function OrderDetailPage() {
 
         {/* Items */}
         <section className="mt-8">
-          <p className="text-label uppercase text-muted">Products</p>
+          <p className="text-label uppercase text-smoke">Products</p>
           <ul className="mt-3 space-y-2">
             {order.order_items.map((item) => (
               <li key={item.id} className="flex items-center gap-3.5 bg-surface-dark p-4">
@@ -253,9 +253,9 @@ export default function OrderDetailPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-body text-on-primary">{item.product_name}</p>
                   {(item.size || item.color) && (
-                    <p className="text-caption text-muted">{[item.size && `Size ${item.size}`, item.color].filter(Boolean).join(' · ')}</p>
+                    <p className="text-caption text-smoke">{[item.size && `Size ${item.size}`, item.color].filter(Boolean).join(' · ')}</p>
                   )}
-                  <p className="mt-0.5 text-caption text-line">
+                  <p className="mt-0.5 text-caption text-ash">
                     {item.quantity} × {formatDKK(item.unit_price_dkk)}
                   </p>
                 </div>
@@ -267,7 +267,7 @@ export default function OrderDetailPage() {
         {delivered && (
           <Link
             href={`/consumer/orders/${order.id}/return${order.order_items.length === 1 ? `?item=${order.order_items[0].id}` : ''}`}
-            className="mt-3 block text-center text-caption text-line underline-offset-2 hover:underline"
+            className="mt-3 block text-center text-caption text-ash underline-offset-2 hover:underline"
           >
             Request a return
           </Link>
@@ -276,7 +276,7 @@ export default function OrderDetailPage() {
         {/* Summary */}
         <DarkCard className="mt-4 space-y-3 text-body">
           <div className="flex justify-between">
-            <span className="text-muted">Subtotal</span>
+            <span className="text-smoke">Subtotal</span>
             <span>{formatDKK(order.total_dkk + order.discount_dkk)}</span>
           </div>
           {order.points_used > 0 && (
@@ -286,7 +286,7 @@ export default function OrderDetailPage() {
             </div>
           )}
           <div className="flex justify-between">
-            <span className="text-muted">Delivery</span>
+            <span className="text-smoke">Delivery</span>
             <span>Free</span>
           </div>
           <div className="flex justify-between font-medium">
@@ -297,15 +297,15 @@ export default function OrderDetailPage() {
 
         {/* Shipping */}
         <DarkCard className="mt-4">
-          <p className="text-label uppercase text-muted">Deliver to</p>
+          <p className="text-label uppercase text-smoke">Deliver to</p>
           <p className="mt-2 text-body text-on-primary">{order.shipping_name}</p>
-          <p className="mt-1 text-[13px] text-line">{order.shipping_address}</p>
-          <p className="text-[13px] text-line">
+          <p className="mt-1 text-body-sm text-ash">{order.shipping_address}</p>
+          <p className="text-body-sm text-ash">
             {order.shipping_postal_code} {order.shipping_city}
           </p>
         </DarkCard>
 
-        <p className="mt-6 text-center text-caption text-muted">
+        <p className="mt-6 text-center text-caption text-smoke">
           Packed and shipped by {order.brand_profiles.name} ·{' '}
           {new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
         </p>

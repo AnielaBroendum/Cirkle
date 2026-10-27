@@ -98,7 +98,7 @@ export default function RetailerTransactionsPage() {
     <div className="space-y-7">
       <div>
         <h1 className="font-brand text-heading-xl uppercase text-primary">Transactions</h1>
-        <p className="mt-1 text-body text-muted">Deposits paid for samples in your store, and what came back.</p>
+        <p className="mt-1 text-body text-slate">Deposits paid for samples in your store, and what came back.</p>
       </div>
 
       {transactions.length === 0 ? (
@@ -110,7 +110,7 @@ export default function RetailerTransactionsPage() {
       ) : (
         <Card padding="none">
           {/* Column labels (sm and up) */}
-          <div className="hidden grid-cols-[80px_1fr_150px_120px] gap-4 border-b border-line px-6 py-3 text-label uppercase text-muted sm:grid">
+          <div className="hidden grid-cols-[80px_1fr_150px_120px] gap-4 border-b border-line px-6 py-3 text-label uppercase text-slate sm:grid">
             <span>Date</span>
             <span>Product</span>
             <span>Type</span>
@@ -122,12 +122,12 @@ export default function RetailerTransactionsPage() {
                 key={t.id}
                 className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1.5 px-4 py-3.5 sm:grid-cols-[80px_1fr_150px_120px] sm:px-6"
               >
-                <span className="order-3 text-caption text-muted sm:order-none">
+                <span className="order-3 text-caption text-slate sm:order-none">
                   {new Date(t.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </span>
                 <div className="order-1 min-w-0 sm:order-none">
                   <p className="truncate text-body text-primary">{t.product_name}</p>
-                  <p className="mt-0.5 truncate text-caption text-muted">
+                  <p className="mt-0.5 truncate text-caption text-slate">
                     {t.brand_name}
                     {t.note && ` · ${t.note}`}
                   </p>
@@ -137,7 +137,7 @@ export default function RetailerTransactionsPage() {
                 </span>
                 <p
                   className={`order-2 text-right text-body font-medium sm:order-none ${
-                    t.amount_dkk < 0 ? 'text-success' : t.amount_dkk > 0 ? 'text-primary' : 'text-muted'
+                    t.amount_dkk < 0 ? 'text-success' : t.amount_dkk > 0 ? 'text-primary' : 'text-slate'
                   }`}
                 >
                   {t.amount_dkk > 0 ? '-' : '+'}{formatDKK(Math.abs(t.amount_dkk))}

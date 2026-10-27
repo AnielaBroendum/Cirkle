@@ -123,19 +123,20 @@ Figma "Flaym / Colour" variables:
 | light/text tertiary | Slate | #5E5856 | Portals: meta, labels, table headers |
 | status/warning text | — | #8A5200 | Text on warning chips |
 
-- [ ] **B1 Colours**
+- [x] **B1 Colours**
   - Add the Figma colour tokens by name.
   - Keep the semantic tokens as aliases.
   - Retire `text-muted` (Char as text) in favour of Smoke (dark app) and Slate (light portals).
-- [ ] **B2 Type**
+- [x] **B2 Type**
   - No text under 12px: `text-label` goes from 11px to 12px, and the three `text-[10px]` are removed.
   - Match the scale to the sizes Figma uses.
-- [ ] **B3 Buttons** with UPPERCASE labels (ds `Button` / `buttonClasses`).
-- [ ] **B4 Icons** in `src/components/ds/icons`:
+- [x] **B3 Buttons** with UPPERCASE labels (ds `Button` / `buttonClasses`).
+- [x] **B4 Icons** in `src/components/ds/icons`:
   - App: Scan, Flayms, Profile.
   - Portal nav: Dashboard, Products, Stores & QR tags, Orders, Returns, Account, Store profile, Log out.
-- [ ] **B5 `/ds-preview`**: a development-only page showing tokens, type, components and icons.
+- [x] **B5 `/ds-preview`**: a development-only page showing tokens, type, components and icons.
 
 Notes:
 - Figma has **no published text styles**. The scale is taken from the sizes used in the frames. Publishing text styles in Figma would make future syncs exact.
 - Portal frames also use a light divider, #EBE8E2. It isn't a Figma variable, so it isn't a token yet.
+- Follow-up: the nav layouts still use lucide icons; they can switch to the Figma icons in `ds/icons` (`NavItem.icon` accepts both).

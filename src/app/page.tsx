@@ -24,7 +24,7 @@ export default function Home() {
           <p className="text-caption italic tracking-[3.6px]">FORWARD</p>
         </div>
 
-        <p className="mb-5 text-center text-[13px]">Scan it. Save it. Pass it on.</p>
+        <p className="mb-5 text-center text-body-sm">Scan it. Save it. Pass it on.</p>
 
         <div className="space-y-3">
           {ROLES.map(({ role, label, tone }) => (
@@ -35,10 +35,10 @@ export default function Home() {
                 size: 'lg',
                 fullWidth: true,
                 className: cn(
-                  'h-[52px] text-[15px]',
+                  'h-[52px] text-body-lg',
                   tone === 'light'
                     ? 'bg-surface text-primary hover:bg-surface/90'
-                    : 'border border-muted bg-transparent text-on-primary hover:border-on-primary hover:bg-transparent'
+                    : 'border border-char bg-transparent text-on-primary hover:border-on-primary hover:bg-transparent'
                 ),
               })}
             >
@@ -47,7 +47,7 @@ export default function Home() {
           ))}
         </div>
 
-        <p className="mt-5 text-center text-label leading-[14px] tracking-normal text-line">
+        <p className="mt-5 text-center text-label leading-[14px] tracking-normal text-ash">
           Already have an account?{' '}
           <Link href="/auth/login" className="text-on-primary underline">
             Log in

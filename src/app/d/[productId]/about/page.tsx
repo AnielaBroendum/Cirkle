@@ -10,11 +10,11 @@ import BackButton from '@/components/consumer/back-button';
 function Section({ title, children, placeholder }: { title: string; children?: React.ReactNode; placeholder: string }) {
   return (
     <section className="mt-6">
-      <h2 className="font-brand text-[15px] font-normal uppercase tracking-[0.3px] text-on-primary">{title}</h2>
+      <h2 className="font-brand text-body-lg font-normal uppercase tracking-[0.3px] text-on-primary">{title}</h2>
       {children ? (
-        <p className="mt-3 whitespace-pre-line text-[13px] leading-5 text-line">{children}</p>
+        <p className="mt-3 whitespace-pre-line text-body-sm leading-5 text-ash">{children}</p>
       ) : (
-        <p className="mt-3 text-[13px] leading-5 text-muted">{placeholder}</p>
+        <p className="mt-3 text-body-sm leading-5 text-smoke">{placeholder}</p>
       )}
     </section>
   );
@@ -35,14 +35,14 @@ export default async function ProductAboutPage({ params }: { params: { productId
     <div className="mx-auto min-h-screen max-w-lg bg-canvas-dark px-5 pb-12 font-brand text-on-primary">
       <header className="grid h-[52px] grid-cols-[1fr_auto_1fr] items-end pb-1">
         <BackButton fallbackHref={`/d/${product.id}`} />
-        <h1 className="font-brand text-[18px] font-normal uppercase leading-none tracking-[0.4px]">About</h1>
+        <h1 className="font-brand text-title font-normal uppercase leading-none tracking-[0.4px]">About</h1>
         <span />
       </header>
 
-      <p className="mt-4 text-label uppercase text-muted">
+      <p className="mt-4 text-label uppercase text-smoke">
         {product.name} · {brand.name}
       </p>
-      <p className="mt-1.5 text-[13px] text-line">A bit like a digital product passport</p>
+      <p className="mt-1.5 text-body-sm text-ash">A bit like a digital product passport</p>
 
       <Section title="Materials" placeholder="The brand hasn’t added materials yet.">
         {product.materials}
@@ -55,9 +55,9 @@ export default async function ProductAboutPage({ params }: { params: { productId
       <div className="mt-10 flex items-center justify-between bg-surface-dark p-4">
         <div>
           <p className="text-body text-on-primary">Repair and care</p>
-          <p className="mt-1 text-caption text-muted">Repair and care guides are coming soon.</p>
+          <p className="mt-1 text-caption text-smoke">Repair and care guides are coming soon.</p>
         </div>
-        <span className="text-[16px] text-muted" aria-hidden>
+        <span className="text-[16px] text-smoke" aria-hidden>
           ›
         </span>
       </div>

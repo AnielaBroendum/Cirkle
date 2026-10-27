@@ -83,7 +83,7 @@ export default function ConsumerSavedPage() {
         ) : items.length === 0 ? (
           <div className="mt-2 bg-surface-dark p-4">
             <p className="text-body text-on-primary">Nothing saved yet</p>
-            <p className="mt-1 text-caption text-muted">Scan a Flaym tag and tap Save. The store still gets its cut if you buy within 90 days.</p>
+            <p className="mt-1 text-caption text-smoke">Scan a Flaym tag and tap Save. The store still gets its cut if you buy within 90 days.</p>
           </div>
         ) : (
           <ul className="divide-y divide-line-dark">
@@ -98,10 +98,10 @@ export default function ConsumerSavedPage() {
                     <Thumb src={product?.images?.[0] ?? null} alt={product.name} className="h-20 w-16" />
                     <div className="min-w-0">
                       <p className="truncate text-body text-on-primary">{product?.name}</p>
-                      <p className="truncate text-caption text-muted">
+                      <p className="truncate text-caption text-smoke">
                         {product?.brand_profiles?.name} · {formatDKK(product?.price_dkk || 0)}
                       </p>
-                      <p className={cn('mt-1 text-label tracking-normal', expired ? 'text-accent' : 'text-muted')}>
+                      <p className={cn('mt-1 text-label tracking-normal', expired ? 'text-accent' : 'text-smoke')}>
                         {expired ? 'Expired' : `${days} days left`}
                       </p>
                     </div>
@@ -119,7 +119,7 @@ export default function ConsumerSavedPage() {
                       type="button"
                       onClick={(e) => handleRemove(e, item.product_id)}
                       aria-label={`Remove ${product?.name}`}
-                      className="grid h-6 w-6 place-items-center text-muted hover:text-on-primary"
+                      className="grid h-6 w-6 place-items-center text-smoke hover:text-on-primary"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>

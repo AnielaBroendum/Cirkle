@@ -52,7 +52,7 @@ export function Modal({ open, onClose, title, footer, variant = 'dialog', classN
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="-mr-2 inline-flex h-9 w-9 items-center justify-center text-muted hover:text-primary"
+            className="-mr-2 inline-flex h-9 w-9 items-center justify-center text-slate hover:text-primary"
           >
             <X className="h-5 w-5" />
           </button>

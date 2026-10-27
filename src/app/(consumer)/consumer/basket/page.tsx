@@ -29,7 +29,7 @@ export default function BasketPage() {
       <ScreenHeader
         title="Basket"
         onBack={() => router.back()}
-        right={mounted && items.length > 0 ? <span className="text-[13px] leading-none text-line">{items.length} {items.length === 1 ? 'item' : 'items'}</span> : null}
+        right={mounted && items.length > 0 ? <span className="text-body-sm leading-none text-ash">{items.length} {items.length === 1 ? 'item' : 'items'}</span> : null}
       />
 
       {!mounted ? (
@@ -43,8 +43,8 @@ export default function BasketPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center px-5 pt-24 text-center">
-          <p className="font-brand text-[18px] uppercase tracking-[0.4px] text-on-primary">Your basket is empty</p>
-          <p className="mt-3 max-w-[260px] text-body text-line">Scan a Flaym tag in a store, or open something you saved.</p>
+          <p className="font-brand text-title uppercase tracking-[0.4px] text-on-primary">Your basket is empty</p>
+          <p className="mt-3 max-w-[260px] text-body text-ash">Scan a Flaym tag in a store, or open something you saved.</p>
           <div className="mt-8 flex w-full max-w-[280px] flex-col gap-2.5">
             <button type="button" onClick={() => router.push('/consumer/home')} className={buttonClasses({ variant: 'accent', fullWidth: true })}>
               Scan a tag
@@ -52,7 +52,7 @@ export default function BasketPage() {
             <button
               type="button"
               onClick={() => router.push('/consumer/saved')}
-              className={buttonClasses({ variant: 'ghost', fullWidth: true, className: 'border border-muted text-on-primary hover:bg-surface-dark' })}
+              className={buttonClasses({ variant: 'ghost', fullWidth: true, className: 'border border-char text-on-primary hover:bg-surface-dark' })}
             >
               Go to saved
             </button>
@@ -70,11 +70,11 @@ export default function BasketPage() {
                       <Thumb src={item.image} alt={item.name} className="h-20 w-16" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-body text-on-primary">{item.name}</p>
-                        <p className="truncate text-caption text-muted">{itemMeta(item)}</p>
+                        <p className="truncate text-caption text-smoke">{itemMeta(item)}</p>
                         <button
                           type="button"
                           onClick={() => removeFromBasket(item.key)}
-                          className="mt-1 text-caption text-muted underline-offset-2 hover:text-on-primary hover:underline"
+                          className="mt-1 text-caption text-smoke underline-offset-2 hover:text-on-primary hover:underline"
                         >
                           Remove
                         </button>

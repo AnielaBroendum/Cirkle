@@ -138,7 +138,7 @@ export default function BrandReturnsPage() {
   const header = (
     <div>
       <h1 className="font-brand text-heading-xl uppercase text-primary">Returns</h1>
-      <p className="mt-1 text-body text-muted">Requested in the app. Your return policy applies. Flaym refunds once you approve.</p>
+      <p className="mt-1 text-body text-slate">Requested in the app. Your return policy applies. Flaym refunds once you approve.</p>
     </div>
   );
 
@@ -247,19 +247,19 @@ export default function BrandReturnsPage() {
                 <div className="flex gap-3">
                   <Thumb src={r.image} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] text-primary">{r.product_name}</p>
-                    <p className="text-caption text-muted">
+                    <p className="truncate text-body-sm text-primary">{r.product_name}</p>
+                    <p className="text-caption text-slate">
                       {[r.size && `Size ${r.size}`, r.color].filter(Boolean).join(' · ')}
                     </p>
-                    <p className="mt-1 text-caption text-muted">
+                    <p className="mt-1 text-caption text-slate">
                       {returnId(r.id)} · #{r.order_number ?? '—'} · {date(r.created_at)}
                     </p>
                   </div>
-                  <span className="whitespace-nowrap text-[13px] tabular-nums text-primary">{formatDKK(r.refund_dkk)}</span>
+                  <span className="whitespace-nowrap text-body-sm tabular-nums text-primary">{formatDKK(r.refund_dkk)}</span>
                 </div>
-                <p className="text-[13px] text-primary">
+                <p className="text-body-sm text-primary">
                   {REASON_LABEL[r.reason] ?? r.reason}
-                  {r.comment && <span className="block text-caption text-muted">&ldquo;{r.comment}&rdquo;</span>}
+                  {r.comment && <span className="block text-caption text-slate">&ldquo;{r.comment}&rdquo;</span>}
                 </p>
                 {actions(r)}
               </li>
@@ -268,7 +268,7 @@ export default function BrandReturnsPage() {
 
           {/* Desktop: table */}
           <div className="hidden overflow-x-auto border border-line bg-surface md:block">
-            <table className="w-full border-collapse font-brand text-[13px] text-primary">
+            <table className="w-full border-collapse font-brand text-body-sm text-primary">
               <THead>
                 <tr>
                   <TH className="px-5">Return</TH>
@@ -292,13 +292,13 @@ export default function BrandReturnsPage() {
                         <Thumb src={r.image} />
                         <div className="min-w-0">
                           <p className="truncate">{r.product_name}</p>
-                          <p className="text-caption text-muted">{[r.size && `Size ${r.size}`, r.color].filter(Boolean).join(' · ')}</p>
+                          <p className="text-caption text-slate">{[r.size && `Size ${r.size}`, r.color].filter(Boolean).join(' · ')}</p>
                         </div>
                       </div>
                     </TD>
                     <TD className="max-w-[220px]">
                       {REASON_LABEL[r.reason] ?? r.reason}
-                      {r.comment && <p className="truncate text-caption text-muted" title={r.comment}>&ldquo;{r.comment}&rdquo;</p>}
+                      {r.comment && <p className="truncate text-caption text-slate" title={r.comment}>&ldquo;{r.comment}&rdquo;</p>}
                     </TD>
                     <TD className="whitespace-nowrap">{date(r.created_at)}</TD>
                     <TD className="whitespace-nowrap text-right tabular-nums">{formatDKK(r.refund_dkk)}</TD>
@@ -321,7 +321,7 @@ function Thumb({ src }: { src: string | null }) {
     </div>
   ) : (
     <div className="flex h-10 w-[34px] shrink-0 items-center justify-center bg-surface-muted">
-      <Package className="h-4 w-4 text-muted" />
+      <Package className="h-4 w-4 text-slate" />
     </div>
   );
 }

@@ -139,7 +139,7 @@ export default function ConsumerHistoryPage() {
         ) : items.length === 0 ? (
           <div className="bg-surface-dark p-4">
             <p className="text-body text-on-primary">No history yet</p>
-            <p className="mt-1 text-caption text-muted">
+            <p className="mt-1 text-caption text-smoke">
               Everything you scan shows up here.{' '}
               <Link href="/consumer/home" className="text-accent">
                 Scan a tag
@@ -149,7 +149,7 @@ export default function ConsumerHistoryPage() {
         ) : (
           groups.map((group) => (
             <section key={group.label} className="mb-5">
-              <p className="text-label uppercase text-muted">{group.label}</p>
+              <p className="text-label uppercase text-smoke">{group.label}</p>
               <ul className="mt-3.5 space-y-3.5">
                 {group.items.map((item) => (
                   <li key={item.id}>
@@ -157,7 +157,7 @@ export default function ConsumerHistoryPage() {
                       <Thumb src={item.image} alt={item.name} className="h-[60px] w-12" />
                       <div className="min-w-0">
                         <p className="truncate text-body text-on-primary">{item.name}</p>
-                        <p className="truncate text-caption text-muted">
+                        <p className="truncate text-caption text-smoke">
                           {item.how} · {whenLabel(item.when, group.label)}
                         </p>
                       </div>

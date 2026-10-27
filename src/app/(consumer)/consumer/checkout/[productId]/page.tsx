@@ -183,7 +183,7 @@ export default function CheckoutPage() {
   }
 
   const chip = (active: boolean) =>
-    cn('h-10 min-w-12 px-3 text-body transition-colors', active ? 'bg-on-primary text-primary' : 'border border-muted text-on-primary hover:border-on-primary');
+    cn('h-10 min-w-12 px-3 text-body transition-colors', active ? 'bg-on-primary text-primary' : 'border border-char text-on-primary hover:border-on-primary');
 
   return (
     <form onSubmit={handleSubmit} className="pb-40">
@@ -196,7 +196,7 @@ export default function CheckoutPage() {
           <div className="min-w-0 flex-1">
             <Eyebrow>{product.brand_profiles.name}</Eyebrow>
             <p className="mt-0.5 truncate text-body text-on-primary">{product.name}</p>
-            <p className="truncate text-caption text-muted">
+            <p className="truncate text-caption text-smoke">
               {[selectedSize && `Size ${selectedSize}`, selectedColor].filter(Boolean).join(' · ') || 'Select options below'}
             </p>
           </div>

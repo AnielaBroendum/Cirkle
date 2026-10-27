@@ -169,16 +169,16 @@ export default function BrandSampleRequestsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-brand text-body uppercase tracking-[0.3px] text-primary">{sr.retailer_name}</p>
-                  <p className="mt-0.5 text-caption text-muted">
+                  <p className="mt-0.5 text-caption text-slate">
                     {new Date(sr.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
-                  {sr.note && <p className="mt-2 text-body text-muted">Note: {sr.note}</p>}
+                  {sr.note && <p className="mt-2 text-body text-slate">Note: {sr.note}</p>}
                 </div>
                 <StatusPill status={sr.status} />
               </div>
 
               <div className="-mx-1 overflow-x-auto">
-                <table className="w-full border-collapse font-brand text-[13px] text-primary">
+                <table className="w-full border-collapse font-brand text-body-sm text-primary">
                   <THead>
                     <tr>
                       <TH className="px-3 py-2 text-label font-medium">Product</TH>
@@ -191,15 +191,15 @@ export default function BrandSampleRequestsPage() {
                     {sr.items.map((item) => (
                       <TR key={item.id}>
                         <TD className="px-3 py-2.5">{item.product_name}</TD>
-                        <TD className="px-3 py-2.5 text-muted">{item.size}</TD>
-                        <TD className="px-3 py-2.5 text-muted">{item.color}</TD>
+                        <TD className="px-3 py-2.5 text-slate">{item.size}</TD>
+                        <TD className="px-3 py-2.5 text-slate">{item.color}</TD>
                         <TD className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{formatDKK(item.deposit_amount_dkk)}</TD>
                       </TR>
                     ))}
                   </TBody>
                   <tfoot>
                     <tr className="border-t border-line">
-                      <td colSpan={3} className="px-3 py-2.5 text-label uppercase text-muted">Total deposit</td>
+                      <td colSpan={3} className="px-3 py-2.5 text-label uppercase text-slate">Total deposit</td>
                       <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium tabular-nums">{formatDKK(sr.total_deposit)}</td>
                     </tr>
                   </tfoot>
@@ -207,7 +207,7 @@ export default function BrandSampleRequestsPage() {
               </div>
 
               {sr.review_note && sr.status !== 'pending' && (
-                <p className="text-body text-muted">Review note: {sr.review_note}</p>
+                <p className="text-body text-slate">Review note: {sr.review_note}</p>
               )}
 
               {/* Actions */}

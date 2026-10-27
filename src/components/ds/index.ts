@@ -13,3 +13,4 @@ export { EmptyState, Skeleton, KPISkeleton, ListSkeleton, CardSkeleton, StatTile
 export { Toast, ToastProvider, useToast, type ToastType } from './toast';
 export { List, ListRow, Table, THead, TBody, TR, TH, TD } from './list';
 export { ProductCard } from './product-card';
+export * from './icons';

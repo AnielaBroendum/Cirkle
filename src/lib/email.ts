@@ -44,7 +44,7 @@ function esc(value: string | number | null | undefined): string {
 const C = {
   primary: '#2C2324',
   onPrimary: '#FFFFFF',
-  muted: '#7B7673',
+  muted: '#5E5856', // Slate: Figma light/text tertiary (Char is never text)
   line: '#D5D1C8',
   surfaceMuted: '#E7E3DB',
   canvasWarm: '#F4F2EE',

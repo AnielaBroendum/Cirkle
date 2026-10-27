@@ -287,7 +287,7 @@ export default function BrandSamplesPage() {
       .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
       figure{margin:0;border:1px solid #D5D1C8;padding:16px;text-align:center;break-inside:avoid}
       img{width:150px;height:150px}
-      figcaption{display:flex;flex-direction:column;gap:2px;font-size:11px;margin-top:8px}
+      figcaption{display:flex;flex-direction:column;gap:2px;font-size:12px;margin-top:8px}
       strong{font-size:12px;font-weight:500}
     </style></head><body><div class="grid">${cells}</div></body></html>`);
     win.document.close();
@@ -298,7 +298,7 @@ export default function BrandSamplesPage() {
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 className="font-brand text-heading-xl uppercase text-primary">Stores and QR tags</h1>
-        <p className="mt-1 text-body text-muted">Choose what each store shows, then print its tags</p>
+        <p className="mt-1 text-body text-slate">Choose what each store shows, then print its tags</p>
       </div>
       <div className="flex flex-wrap gap-3">
         <Link href="/brand/samples/new" className={buttonClasses({ variant: 'secondary' })}>
@@ -391,7 +391,7 @@ export default function BrandSamplesPage() {
             )}
 
             <div className="border-t border-line px-3 pb-1.5 pt-3">
-              <Link href="/brand/partnerships" className="text-caption text-muted underline-offset-2 hover:text-primary hover:underline">
+              <Link href="/brand/partnerships" className="text-caption text-slate underline-offset-2 hover:text-primary hover:underline">
                 All partnerships →
               </Link>
             </div>
@@ -470,8 +470,8 @@ export default function BrandSamplesPage() {
                             </span>
                             <Thumb src={sample.product?.images?.[0]} />
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-[13px] text-primary">{sample.product?.name ?? 'Unknown product'}</p>
-                              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-caption text-muted">
+                              <p className="truncate text-body-sm text-primary">{sample.product?.name ?? 'Unknown product'}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-caption text-slate">
                                 {[sample.size, sample.color].filter(Boolean).join(' · ') || 'One size'}
                                 {sample.status !== 'active' && <StatusPill status={sample.status} />}
                                 {sample.deposit_status === 'held' && sample.deposit_amount_dkk ? (
@@ -487,11 +487,11 @@ export default function BrandSamplesPage() {
                             {sample.qr_code_url ? (
                               <Image src={sample.qr_code_url} alt="QR tag" width={40} height={40} className="shrink-0" />
                             ) : (
-                              <span className="w-10 shrink-0 text-caption text-muted">—</span>
+                              <span className="w-10 shrink-0 text-caption text-slate">—</span>
                             )}
-                            <span className="w-16 shrink-0 text-right text-[13px] tabular-nums text-primary">
+                            <span className="w-16 shrink-0 text-right text-body-sm tabular-nums text-primary">
                               {sample.scan_count}
-                              <span className="block text-caption text-muted">scans</span>
+                              <span className="block text-caption text-slate">scans</span>
                             </span>
                             <div className="flex shrink-0 items-center">
                               {sample.qr_code_url && (
@@ -504,7 +504,7 @@ export default function BrandSamplesPage() {
                                 target="_blank"
                                 aria-label="Open scan page"
                                 title="Open scan page"
-                                className="inline-flex h-9 w-9 items-center justify-center text-muted transition-colors hover:bg-surface-muted hover:text-primary"
+                                className="inline-flex h-9 w-9 items-center justify-center text-slate transition-colors hover:bg-surface-muted hover:text-primary"
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </Link>
@@ -519,8 +519,8 @@ export default function BrandSamplesPage() {
                         <li key={p.id} className="flex items-center gap-4 py-3.5 opacity-70">
                           <span className="w-[18px] shrink-0" />
                           <Thumb src={p.images?.[0]} />
-                          <p className="min-w-0 flex-1 truncate text-[13px] text-primary">{p.name}</p>
-                          <span className="text-caption text-muted">Not in store</span>
+                          <p className="min-w-0 flex-1 truncate text-body-sm text-primary">{p.name}</p>
+                          <span className="text-caption text-slate">Not in store</span>
                           <Link href="/brand/samples/new" className={buttonClasses({ variant: 'ghost', size: 'sm' })}>
                             <Plus className="h-3.5 w-3.5" /> Add
                           </Link>
@@ -529,7 +529,7 @@ export default function BrandSamplesPage() {
                     </ul>
                   )}
 
-                  <p className="mt-4 text-caption text-muted">
+                  <p className="mt-4 text-caption text-slate">
                     Each tag is unique to product, brand and store, so a scan always credits the right store.
                   </p>
                 </>
@@ -547,12 +547,12 @@ export default function BrandSamplesPage() {
                     <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{name}</h2>
                     <Badge tone="warning">{inviteUrl ? 'Pending' : 'Request'}</Badge>
                   </div>
-                  <p className="text-body text-muted">
+                  <p className="text-body text-slate">
                     {inviteUrl
                       ? `Invited ${new Date(p.invited_at ?? p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}. The store hasn't accepted yet.`
                       : 'This store asked to partner with you. Accept or decline it under Partnerships.'}
                   </p>
-                  <p className="text-caption text-muted">
+                  <p className="text-caption text-slate">
                     Commission: {formatCommission(p.commission_direct)} direct · {formatCommission(p.commission_deferred)} deferred ·{' '}
                     {formatCommission(p.commission_tier2)} tier 2
                   </p>
@@ -585,14 +585,14 @@ export default function BrandSamplesPage() {
                     )}
                     <div className="min-w-0">
                       <h2 className="truncate font-brand text-body uppercase tracking-[0.3px] text-primary">{r.name}</h2>
-                      <p className="text-caption text-muted">
+                      <p className="text-caption text-slate">
                         {[storeType(r.store_type), r.city].filter(Boolean).join(' · ') || 'On Flaym'}
                       </p>
                     </div>
                   </div>
-                  {r.description && <p className="text-body text-muted">{r.description}</p>}
+                  {r.description && <p className="text-body text-slate">{r.description}</p>}
                   <div>
-                    <p className="mb-1.5 text-label uppercase text-muted">Store commission</p>
+                    <p className="mb-1.5 text-label uppercase text-slate">Store commission</p>
                     <div className="grid max-w-md grid-cols-3 gap-3">
                       <Field label="Direct %" htmlFor="req-direct">
                         <Input id="req-direct" type="number" min={0} max={100} value={commDirect} onChange={(e) => setCommDirect(Number(e.target.value))} />
@@ -642,7 +642,7 @@ export default function BrandSamplesPage() {
           </>
         }
       >
-        <p className="text-muted">
+        <p className="text-slate">
           Delete the QR code for <span className="text-primary">&ldquo;{confirmDelete?.product?.name ?? 'sample'}&rdquo;</span>? This can&apos;t be undone.
         </p>
       </Modal>
@@ -660,8 +660,8 @@ function storeType(type: string | null) {
 function StoreGroup({ title, empty, children }: { title: string; empty?: string; children: React.ReactNode }) {
   return (
     <div className="pb-2">
-      <p className="px-3 pb-1.5 pt-2 text-label uppercase text-muted">{title}</p>
-      {empty ? <p className="px-3 pb-2 text-caption text-muted">{empty}</p> : children}
+      <p className="px-3 pb-1.5 pt-2 text-label uppercase text-slate">{title}</p>
+      {empty ? <p className="px-3 pb-2 text-caption text-slate">{empty}</p> : children}
     </div>
   );
 }
@@ -692,8 +692,8 @@ function StoreButton({
       )}
     >
       <span className="min-w-0">
-        <span className={cn('block truncate text-body', muted && !active ? 'text-muted' : 'text-primary')}>{title}</span>
-        <span className="mt-0.5 block truncate text-caption text-muted">{subtitle}</span>
+        <span className={cn('block truncate text-body', muted && !active ? 'text-slate' : 'text-primary')}>{title}</span>
+        <span className="mt-0.5 block truncate text-caption text-slate">{subtitle}</span>
       </span>
       {badge}
     </button>
@@ -707,7 +707,7 @@ function Thumb({ src }: { src?: string }) {
     </div>
   ) : (
     <div className="flex h-10 w-[34px] shrink-0 items-center justify-center bg-surface-muted">
-      <QrCode className="h-4 w-4 text-muted" />
+      <QrCode className="h-4 w-4 text-slate" />
     </div>
   );
 }
@@ -720,7 +720,7 @@ function IconButton({ label, onClick, disabled, children }: { label: string; onC
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="inline-flex h-9 w-9 items-center justify-center text-muted transition-colors hover:bg-surface-muted hover:text-primary disabled:opacity-50"
+      className="inline-flex h-9 w-9 items-center justify-center text-slate transition-colors hover:bg-surface-muted hover:text-primary disabled:opacity-50"
     >
       {children}
     </button>

@@ -58,9 +58,9 @@ export default function ProfileHeader({ savedCount }: { savedCount?: number } = 
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-body text-on-primary">{name}</p>
-          {profile?.email && <p className="truncate text-caption text-muted">{profile.email}</p>}
+          {profile?.email && <p className="truncate text-caption text-smoke">{profile.email}</p>}
         </div>
-        <Link href="/consumer/flayms" className="flex items-center gap-1.5 text-[13px] text-line">
+        <Link href="/consumer/flayms" className="flex items-center gap-1.5 text-body-sm text-ash">
           <FlameIcon /> {stats ? stats.lit : '–'} lit
         </Link>
       </div>
@@ -74,8 +74,8 @@ export default function ProfileHeader({ savedCount }: { savedCount?: number } = 
               href={tab.href}
               aria-current={on ? 'page' : undefined}
               className={cn(
-                '-mb-px border-b px-3.5 pb-2.5 pt-2.5 text-[13px] transition-colors',
-                on ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-on-primary'
+                '-mb-px border-b px-3.5 pb-2.5 pt-2.5 text-body-sm transition-colors',
+                on ? 'border-accent text-accent' : 'border-transparent text-smoke hover:text-on-primary'
               )}
             >
               {tab.label} {counts ? counts[tab.key] : ''}

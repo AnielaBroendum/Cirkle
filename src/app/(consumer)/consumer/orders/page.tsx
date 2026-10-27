@@ -65,12 +65,12 @@ function OrderCard({ order }: { order: Order }) {
         {steps.map((s) => (
           <li key={s.label} className="flex gap-3.5">
             <span
-              className={cn('mt-0.5 h-3.5 w-3.5 shrink-0 rounded-pill border-2', s.done ? 'border-accent bg-accent' : 'border-muted bg-canvas-dark')}
+              className={cn('mt-0.5 h-3.5 w-3.5 shrink-0 rounded-pill border-2', s.done ? 'border-accent bg-accent' : 'border-char bg-canvas-dark')}
               aria-hidden
             />
             <div>
-              <p className={cn('text-body', s.done ? 'text-on-primary' : 'text-muted')}>{s.label}</p>
-              {s.meta && <p className="mt-1 text-caption text-muted">{s.meta}</p>}
+              <p className={cn('text-body', s.done ? 'text-on-primary' : 'text-smoke')}>{s.label}</p>
+              {s.meta && <p className="mt-1 text-caption text-smoke">{s.meta}</p>}
             </div>
           </li>
         ))}
@@ -126,8 +126,8 @@ export default function ConsumerOrdersPage() {
         </div>
       ) : orders.length === 0 ? (
         <div className="flex flex-col items-center px-5 pt-24 text-center">
-          <p className="font-brand text-[18px] uppercase tracking-[0.4px] text-on-primary">No orders yet</p>
-          <p className="mt-3 max-w-[260px] text-body text-line">Scan a Flaym tag in a store to discover and buy something.</p>
+          <p className="font-brand text-title uppercase tracking-[0.4px] text-on-primary">No orders yet</p>
+          <p className="mt-3 max-w-[260px] text-body text-ash">Scan a Flaym tag in a store to discover and buy something.</p>
           <Link href="/consumer/home" className={buttonClasses({ variant: 'accent', className: 'mt-8 w-full max-w-[280px]' })}>
             Scan a tag
           </Link>

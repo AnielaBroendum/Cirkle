@@ -56,7 +56,7 @@ export default function RetailerLayout({ children }: { children: React.ReactNode
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas-warm font-brand">
         <Logo height={24} framed />
-        <p className="animate-pulse text-caption uppercase tracking-[0.7px] text-muted">Loading…</p>
+        <p className="animate-pulse text-caption uppercase tracking-[0.7px] text-slate">Loading…</p>
       </div>
     );
   }

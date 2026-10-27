@@ -93,7 +93,7 @@ function SignUpForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <fieldset className="space-y-1.5">
-        <legend className="mb-1.5 text-label uppercase text-muted">I am a</legend>
+        <legend className="mb-1.5 text-label uppercase text-slate">I am a</legend>
         <div className="grid grid-cols-3 gap-2">
           {(Object.entries(ROLE_CONFIG) as [Role, typeof ROLE_CONFIG[Role]][]).map(
             ([key, config]) => (
@@ -110,7 +110,7 @@ function SignUpForm() {
                 )}
               >
                 <span className="text-body font-medium">{config.label}</span>
-                <span className={cn('text-label leading-[14px] tracking-normal', role === key ? 'text-line' : 'text-muted')}>
+                <span className={cn('text-label leading-[14px] tracking-normal', role === key ? 'text-ash' : 'text-slate')}>
                   {config.description}
                 </span>
               </button>
@@ -176,7 +176,7 @@ export default function SignUpPage() {
         <SignUpForm />
       </Suspense>
 
-      <p className="text-[13px] text-muted">
+      <p className="text-body-sm text-slate">
         Already have an account?{' '}
         <AuthSwitchLink to="/auth/login" className="text-primary underline">
           Log in

@@ -184,7 +184,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <p className="truncate text-body text-muted">
+          <p className="truncate text-body text-slate">
             <Link href="/brand/products" className="hover:text-primary">
               Product library
             </Link>
@@ -254,7 +254,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
             </Field>
 
             <div className="flex flex-col gap-1.5 sm:col-span-6">
-              <span className="text-label uppercase text-muted">Sizes</span>
+              <span className="text-label uppercase text-slate">Sizes</span>
               <div className="flex flex-wrap items-center gap-2">
                 {sizes.map((size) => (
                   <span key={size} className="inline-flex h-7 items-center gap-1 rounded-pill bg-surface-muted pl-3 pr-1.5 text-caption font-medium text-primary">
@@ -263,7 +263,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
                       type="button"
                       onClick={() => removeSize(size)}
                       aria-label={`Remove size ${size}`}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-pill text-muted hover:text-primary"
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-pill text-slate hover:text-primary"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -283,13 +283,13 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
                     onBlur={addSize}
                     placeholder="Add size"
                     aria-label="Add size"
-                    className="w-20 bg-transparent font-brand text-caption text-primary outline-none placeholder:text-muted"
+                    className="w-20 bg-transparent font-brand text-caption text-primary outline-none placeholder:text-slate"
                   />
                   <button
                     type="button"
                     onClick={addSize}
                     aria-label="Add size"
-                    className="inline-flex h-5 w-5 items-center justify-center text-muted hover:text-primary"
+                    className="inline-flex h-5 w-5 items-center justify-center text-slate hover:text-primary"
                   >
                     <Plus className="h-3 w-3" />
                   </button>
@@ -340,12 +340,12 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
             <div className="mt-6 border-t border-line pt-5">
               <h2 className="mb-3 font-brand text-body uppercase tracking-[0.3px] text-primary">Stock per variant</h2>
               <div className="-mx-1 overflow-x-auto">
-                <table className="w-full border-collapse font-brand text-[13px] text-primary">
+                <table className="w-full border-collapse font-brand text-body-sm text-primary">
                   <thead>
                     <tr>
-                      <th className="border-b border-line px-3 py-2 text-left text-label font-medium uppercase text-muted">Size</th>
-                      <th className="border-b border-line px-3 py-2 text-left text-label font-medium uppercase text-muted">Colour</th>
-                      <th className="border-b border-line px-3 py-2 text-right text-label font-medium uppercase text-muted">Quantity</th>
+                      <th className="border-b border-line px-3 py-2 text-left text-label font-medium uppercase text-slate">Size</th>
+                      <th className="border-b border-line px-3 py-2 text-left text-label font-medium uppercase text-slate">Colour</th>
+                      <th className="border-b border-line px-3 py-2 text-right text-label font-medium uppercase text-slate">Quantity</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -364,7 +364,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
                               value={v.stock_count}
                               onChange={(e) => setVariantStock(i, parseInt(e.target.value) || 0)}
                               aria-label={`Stock ${v.size} ${v.color}`}
-                              className="h-8 w-16 rounded-control border border-line bg-surface text-center font-brand text-[13px] text-primary outline-none focus:border-primary"
+                              className="h-8 w-16 rounded-control border border-line bg-surface text-center font-brand text-body-sm text-primary outline-none focus:border-primary"
                             />
                             <StockButton label={`Increase ${v.size} ${v.color}`} onClick={() => updateVariantStock(i, 1)}>
                               <Plus className="h-3 w-3" />
@@ -379,7 +379,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
             </div>
           )}
           {variants.length === 0 && (
-            <p className="mt-5 text-caption text-muted">Add sizes and colours to set stock per variant.</p>
+            <p className="mt-5 text-caption text-slate">Add sizes and colours to set stock per variant.</p>
           )}
         </Card>
 
@@ -394,17 +394,17 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
             label="Add"
             appearance="flaym"
           />
-          <p className="mt-3 text-caption text-muted">The first image is the main image. Up to 5.</p>
+          <p className="mt-3 text-caption text-slate">The first image is the main image. Up to 5.</p>
 
           {stores && (
             <div className="mt-6 border-t border-line pt-5">
               <h2 className="mb-3 font-brand text-body uppercase tracking-[0.3px] text-primary">In stores</h2>
               {stores.length === 0 ? (
-                <p className="text-caption text-muted">Not in any store yet. Add a sample under Stores &amp; QR tags.</p>
+                <p className="text-caption text-slate">Not in any store yet. Add a sample under Stores &amp; QR tags.</p>
               ) : (
                 <ul className="space-y-2.5">
                   {stores.map((store) => (
-                    <li key={store} className="flex items-center gap-3 text-[13px] text-primary">
+                    <li key={store} className="flex items-center gap-3 text-body-sm text-primary">
                       <span className="h-3.5 w-3.5 shrink-0 bg-accent" aria-hidden />
                       {store}
                     </li>
@@ -425,7 +425,7 @@ function StockButton({ label, onClick, children }: { label: string; onClick: () 
       type="button"
       onClick={onClick}
       aria-label={label}
-      className={cn('inline-flex h-8 w-8 items-center justify-center rounded-control border border-line text-muted transition-colors hover:border-primary hover:text-primary')}
+      className={cn('inline-flex h-8 w-8 items-center justify-center rounded-control border border-line text-slate transition-colors hover:border-primary hover:text-primary')}
     >
       {children}
     </button>

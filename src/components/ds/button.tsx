@@ -12,11 +12,11 @@ const VARIANTS: Record<ButtonVariant, string> = {
   ghost: 'text-primary hover:bg-surface-muted',
 };
 
-// md = Figma (44px tall, 20px side padding, 14px medium).
+// md = Figma (44px tall, 20px side padding, 14px medium, uppercase, 0.8px tracking).
 const SIZES: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3.5 text-caption gap-1.5',
-  md: 'h-11 px-5 text-body gap-2',
-  lg: 'h-14 px-6 text-body gap-2',
+  sm: 'h-8 px-3.5 text-caption tracking-[0.8px] gap-1.5',
+  md: 'h-11 px-5 text-button gap-2',
+  lg: 'h-14 px-6 text-button gap-2',
 };
 
 type ButtonClassOptions = {
@@ -29,7 +29,7 @@ type ButtonClassOptions = {
 /** Button styling for non-button elements, e.g. `<Link className={buttonClasses({ variant: 'accent' })}>`. */
 export function buttonClasses({ variant = 'primary', size = 'md', fullWidth, className }: ButtonClassOptions = {}) {
   return cn(
-    'inline-flex items-center justify-center rounded-control font-brand font-medium whitespace-nowrap transition-colors',
+    'inline-flex items-center justify-center rounded-control font-brand font-medium uppercase whitespace-nowrap transition-colors',
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
     'disabled:pointer-events-none disabled:opacity-40',
     VARIANTS[variant],

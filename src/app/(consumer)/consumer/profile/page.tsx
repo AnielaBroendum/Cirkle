@@ -87,7 +87,7 @@ export default function ConsumerProfilePage() {
         ) : owned.length === 0 ? (
           <div className="bg-surface-dark p-4">
             <p className="text-body text-on-primary">Nothing owned yet</p>
-            <p className="mt-1 text-caption text-muted">Things you buy show up here once they&rsquo;re delivered. Then you can pass them on.</p>
+            <p className="mt-1 text-caption text-smoke">Things you buy show up here once they&rsquo;re delivered. Then you can pass them on.</p>
           </div>
         ) : (
           <ul className="grid grid-cols-2 gap-x-3 gap-y-3">
@@ -95,8 +95,8 @@ export default function ConsumerProfilePage() {
               <li key={item.id}>
                 <Link href={`/consumer/owned/${item.id}`} className="block">
                   <Thumb src={item.image} alt={item.name} className="h-[190px] w-full" />
-                  <p className="mt-2 truncate px-1.5 text-[13px] text-on-primary">{item.name}</p>
-                  <p className="truncate px-1.5 text-label tracking-normal text-muted">{item.brand}</p>
+                  <p className="mt-2 truncate px-1.5 text-body-sm text-on-primary">{item.name}</p>
+                  <p className="truncate px-1.5 text-label tracking-normal text-smoke">{item.brand}</p>
                 </Link>
               </li>
             ))}
@@ -106,7 +106,7 @@ export default function ConsumerProfilePage() {
 
       {/* Account */}
       <section className="mt-10 px-5">
-        <p className="text-label uppercase text-muted">Account</p>
+        <p className="text-label uppercase text-smoke">Account</p>
         <div className="mt-3 divide-y divide-line-dark border-y border-line-dark">
           <Link href="/consumer/orders" className="flex items-center justify-between py-3.5 text-body text-on-primary">
             Your orders <ChevronRight className="h-4 w-4 text-accent" />
@@ -128,7 +128,7 @@ export default function ConsumerProfilePage() {
         {showSettings && (
           <form onSubmit={handleSaveSettings} className="mt-4 space-y-4">
             <label className="block">
-              <span className="text-label uppercase text-muted">Name</span>
+              <span className="text-label uppercase text-smoke">Name</span>
               <input
                 type="text"
                 value={name}
@@ -137,12 +137,12 @@ export default function ConsumerProfilePage() {
               />
             </label>
             <label className="block">
-              <span className="text-label uppercase text-muted">Email</span>
+              <span className="text-label uppercase text-smoke">Email</span>
               <input
                 type="email"
                 value={email}
                 disabled
-                className="mt-1.5 w-full border-b border-line-dark bg-transparent py-2 text-body text-muted"
+                className="mt-1.5 w-full border-b border-line-dark bg-transparent py-2 text-body text-smoke"
               />
             </label>
             <button type="submit" disabled={saving} className={buttonClasses({ variant: 'accent', fullWidth: true })}>
@@ -154,7 +154,7 @@ export default function ConsumerProfilePage() {
         <button
           type="button"
           onClick={signOut}
-          className="mt-6 flex h-11 w-full items-center justify-center gap-2 border border-muted text-body text-on-primary hover:border-on-primary"
+          className="mt-6 flex h-11 w-full items-center justify-center gap-2 border border-char text-body text-on-primary hover:border-on-primary"
         >
           <LogOut className="h-4 w-4" />
           Sign out

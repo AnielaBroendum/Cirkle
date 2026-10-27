@@ -311,23 +311,23 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
       <div className="px-5 pb-36 pt-[18px]">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-label uppercase text-muted">{brand.name}</p>
+            <p className="text-label uppercase text-smoke">{brand.name}</p>
             <h1 className="mt-1.5 font-brand text-heading-lg font-normal uppercase text-on-primary">{product.name}</h1>
           </div>
-          <span className="whitespace-nowrap text-[18px] font-medium leading-tight">{formatDKK(product.price_dkk)}</span>
+          <span className="whitespace-nowrap text-title font-medium leading-tight">{formatDKK(product.price_dkk)}</span>
         </div>
 
         {/* Where you found it */}
-        <p className="mt-4 text-caption text-line">
+        <p className="mt-4 text-caption text-ash">
           {attribution.type === 'retailer' ? (inApp ? 'Saved at ' : 'Found at ') : 'Passed on by '}
           <span className="text-accent">{attribution.name}</span>
-          {attribution.scannedAt && <span className="text-muted"> · {timeAgo(attribution.scannedAt)}</span>}
+          {attribution.scannedAt && <span className="text-smoke"> · {timeAgo(attribution.scannedAt)}</span>}
         </p>
         {attribution.type === 'retailer' && inApp && (
-          <p className="text-caption text-line">The store still gets its cut.</p>
+          <p className="text-caption text-ash">The store still gets its cut.</p>
         )}
         {attribution.type === 'peer' && attribution.peerPointsMessage && (
-          <p className="text-caption text-line">{attribution.peerPointsMessage}</p>
+          <p className="text-caption text-ash">{attribution.peerPointsMessage}</p>
         )}
 
         {/* Sizes */}
@@ -347,7 +347,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
                   }}
                   className={cn(
                     'h-10 min-w-12 px-3 text-body transition-colors',
-                    on ? 'bg-on-primary text-primary' : 'border border-muted text-on-primary hover:border-on-primary'
+                    on ? 'bg-on-primary text-primary' : 'border border-char text-on-primary hover:border-on-primary'
                   )}
                 >
                   {size}
@@ -389,7 +389,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
                   onClick={pick}
                   className={cn(
                     'h-8 px-3 text-caption transition-colors',
-                    on ? 'bg-on-primary text-primary' : 'border border-muted text-on-primary hover:border-on-primary'
+                    on ? 'bg-on-primary text-primary' : 'border border-char text-on-primary hover:border-on-primary'
                   )}
                 >
                   {color}
@@ -397,7 +397,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
               );
             })}
             {swatches && (
-              <span className="ml-1.5 text-caption text-line">
+              <span className="ml-1.5 text-caption text-ash">
                 {selectedColor ?? product.colors[0]}
                 {product.colors.length > 1 && ` · ${product.colors.length} colours`}
               </span>
@@ -407,7 +407,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
 
         {selectionError && <p className="mt-3 text-caption text-accent">{selectionError}</p>}
 
-        {product.description && <p className="mt-5 text-caption text-line">{product.description}</p>}
+        {product.description && <p className="mt-5 text-caption text-ash">{product.description}</p>}
       </div>
 
       {/* "Copied" toast */}
@@ -423,7 +423,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
           <a
             href={buyHref}
             onClick={handleBuyToBasket}
-            className="flex h-[52px] flex-1 items-center justify-center bg-accent text-[15px] font-medium text-on-primary transition-colors hover:bg-accent/90"
+            className="flex h-[52px] flex-1 items-center justify-center bg-accent text-body-lg font-medium text-on-primary transition-colors hover:bg-accent/90"
           >
             Buy
           </a>
@@ -431,7 +431,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
             type="button"
             onClick={handleSave}
             disabled={saving || saved || !hydrated}
-            className="flex h-[52px] flex-1 items-center justify-center gap-2 border border-muted text-[15px] font-medium text-on-primary transition-colors hover:border-on-primary disabled:hover:border-muted"
+            className="flex h-[52px] flex-1 items-center justify-center gap-2 border border-char text-body-lg font-medium text-on-primary transition-colors hover:border-on-primary disabled:hover:border-char"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? 'Saved ✓' : 'Save'}
           </button>

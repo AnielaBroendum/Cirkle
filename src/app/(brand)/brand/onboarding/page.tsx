@@ -124,11 +124,11 @@ export default function BrandOnboardingPage() {
       <div className="flex flex-1 justify-center px-4 py-10 sm:px-6 lg:items-center lg:px-12 lg:py-16">
         <div className="w-full max-w-[420px] space-y-7">
           <div>
-            <p className="text-label uppercase text-muted">Brand Portal · Step {step} of 2</p>
+            <p className="text-label uppercase text-slate">Brand Portal · Step {step} of 2</p>
             <h1 className="mt-3 font-brand text-heading-xl uppercase text-primary">
               {step === 1 ? 'Set up your brand' : 'Your first product'}
             </h1>
-            <p className="mt-3 text-body text-muted">
+            <p className="mt-3 text-body text-slate">
               {step === 1
                 ? 'This is what people see when they scan your products in stores.'
                 : 'Add one product now. You can add the rest from the product library.'}

@@ -121,7 +121,7 @@ export default function LoginPage() {
         <LoginForm />
       </Suspense>
 
-      <div className="space-y-2 text-[13px] text-muted">
+      <div className="space-y-2 text-body-sm text-slate">
         <p>
           No account yet?{' '}
           <AuthSwitchLink to="/auth/signup" className="text-primary underline">

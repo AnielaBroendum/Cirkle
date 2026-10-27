@@ -9,8 +9,8 @@ export default function SampleNotFound() {
         <Logo height={22} />
       </div>
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <p className="font-brand text-[18px] uppercase tracking-[0.4px]">This tag has moved on</p>
-        <p className="mt-3 max-w-[280px] text-body text-line">
+        <p className="font-brand text-title uppercase tracking-[0.4px]">This tag has moved on</p>
+        <p className="mt-3 max-w-[280px] text-body text-ash">
           The piece it belonged to isn&rsquo;t in this store any more. Ask the staff, or scan another tag.
         </p>
         <Link href="/consumer/home" className={buttonClasses({ variant: 'accent', className: 'mt-8 w-full max-w-[280px]' })}>

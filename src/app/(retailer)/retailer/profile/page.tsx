@@ -179,7 +179,7 @@ export default function RetailerProfilePage() {
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
           <h1 className="font-brand text-heading-xl uppercase text-primary">Store profile</h1>
-          <p className="mt-1 text-body text-muted">Shown to people who scan in your store</p>
+          <p className="mt-1 text-body text-slate">Shown to people who scan in your store</p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
           {saved && <span className="text-caption text-success">Saved</span>}
@@ -263,7 +263,7 @@ export default function RetailerProfilePage() {
             <Field label="CVR" htmlFor="cvr">
               <Input id="cvr" inputMode="numeric" autoComplete="off" value={cvr} onChange={(e) => setCvr(e.target.value)} />
             </Field>
-            <p className="text-caption text-muted">Flaym pays your cut monthly, after settlement with each brand. Only you can see these details.</p>
+            <p className="text-caption text-slate">Flaym pays your cut monthly, after settlement with each brand. Only you can see these details.</p>
           </Card>
 
           {/* Brands in your store */}
@@ -281,7 +281,7 @@ export default function RetailerProfilePage() {
                 {brands.map((b) => (
                   <li key={b.id}>
                     <p className="text-body text-primary">{b.name}</p>
-                    <p className="mt-0.5 text-caption text-muted">
+                    <p className="mt-0.5 text-caption text-slate">
                       {b.products} {b.products === 1 ? 'product' : 'products'} · since{' '}
                       {new Date(b.since).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
                     </p>

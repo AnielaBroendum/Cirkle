@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createMiddlewareClient } from '@/lib/supabase-middleware';
 
 // /api/scans is public so a first-time, signed-out QR scan is still recorded.
-const PUBLIC_PATHS = ['/', '/auth', '/p', '/d', '/invite', '/api/scans'];
+// /ds-preview is a development-only page (404 in production).
+const PUBLIC_PATHS = ['/', '/auth', '/p', '/d', '/invite', '/api/scans', '/ds-preview'];
 
 // Each route section is locked to a single role.
 const ROLE_SECTIONS: Record<string, 'brand' | 'retailer' | 'consumer'> = {

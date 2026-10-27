@@ -81,8 +81,8 @@ export default function OwnedItemPage() {
   if (!item || item.orders.status !== 'delivered') {
     return (
       <div className="flex flex-col items-center px-5 pt-32 text-center">
-        <p className="font-brand text-[18px] uppercase tracking-[0.4px] text-on-primary">{item ? 'Not delivered yet' : 'Item not found'}</p>
-        <p className="mt-3 max-w-[260px] text-body text-line">
+        <p className="font-brand text-title uppercase tracking-[0.4px] text-on-primary">{item ? 'Not delivered yet' : 'Item not found'}</p>
+        <p className="mt-3 max-w-[260px] text-body text-ash">
           {item ? 'It moves to Owned once it arrives.' : 'It may belong to another account, or the link is wrong.'}
         </p>
         <Link
@@ -114,31 +114,31 @@ export default function OwnedItemPage() {
       </div>
 
       <div className="px-5 pt-[18px]">
-        <p className="text-label uppercase text-muted">{item.products?.brand_profiles?.name}</p>
+        <p className="text-label uppercase text-smoke">{item.products?.brand_profiles?.name}</p>
         <h1 className="mt-1.5 font-brand text-heading-lg font-normal uppercase text-on-primary">{item.product_name}</h1>
         <span className="mt-3 inline-block rounded-pill bg-accent-subtle px-2.5 py-0.5 text-caption font-medium text-accent-strong">
           Owned since {new Date(deliveredAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
         </span>
 
-        <dl className="mt-3.5 space-y-2.5 bg-surface-dark p-4 text-[13px]">
+        <dl className="mt-3.5 space-y-2.5 bg-surface-dark p-4 text-body-sm">
           <div className="flex justify-between">
-            <dt className="text-muted">Passed on</dt>
+            <dt className="text-smoke">Passed on</dt>
             <dd className="text-on-primary">{stats ? `${productStats.passedOn} ${productStats.passedOn === 1 ? 'time' : 'times'}` : '–'}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted">Flames lit</dt>
+            <dt className="text-smoke">Flames lit</dt>
             <dd className="text-accent">{stats ? productStats.lit : '–'}</dd>
           </div>
           {boughtAt && (
             <div className="flex justify-between">
-              <dt className="text-muted">Bought at</dt>
+              <dt className="text-smoke">Bought at</dt>
               <dd className="text-on-primary">{boughtAt}</dd>
             </div>
           )}
         </dl>
 
         <Link href={`/d/${item.product_id}/about`} className="mt-1.5 flex items-center justify-between py-2 text-body text-on-primary">
-          About this product <span className="text-[13px] text-accent">›</span>
+          About this product <span className="text-body-sm text-accent">›</span>
         </Link>
       </div>
 
@@ -146,13 +146,13 @@ export default function OwnedItemPage() {
         <div className="mx-auto max-w-lg px-5 pb-2 pt-3">
           <Link
             href={`/consumer/qr?order=${item.orders.id}&product=${item.product_id}`}
-            className="flex h-[52px] w-full items-center justify-center bg-accent text-[15px] font-medium text-on-primary hover:bg-accent/90"
+            className="flex h-[52px] w-full items-center justify-center bg-accent text-body-lg font-medium text-on-primary hover:bg-accent/90"
           >
             Pass it on
           </Link>
           <Link
             href={`/consumer/orders/${item.orders.id}/return?item=${item.id}`}
-            className="mt-2 block text-center text-caption text-line underline-offset-2 hover:underline"
+            className="mt-2 block text-center text-caption text-ash underline-offset-2 hover:underline"
           >
             Request a return
           </Link>

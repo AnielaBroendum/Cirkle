@@ -37,7 +37,7 @@ export function Tabs({ items, value, defaultValue, onValueChange, variant = 'seg
               onClick={() => select(item.value)}
               className={cn(
                 'h-[31px] px-3.5 text-caption transition-colors',
-                on ? 'bg-primary text-on-primary' : 'text-muted hover:text-primary'
+                on ? 'bg-primary text-on-primary' : 'text-slate hover:text-primary'
               )}
             >
               {item.label}
@@ -62,11 +62,11 @@ export function Tabs({ items, value, defaultValue, onValueChange, variant = 'seg
             onClick={() => select(item.value)}
             className={cn(
               '-mb-px whitespace-nowrap border-b-2 pb-2.5 text-label uppercase transition-colors',
-              on ? 'border-accent text-primary' : 'border-transparent text-muted hover:text-primary'
+              on ? 'border-accent text-primary' : 'border-transparent text-slate hover:text-primary'
             )}
           >
             {item.label}
-            {item.count !== undefined && <span className="ml-1.5 text-muted">{item.count}</span>}
+            {item.count !== undefined && <span className="ml-1.5 text-slate">{item.count}</span>}
           </button>
         );
       })}

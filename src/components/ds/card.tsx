@@ -32,7 +32,7 @@ export function CardHeader({ title, eyebrow, action, className }: CardHeaderProp
   return (
     <div className={cn('mb-4 flex items-start justify-between gap-3', className)}>
       <div className="min-w-0">
-        {eyebrow && <p className="mb-1 text-label uppercase text-muted">{eyebrow}</p>}
+        {eyebrow && <p className="mb-1 text-label uppercase text-slate">{eyebrow}</p>}
         <h3 className="font-brand text-heading-lg uppercase">{title}</h3>
       </div>
       {action && <div className="shrink-0">{action}</div>}
