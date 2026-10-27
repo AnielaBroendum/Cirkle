@@ -281,7 +281,7 @@ export default function RetailerDashboardPage() {
           <Skeleton className="h-4 w-80" />
         </div>
         <KPISkeleton />
-        <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <ListSkeleton rows={4} />
           <ListSkeleton rows={4} />
         </div>
@@ -327,7 +327,7 @@ export default function RetailerDashboardPage() {
         />
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[3fr_2fr]">
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="space-y-4">
           {/* Most scanned in your store (Figma 02) */}
           <Card
@@ -398,7 +398,7 @@ export default function RetailerDashboardPage() {
                   <TBody>
                     {payouts.slice(0, LATEST_PAYOUTS).map((p) => (
                       <TR key={p.id}>
-                        <TD className="px-3 text-body-sm">
+                        <TD className="w-full max-w-0 px-3 text-body-sm">
                           <p className="truncate">{p.product_name ?? 'Unknown product'}</p>
                           <p className="mt-0.5 text-caption text-slate">{payoutDateNote(p)}</p>
                         </TD>

@@ -1,6 +1,6 @@
 # Figma update: gap analysis
 
-Source: Figma file "Flaym Forward – MVP mockups (Phase 1)" (`8eKYDZ98E49demFAx7Tjt7`), updated October 2026. Branch: `figma-update`. The rules are in `CLAUDE.md` under "Figma update rules".
+Source: Figma file "Flaym Forward – MVP mockups (Phase 1)" (`8eKYDZ98E49demFAx7Tjt7`), updated October 2026. Branch: `figma-update`. The branch rules have been retired; the resulting schema, events and constants are documented in `CLAUDE.md`.
 
 This update changes data and logic, not only layout. Each item below has two parts:
 - **Today**: what the code and database do now.
@@ -211,3 +211,13 @@ Notes:
 - Figma has **no published text styles**. The scale is taken from the sizes used in the frames. Publishing text styles in Figma would make future syncs exact.
 - Portal frames also use a light divider, #EBE8E2. It isn't a Figma variable, so it isn't a token yet.
 - Nav icons: the consumer tab bar and the brand/retailer sidebars use the Figma icons. Retailer Transactions and Brands keep lucide icons because the Figma Retail Portal nav has no icon for them.
+
+---
+
+## Final check (27 October 2026)
+
+- End to end with the QA accounts, in the browser: scan `/p/{sample}` → save size S → buy (order #39) → brand ships with PostNord + tracking → consumer tracking shows "With PostNord", "On its way" and Track parcel → brand marks delivered → retail dashboard shows it under Return period ("ends 10 Nov"). With delivery moved back 15 days in the database, it moved to Ready ("Payout on 1 Nov"): Ready 157,20 → 239,55 kr, 2 → 3 purchases, the same as hand-written SQL.
+- Brand dashboard against hand-written SQL over `events`: (1) this month + QA Wool Overshirt + size S: 138 scans, 26 saves, 7 purchases, 3.843 kr, and the per-store split; (2) this week + QA Concept Store: 17 / 4 / 4, 3.146 kr, and the per-product split. All equal.
+- Fixed: the retail dashboard scrolled sideways at 1024 px (payouts table too wide for its column). The two columns now stack below 1280 px and long product names are truncated.
+- Type check, lint and `npm run build`: no errors. The build prints a warning from inside supabase-js (Node API in the Edge middleware); it comes from the library, not this code.
+- Still open: b) a returned order status, c) the return requests gaps, d) one stable tag per product + store; commission rates (`direct` / `tier2` never produced); a payout job for `paid_out_at`; story titles. Found during the check, older than this branch: stock is never decremented on purchase, and the 49 kr delivery fee shown at checkout isn't stored on the order.
