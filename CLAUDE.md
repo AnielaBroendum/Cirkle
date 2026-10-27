@@ -149,6 +149,16 @@ The UI follows the Flaym Figma file. Use only these tokens (defined in `tailwind
 - **Components** (import from `@/components/ds`): `Logo`, `Button` / `buttonClasses`, `Field`, `Input`, `Textarea`, `Select`, `Checkbox`, `Toggle`, `Card`, `CardHeader`, `Badge`, `StatusPill`, `Avatar`, `Modal` (sheet on mobile), `Tabs`, `TopBar`, `BottomNav`, `SidebarNav`, `EmptyState`, `StatTile`, skeletons (`Skeleton`, `KPISkeleton`, `ListSkeleton`, `CardSkeleton`), `Toast` / `ToastProvider` / `useToast` (mounted in the root layout), `List` / `ListRow`, `Table` (`THead`, `TBody`, `TR`, `TH`, `TD`), `ProductCard`, and `cn` for class merging
 - Shared layout pieces that aren't generic live next to their area, e.g. `components/shared/auth-shell.tsx` (login, signup, invite) and `components/consumer/checkout-parts.tsx`.
 
+## Figma update rules
+
+On the `figma-update` branch these rules replace the Redesign rules (the reskin-only rules behind `REDESIGN.md`). The work list is `FIGMA-UPDATE.md`.
+
+- Data and logic changes ARE allowed, but only what the current task describes.
+- Every database change goes in a new file in `supabase/migrations`. Never drop or rename columns/tables or delete data without asking first.
+- Keep RLS: brands only see their own data, retailers only their own store's data.
+- Existing flows (QR attribution, points, checkout, Resend emails, auth) must keep working.
+- Use the design tokens and `src/components/ds` for all UI. Commit after each finished part.
+
 ## Environment Variables
 
 See `.env.example` for required variables. Key ones:
