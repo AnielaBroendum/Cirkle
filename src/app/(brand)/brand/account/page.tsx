@@ -5,6 +5,7 @@ import { Check } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { ImageUpload } from '@/components/brand/image-upload';
+import { BrandStories } from '@/components/brand/brand-stories';
 import { Button, Card, Field, Input, Skeleton, Textarea } from '@/components/ds';
 import type { Database } from '@/lib/database.types';
 
@@ -243,6 +244,8 @@ export default function BrandAccountPage() {
           </p>
         </Card>
       </div>
+
+      {brandId && <BrandStories brandId={brandId} />}
     </form>
   );
 }

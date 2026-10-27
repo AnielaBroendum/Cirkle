@@ -19,7 +19,8 @@ export default async function PeerDiscoveryPage({
     .select(`
       id, name, description, price_dkk, images, sizes, colors, materials, category,
       brand_profiles (
-        id, name, description, logo_url
+        id, name, description, logo_url,
+        brand_stories ( id, kind, url, duration_seconds, position )
       )
     `)
     .eq('id', productId)

@@ -582,6 +582,36 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['events']['Insert']>;
         Relationships: [];
       };
+      brand_stories: {
+        Row: {
+          id: string;
+          brand_id: string;
+          position: number;
+          kind: 'video' | 'image';
+          path: string;
+          url: string;
+          duration_seconds: number | null;
+          width: number;
+          height: number;
+          bytes: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          brand_id: string;
+          position: number;
+          kind: 'video' | 'image';
+          path: string;
+          url: string;
+          duration_seconds?: number | null;
+          width: number;
+          height: number;
+          bytes: number;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['brand_stories']['Insert']>;
+        Relationships: [];
+      };
       tag_prints: {
         Row: { id: string; sample_id: string; user_id: string; portal: 'brand' | 'retail'; printed_at: string };
         Insert: { id?: string; sample_id: string; user_id: string; portal: 'brand' | 'retail'; printed_at?: string };
@@ -816,6 +846,10 @@ export type Database = {
           p_tz?: string;
         };
         Returns: Record<string, unknown> | null;
+      };
+      reorder_brand_stories: {
+        Args: { p_ids: string[] };
+        Returns: undefined;
       };
       get_brand_nav_counts: {
         Args: Record<string, never>;

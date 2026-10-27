@@ -82,10 +82,10 @@ Ticking an item means it's built and verified.
   - **Missing:** physical size in mm, Flaym logo, call to action, a short human-readable code, and one shared tag layout.
 
 ### e) Brand stories and product images
-- [ ] **Brand stories (Figma App 13)**
+- [x] **Brand stories (Figma App 13)** (Part E; no title/body text or product links yet: Figma shows media only)
   - **Today:** only `brand_profiles.description` (plain text, "About the brand" on `/brand/account`).
   - **Missing:** a story table (title, body, media, order, product links), storage for story media, and brand-portal editing.
-- [ ] **Product images**
+- [x] **Product images** (Part E; removed images still stay in Storage)
   - **Today:** `products.images text[]` holds public URLs. Uploads go straight from the browser to the `brand-assets` bucket (`components/brand/image-upload.tsx`).
   - **Missing:**
     - The bucket and its policies are in no migration.
@@ -128,7 +128,11 @@ Ticking an item means it's built and verified.
   - Reprints the existing stored QR of the oldest active sample for that product + store. No new codes; QR generation now lives in `src/lib/qr.ts`.
   - `/api/tag-prints` only lets a brand print its own tags and a store its own store's tags (403 otherwise), and logs each tag in `tag_prints` (code, user, portal, time). No UI.
   - RLS: the "Public can read active samples" policy is gone. It let anyone read every store's samples and deposits; nothing used it.
-- [ ] **E Brand stories and product images** — upload rules in browser and server.
+- [x] **E Brand stories and product images** (migration 012)
+  - Account → Brand stories: up to 10, fixed order (drag, or the arrows on touch/keyboard), shown on all the brand's products ("Brand stories ›" on the product page opens the Figma 13 viewer: images 6 s, videos their own length).
+  - Edit product (and onboarding) → Images: up to 8, first is the main image, drag to reorder. New uploads go to the `product-images` bucket; existing `brand-assets` images keep working.
+  - Rules are checked in the browser before upload and again on the server from the stored bytes (`src/lib/media-probe.ts`, `src/lib/media-rules.ts`), with messages like "Video is 26 s. Max is 20 s." The buckets also enforce size and file type. Files that fail the server check are deleted.
+  - H.264: the browser's `<video>` can tell length and size but not the codec, so the codec is read from the MP4/MOV header instead (HEVC from iPhones is refused with a clear message).
 
 ---
 

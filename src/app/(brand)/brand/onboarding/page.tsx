@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { ImageUpload } from '@/components/brand/image-upload';
+import { ProductImagesUpload } from '@/components/brand/product-images-upload';
 import { parseDKKtoOre } from '@/lib/utils';
 import { ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import { Button, Field, Input, Logo, Textarea, cn } from '@/components/ds';
@@ -248,15 +249,9 @@ export default function BrandOnboardingPage() {
               </Field>
 
               <Field label="Images">
-                <ImageUpload
-                  bucket="brand-assets"
-                  folder="products"
-                  value={productImages}
-                  onChange={setProductImages}
-                  max={5}
-                  label="Upload images"
-                  appearance="flaym"
-                />
+                {brandProfileId && (
+                  <ProductImagesUpload brandId={brandProfileId} value={productImages} onChange={setProductImages} />
+                )}
               </Field>
 
               <div className="grid grid-cols-2 gap-3">

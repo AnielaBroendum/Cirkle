@@ -10,6 +10,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { BottomNav, Toast, cn } from '@/components/ds';
 import { addToBasket } from './basket-store';
 import { consumerTabs } from './tab-items';
+import { BrandStoriesViewer, type BrandStory } from './brand-stories-viewer';
 
 function timeAgo(iso?: string): string {
   if (!iso) return '';
@@ -41,6 +42,8 @@ type ProductPageProps = {
     name: string;
     description: string | null;
     logo_url: string | null;
+    /** Up to 10, shown on all the brand's products (Figma 13). */
+    brand_stories?: (BrandStory & { position: number })[];
   };
   attribution: {
     type: 'retailer' | 'peer';
@@ -70,6 +73,8 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
   const [saved, setSaved] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
+  const [storiesOpen, setStoriesOpen] = useState(false);
+  const stories = [...(brand.brand_stories ?? [])].sort((a, b) => a.position - b.position);
   const scanRecorded = useRef(false);
   const [scanId, setScanId] = useState<string | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -305,9 +310,20 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
           ‹ About
         </Link>
 
+        {/* Brand stories (Figma 04b) */}
+        {stories.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setStoriesOpen(true)}
+            className="absolute bottom-3.5 right-5 bg-primary/60 px-2.5 py-1.5 text-label tracking-normal text-on-primary"
+          >
+            Brand stories ›
+          </button>
+        )}
+
         {/* Image position */}
         {images.length > 1 && currentImage > 0 && (
-          <div className="absolute bottom-4 right-5 flex gap-1.5">
+          <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5">
             {images.map((_, i) => (
               <span key={i} className={cn('h-1.5 rounded-pill transition-all', i === currentImage ? 'w-4 bg-on-primary' : 'w-1.5 bg-on-primary/40')} />
             ))}
@@ -450,6 +466,9 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
 
       {/* Logged-in shoppers get the app's tab bar, as in Figma 04b / 04c. */}
       {user && <BottomNav items={tabs} />}
+      {storiesOpen && stories.length > 0 && (
+        <BrandStoriesViewer stories={stories} brand={brand} onClose={() => setStoriesOpen(false)} />
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
-import { ImageUpload } from '@/components/brand/image-upload';
+import { ProductImagesUpload } from '@/components/brand/product-images-upload';
 import { parseDKKtoOre, formatDKK } from '@/lib/utils';
 import Link from 'next/link';
 import { Plus, Minus, X } from 'lucide-react';
@@ -385,16 +385,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
 
         <Card padding="none" className="rounded-none p-5 lg:p-6">
           <h2 className="mb-4 font-brand text-body uppercase tracking-[0.3px] text-primary">Images</h2>
-          <ImageUpload
-            bucket="brand-assets"
-            folder="products"
-            value={images}
-            onChange={setImages}
-            max={5}
-            label="Add"
-            appearance="flaym"
-          />
-          <p className="mt-3 text-caption text-slate">The first image is the main image. Up to 5.</p>
+          <ProductImagesUpload brandId={brandProfileId} value={images} onChange={setImages} />
 
           {stores && (
             <div className="mt-6 border-t border-line pt-5">
