@@ -82,7 +82,7 @@ Ticking an item means it's built and verified.
   - **Missing:** physical size in mm, Flaym logo, call to action, a short human-readable code, and one shared tag layout.
 
 ### e) Brand stories and product images
-- [x] **Brand stories (Figma App 13)** (Part E; no title/body text or product links yet: Figma shows media only)
+- [x] **Brand stories (Figma App 13)** (Part E; media only: the "[Story title]" in Figma 13 isn't stored yet)
   - **Today:** only `brand_profiles.description` (plain text, "About the brand" on `/brand/account`).
   - **Missing:** a story table (title, body, media, order, product links), storage for story media, and brand-portal editing.
 - [x] **Product images** (Part E; removed images still stay in Storage)

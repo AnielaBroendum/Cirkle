@@ -425,7 +425,7 @@ function Dashboard() {
             ) : (
               <div className="mt-6 flex items-end gap-3 sm:gap-6">
                 {savesBySize.map((s) => (
-                  <div key={s.size ?? 'none'} className="flex min-w-0 flex-1 flex-col">
+                  <div key={s.size ?? 'none'} className="flex min-w-0 max-w-16 flex-1 flex-col">
                     <div className="flex h-32 items-end">
                       <div
                         className={cn('w-full', s.saves === sizeMax ? 'bg-accent' : 'bg-accent/50')}

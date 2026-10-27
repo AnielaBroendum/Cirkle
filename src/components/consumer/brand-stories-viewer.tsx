@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import { cn } from '@/components/ds';
 
 // Figma "App / 13 Brand stories": full screen, one progress bar per story,
 // images for 6 s, videos for their own length. Tap right for the next story,
@@ -122,7 +121,7 @@ export function BrandStoriesViewer({
         <X className="h-5 w-5" />
       </button>
 
-      <p className={cn('pointer-events-none absolute inset-x-0 bottom-8 text-center text-caption text-ash')}>
+      <p className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-primary/70 to-transparent pb-8 pt-16 text-center text-caption text-ash">
         Tap to skip · swipe down to close
       </p>
     </div>
