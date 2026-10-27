@@ -338,6 +338,9 @@ export type Database = {
           shipping_country: string;
           tracking_number: string | null;
           tracking_url: string | null;
+          carrier: 'PostNord' | 'GLS' | 'DAO' | 'Bring' | 'Other' | null;
+          shipped_at: string | null;
+          delivered_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -356,6 +359,9 @@ export type Database = {
           shipping_country?: string;
           tracking_number?: string | null;
           tracking_url?: string | null;
+          carrier?: 'PostNord' | 'GLS' | 'DAO' | 'Bring' | 'Other' | null;
+          shipped_at?: string | null;
+          delivered_at?: string | null;
         };
         Update: {
           id?: string;
@@ -372,6 +378,9 @@ export type Database = {
           shipping_country?: string;
           tracking_number?: string | null;
           tracking_url?: string | null;
+          carrier?: 'PostNord' | 'GLS' | 'DAO' | 'Bring' | 'Other' | null;
+          shipped_at?: string | null;
+          delivered_at?: string | null;
         };
         Relationships: [];
       };
@@ -571,6 +580,12 @@ export type Database = {
           origin?: 'live' | 'backfill' | 'seed';
         };
         Update: Partial<Database['public']['Tables']['events']['Insert']>;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; user_agent: string | null; created_at: string };
+        Insert: { id?: string; user_id: string; endpoint: string; p256dh: string; auth: string; user_agent?: string | null; created_at?: string };
+        Update: Partial<Database['public']['Tables']['push_subscriptions']['Insert']>;
         Relationships: [];
       };
       brand_retailer_partnerships: {
@@ -795,6 +810,10 @@ export type Database = {
           p_tz?: string;
         };
         Returns: Record<string, unknown> | null;
+      };
+      get_brand_nav_counts: {
+        Args: Record<string, never>;
+        Returns: { orders: number; returns: number } | null;
       };
       get_brand_dashboard_stores: {
         Args: Record<string, never>;

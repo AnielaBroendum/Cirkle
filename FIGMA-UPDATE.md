@@ -42,10 +42,10 @@ Ticking an item means it's built and verified.
 - [ ] **Statuses**
   - **Today:** `order_status` = pending, confirmed, packed, shipped, delivered, cancelled. Transitions are in `src/app/api/orders/[orderId]/status/route.ts`.
   - **Missing:** a returned / partly-returned state, if Figma needs one.
-- [ ] **Timestamps**
+- [x] **Timestamps** (`shipped_at`, `delivered_at`, Part C)
   - **Today:** `orders.created_at` and `updated_at`. Ship and delivery times can only be read from `order_events.created_at`.
   - **Missing:** `shipped_at` and `delivered_at` columns.
-- [ ] **Carrier and tracking**
+- [x] **Carrier and tracking** (Part C)
   - **Today:** `orders.tracking_number` and `tracking_url`, set on the move to `shipped`.
   - **Missing:** a carrier column.
 - [ ] **Return-period end date**
@@ -100,7 +100,7 @@ Ticking an item means it's built and verified.
   - **Decision needed:** Figma shows "Share my data with brands" **on** by default. Under GDPR, optional consents must start **off**.
 
 ### g) Push notifications
-- [ ] **Web push (Figma App 16, lock-screen notifications)**
+- [x] **Web push (Figma App 16, lock-screen notifications)** (Part C)
   - **Today:** none. `public/sw.js` only caches, and the service worker registers in production only. Notifications are Resend emails only (order confirmation, new order to the brand, status updates, invitations).
   - **Missing:** a `push` / `notificationclick` handler, VAPID keys, a `push_subscriptions` table (owner-only RLS), a `web-push` dependency, a permission prompt, and server-side sends on order status changes.
 
@@ -117,7 +117,12 @@ Ticking an item means it's built and verified.
   - Funnel with saves/scans, purchases/saves, purchases/scans ("–" on divide by zero), and Saves by size under it.
   - Checked against hand-written SQL counts (all-year totals, size S saves, one store this month, product + store + size).
   - "Sales via Flaym" is now the item price of the filtered purchases (before points discounts), so it can follow the product and size filters.
-- [ ] **C Orders and menu counts** — bulk ship, Waiting badge, carrier + tracking, push, sidebar counts.
+- [x] **C Orders and menu counts** (migration 010)
+  - Select orders and "Mark selected as shipped" (`/api/orders/ship`): each order gets its own `shipped_at`, timeline event, email and push. Shipping works straight from New.
+  - "Waiting" badge on New orders older than `ORDER_WAITING_THRESHOLD_DAYS = 2` (`src/lib/orders.ts`).
+  - Carrier (PostNord, GLS, DAO, Bring, Other) and optional tracking number per order, editable after shipping; known carriers get their tracking link automatically. The consumer tracking screen shows "With PostNord" and Figma 15's steps. "Out for delivery" has no data source yet (no carrier integration).
+  - Web push: `web-push`, `push_subscriptions`, service-worker `push`/`notificationclick`, a "Turn on" prompt on the tracking screen (production builds only, as the service worker is). One message per step; Resend email is still always sent. Env: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`.
+  - Sidebar counts: Orders = not shipped (New, confirmed, packed); Returns = requested, approved or received. Live via Realtime, after own actions and on tab focus.
 - [ ] **D Print tag** — 50 × 70 mm tag, existing code, `tag_prints` log.
 - [ ] **E Brand stories and product images** — upload rules in browser and server.
 
