@@ -112,7 +112,11 @@ Ticking an item means it's built and verified.
   - Written by `/api/scans`, `/api/saved-products` (Save now asks for a size) and `/api/checkout`. Save and checkout both credit the latest scan in the 90-day window (`src/lib/attribution.ts`), so store and giver carry through.
   - Backfill: all scans and purchases. Saves are backfilled without size (never stored). Not recoverable: un-saved items (hard-deleted) and anonymous scans never linked to an account.
   - Seed: `npm run db:seed-events` (`--reset` removes it), QA brand only, all rows marked `seed`.
-- [ ] **B Brand dashboard** — filters in the URL, funnel, saves by size, SQL aggregation.
+- [x] **B Brand dashboard** — product / store / size / period filters, combinable, in the URL (`?period=&product=&store=&size=`), applied to every block.
+  - All numbers come from `get_brand_dashboard` (migration 009) over `events`. Size filter: scans count every size, saves and purchases follow the size; a note under the funnel says so.
+  - Funnel with saves/scans, purchases/saves, purchases/scans ("–" on divide by zero), and Saves by size under it.
+  - Checked against hand-written SQL counts (all-year totals, size S saves, one store this month, product + store + size).
+  - "Sales via Flaym" is now the item price of the filtered purchases (before points discounts), so it can follow the product and size filters.
 - [ ] **C Orders and menu counts** — bulk ship, Waiting badge, carrier + tracking, push, sidebar counts.
 - [ ] **D Print tag** — 50 × 70 mm tag, existing code, `tag_prints` log.
 - [ ] **E Brand stories and product images** — upload rules in browser and server.

@@ -783,6 +783,23 @@ export type Database = {
         Args: { p_since: string };
         Returns: { day: string; saves: number }[];
       };
+      get_brand_dashboard: {
+        Args: {
+          p_start: string;
+          p_prev_start: string;
+          p_end: string;
+          p_product?: string | null;
+          p_retailer?: string | null;
+          p_size?: string | null;
+          p_bucket?: 'hour' | 'day' | 'month';
+          p_tz?: string;
+        };
+        Returns: Record<string, unknown> | null;
+      };
+      get_brand_dashboard_stores: {
+        Args: Record<string, never>;
+        Returns: { id: string; name: string }[];
+      };
     };
   };
 };

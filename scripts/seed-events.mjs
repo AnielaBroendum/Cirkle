@@ -124,17 +124,20 @@ for (let d = 395; d >= 0; d--) {
     const size = sizes.length === 1 ? sizes[0] : pickWeighted(sizes, sizeWeights(sizes));
     const saves = rand() < 0.32;
     const buys = saves ? rand() < 0.16 : rand() < 0.02;
-    if (saves) {
-      events.push({ ...base, type: 'save', size, occurred_at: new Date(Math.min(at + rand() * 2 * DAY, now)).toISOString() });
+    // Saves and buys follow the scan; ones that would land in the future just haven't happened yet.
+    const savedAt = at + rand() * 2 * DAY;
+    const boughtAt = at + (1 + rand() * 6) * DAY;
+    if (saves && savedAt < now) {
+      events.push({ ...base, type: 'save', size, occurred_at: new Date(savedAt).toISOString() });
     }
-    if (buys) {
+    if (buys && boughtAt < now) {
       events.push({
         ...base,
         type: 'purchase',
         size,
         quantity: 1,
         unit_price_dkk: product.price_dkk,
-        occurred_at: new Date(Math.min(at + (1 + rand() * 6) * DAY, now)).toISOString(),
+        occurred_at: new Date(boughtAt).toISOString(),
       });
     }
   }

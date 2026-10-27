@@ -1,17 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { ScanLine, ShoppingBag, ArrowRight, Clock, Coins, Wallet } from 'lucide-react';
+import { ScanLine, ShoppingBag, ArrowRight, Bookmark, Clock, Coins, Wallet } from 'lucide-react';
 import {
   Badge,
   Card,
   EmptyState,
   KPISkeleton,
   ListSkeleton,
+  Select,
   Skeleton,
   StatTile,
   Tabs,
@@ -22,12 +24,9 @@ import {
   TD,
   cn,
 } from '@/components/ds';
-import type { Database } from '@/lib/database.types';
-
-type Scan = Database['public']['Tables']['scans']['Row'];
-
 type Period = 'day' | 'week' | 'month' | 'year';
 
+const PERIODS: Period[] = ['day', 'week', 'month', 'year'];
 const PERIOD_LABEL: Record<Period, string> = { day: 'today', week: 'this week', month: 'this month', year: 'this year' };
 const PREV_LABEL: Record<Period, string> = { day: 'yesterday', week: 'last week', month: 'last month', year: 'last year' };
 
@@ -87,321 +86,168 @@ function buckets(period: Period, start: Date, now: Date): { label: string; from:
   return out;
 }
 
-type KPIs = {
-  scans: number;
-  prevScans: number;
-  saves: number | null;
-  prevSaves: number | null;
-  purchases: number;
-  prevPurchases: number;
-  sales: number;
-  pendingOrders: number;
-  activeSamples: number;
+// Everything below is counted in the database (get_brand_dashboard, migration 009).
+type Dashboard = {
+  kpis: {
+    scans: number;
+    saves: number;
+    purchases: number;
+    sales: number;
+    store_cut: number;
+    prev_scans: number;
+    prev_saves: number;
+    prev_purchases: number;
+  };
+  saves_by_size: { size: string | null; saves: number }[];
+  chart: { t: string; scans: number; saves: number; purchases: number }[];
+  by_store: { id: string; name: string; scans: number; buys: number; cut: number }[];
+  top_products: { id: string; name: string; scans: number; buys: number }[];
+  commissions: {
+    id: string;
+    retailer_name: string;
+    amount_dkk: number;
+    type: string;
+    order_number: number | null;
+    created_at: string;
+  }[];
+  recent: { id: string; type: 'scan' | 'save' | 'purchase'; product: string; store: string | null; size: string | null; time: string }[];
+  deposits: { retailer_name: string; total: number }[];
+  active_samples: number;
+  pending_orders: number;
 };
 
-type ChartBar = { label: string; scans: number; saves: number; purchases: number };
-type StoreRow = { id: string; name: string; scans: number; buys: number; cut: number };
-type ProductRow = { id: string; name: string; scans: number; buys: number };
+type ProductOption = { id: string; name: string; sizes: string[] };
+type StoreOption = { id: string; name: string };
 
-type ActivityItem = {
-  id: string;
-  type: 'scan' | 'order';
-  description: string;
-  time: string;
-};
+// Clothing sizes in wearing order; numeric sizes by value; anything else after.
+const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+function sizeRank(size: string | null): number {
+  if (size === null) return 10_000;
+  const i = SIZE_ORDER.indexOf(size.toUpperCase());
+  if (i >= 0) return i;
+  const n = Number(size);
+  return Number.isFinite(n) ? 100 + n : 1_000;
+}
+const bySize = (a: string | null, b: string | null) => sizeRank(a) - sizeRank(b) || String(a).localeCompare(String(b));
 
-type CommissionItem = {
-  id: string;
-  retailer_name: string;
-  amount_dkk: number;
-  type: string;
-  order_number: number | null;
-  created_at: string;
-};
+// "32%" or "4.9%"; "–" when there is nothing to divide by.
+function ratio(part: number, whole: number): string {
+  if (whole === 0) return '–';
+  const pct = (part / whole) * 100;
+  return `${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%`;
+}
+
+const CHART_BUCKET: Record<Period, 'hour' | 'day' | 'month'> = { day: 'hour', week: 'day', month: 'day', year: 'month' };
 
 export default function BrandDashboardPage() {
+  return (
+    <Suspense fallback={<KPISkeleton />}>
+      <Dashboard />
+    </Suspense>
+  );
+}
+
+function Dashboard() {
   const { user } = useAuth();
-  const [period, setPeriod] = useState<Period>('month');
-  const [kpis, setKpis] = useState<KPIs>({
-    scans: 0,
-    prevScans: 0,
-    saves: null,
-    prevSaves: null,
-    purchases: 0,
-    prevPurchases: 0,
-    sales: 0,
-    pendingOrders: 0,
-    activeSamples: 0,
-  });
-  const [chart, setChart] = useState<ChartBar[]>([]);
-  const [byStore, setByStore] = useState<StoreRow[]>([]);
-  const [topProducts, setTopProducts] = useState<ProductRow[]>([]);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [commissions, setCommissions] = useState<CommissionItem[]>([]);
-  const [totalCommissionOwed, setTotalCommissionOwed] = useState(0);
-  const [depositsHeld, setDepositsHeld] = useState(0);
-  const [depositsByRetailer, setDepositsByRetailer] = useState<{ retailer_name: string; total: number }[]>([]);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Filters live in the URL, so a reload or a shared link shows the same view.
+  const periodParam = searchParams.get('period') as Period | null;
+  const period: Period = periodParam && PERIODS.includes(periodParam) ? periodParam : 'month';
+  const productId = searchParams.get('product');
+  const storeId = searchParams.get('store');
+  const size = searchParams.get('size');
+
+  const setFilter = useCallback(
+    (key: 'period' | 'product' | 'store' | 'size', value: string | null) => {
+      const next = new URLSearchParams(searchParams.toString());
+      if (value) next.set(key, value);
+      else next.delete(key);
+      // A size that the newly chosen product doesn't come in would match nothing.
+      if (key === 'product') next.delete('size');
+      const qs = next.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname, searchParams]
+  );
+
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [stores, setStores] = useState<StoreOption[]>([]);
+  const [data, setData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
 
+  // Filter options
   useEffect(() => {
     if (!user) return;
-    // Ignore responses from a previous period if the toggle changes mid-load.
+    const supabase = createClient();
+    (async () => {
+      const { data: bp } = await supabase.from('brand_profiles').select('id').eq('user_id', user.id).single();
+      if (!bp) return;
+      const [productsRes, storesRes] = await Promise.all([
+        supabase.from('products').select('id, name, sizes').eq('brand_id', bp.id).order('name'),
+        supabase.rpc('get_brand_dashboard_stores'),
+      ]);
+      setProducts(((productsRes.data ?? []) as ProductOption[]).map((p) => ({ ...p, sizes: p.sizes ?? [] })));
+      setStores((storesRes.data ?? []) as StoreOption[]);
+    })();
+  }, [user]);
+
+  // Dashboard numbers
+  useEffect(() => {
+    if (!user) return;
+    // Ignore responses from earlier filters if they change mid-load.
     let stale = false;
     setRefreshing(true);
-    const supabase = createClient();
-
-    supabase
-      .from('brand_profiles')
-      .select('id, name')
-      .eq('user_id', user.id)
-      .single()
-      .then(async ({ data: bp }: { data: { id: string; name: string } | null }) => {
-        if (!bp) {
-          setLoading(false);
-          setRefreshing(false);
-          return;
-        }
-        const brandId = bp.id;
-
-        const now = new Date();
-        const { start, prevStart } = periodRange(period, now);
-        const since = start.toISOString();
-        const prevSince = prevStart.toISOString();
-
-        const [productsRes, brandOrdersRes] = await Promise.all([
-          supabase.from('products').select('id, name').eq('brand_id', brandId),
-          supabase.from('orders').select('id').eq('brand_id', brandId),
-        ]);
-        const products = (productsRes.data ?? []) as { id: string; name: string }[];
-        const productIds = products.map((p) => p.id);
-        const brandOrderIds = ((brandOrdersRes.data ?? []) as { id: string }[]).map((o) => o.id);
-
-        const [samplesRes, scansRes, ordersRes, periodOrdersRes, commissionsRes, savesRes] = await Promise.all([
-          supabase
-            .from('samples')
-            .select('id', { count: 'exact', head: true })
-            .eq('brand_id', brandId)
-            .eq('status', 'active'),
-          // Scans in this period and the one before (for the delta)
-          supabase
-            .from('scans')
-            .select('id, scanned_at, product_id, source_retailer_id')
-            .gte('scanned_at', prevSince)
-            .in('product_id', productIds)
-            .order('scanned_at', { ascending: false }),
-          supabase
-            .from('orders')
-            .select('id, order_number, status, total_dkk, created_at')
-            .eq('brand_id', brandId)
-            .order('created_at', { ascending: false })
-            .limit(20),
-          // Purchases and sales in this period and the one before
-          supabase
-            .from('orders')
-            .select('id, total_dkk, created_at')
-            .eq('brand_id', brandId)
-            .gte('created_at', prevSince)
-            .neq('status', 'cancelled'),
-          supabase
-            .from('attributions')
-            .select('id, attribution_type, commission_amount_dkk, source_retailer_id, created_at, order_id')
-            .in('order_id', brandOrderIds)
-            .not('source_retailer_id', 'is', null)
-            .gte('created_at', since)
-            .order('created_at', { ascending: false }),
-          // Saves per day on the brand's products (counts only; migration 006)
-          supabase.rpc('get_brand_save_counts', { p_since: prevSince }),
-        ]);
-
+    const now = new Date();
+    const { start, prevStart } = periodRange(period, now);
+    createClient()
+      .rpc('get_brand_dashboard', {
+        p_start: start.toISOString(),
+        p_prev_start: prevStart.toISOString(),
+        p_end: now.toISOString(),
+        p_product: productId,
+        p_retailer: storeId,
+        p_size: size,
+        p_bucket: CHART_BUCKET[period],
+        p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      })
+      .then(({ data: result, error: rpcError }: { data: Dashboard | null; error: { message: string } | null }) => {
         if (stale) return;
-
-        const inPeriod = (iso: string) => iso >= since;
-
-        type ScanRow = Pick<Scan, 'id' | 'scanned_at' | 'product_id' | 'source_retailer_id'>;
-        const allScans = (scansRes.data ?? []) as ScanRow[];
-        const scans = allScans.filter((s) => inPeriod(s.scanned_at));
-
-        type PeriodOrder = { id: string; total_dkk: number; created_at: string };
-        const allPeriodOrders = (periodOrdersRes.data ?? []) as PeriodOrder[];
-        const periodOrders = allPeriodOrders.filter((o) => inPeriod(o.created_at));
-
-        // If migration 006 isn't applied yet, Saves shows "–".
-        const saveRows = savesRes.error ? null : ((savesRes.data ?? []) as { day: string; saves: number }[]);
-        const saveDays = saveRows?.map((r) => ({ t: new Date(r.day).getTime(), n: Number(r.saves) })) ?? [];
-        const savesIn = (from: number, to: number) =>
-          saveDays.filter((r) => r.t >= from && r.t < to).reduce((sum, r) => sum + r.n, 0);
-
-        type OrderRow = { id: string; order_number: number; status: string; total_dkk: number; created_at: string };
-        const allOrders = (ordersRes.data ?? []) as OrderRow[];
-        const pendingOrders = allOrders.filter((o) => o.status === 'pending').length;
-
-        setKpis({
-          scans: scans.length,
-          prevScans: allScans.length - scans.length,
-          saves: saveRows ? savesIn(start.getTime(), Infinity) : null,
-          prevSaves: saveRows ? savesIn(prevStart.getTime(), start.getTime()) : null,
-          purchases: periodOrders.length,
-          prevPurchases: allPeriodOrders.length - periodOrders.length,
-          sales: periodOrders.reduce((sum, o) => sum + o.total_dkk, 0),
-          pendingOrders,
-          activeSamples: samplesRes.count ?? 0,
-        });
-
-        // Activity over time
-        setChart(
-          buckets(period, start, now).map((b) => {
-            const within = (iso: string) => {
-              const t = new Date(iso).getTime();
-              return t >= b.from && t < b.to;
-            };
-            return {
-              label: b.label,
-              scans: scans.filter((s) => within(s.scanned_at)).length,
-              saves: savesIn(b.from, b.to),
-              purchases: periodOrders.filter((o) => within(o.created_at)).length,
-            };
-          })
-        );
-
-        const items: ActivityItem[] = [];
-
-        for (const scan of scans.slice(0, 5)) {
-          items.push({
-            id: scan.id,
-            type: 'scan',
-            description: 'New scan recorded',
-            time: scan.scanned_at,
-          });
-        }
-
-        for (const order of allOrders.slice(0, 5)) {
-          items.push({
-            id: order.id,
-            type: 'order',
-            description: `Order #${order.order_number ?? '—'} — ${formatDKK(order.total_dkk)}`,
-            time: order.created_at,
-          });
-        }
-
-        items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-        setActivity(items.slice(0, 8));
-
-        // Commission data
-        type AttrRow = { id: string; attribution_type: string; commission_amount_dkk: number | null; source_retailer_id: string | null; created_at: string; order_id: string };
-        const attrData = (commissionsRes.data ?? []) as AttrRow[];
-        const storeScanIds = scans.map((s) => s.source_retailer_id).filter(Boolean) as string[];
-        const retailerIds = Array.from(
-          new Set([...attrData.map((a) => a.source_retailer_id).filter(Boolean), ...storeScanIds])
-        ) as string[];
-        const orderIds = Array.from(new Set(attrData.map((a) => a.order_id)));
-
-        const [retailersRes, attrOrdersRes, itemsRes] = await Promise.all([
-          retailerIds.length
-            ? supabase.from('retailer_profiles').select('id, name').in('id', retailerIds)
-            : Promise.resolve({ data: [] }),
-          orderIds.length
-            ? supabase.from('orders').select('id, order_number').in('id', orderIds)
-            : Promise.resolve({ data: [] }),
-          // Buys per product in this period
-          periodOrders.length
-            ? supabase.from('order_items').select('product_id, quantity').in('order_id', periodOrders.map((o) => o.id))
-            : Promise.resolve({ data: [] }),
-        ]);
-
-        if (stale) return;
-
-        const retailerMap = new Map(
-          ((retailersRes.data ?? []) as { id: string; name: string }[]).map((r) => [r.id, r.name])
-        );
-        const orderNumMap = new Map(
-          ((attrOrdersRes.data ?? []) as { id: string; order_number: number }[]).map((o) => [o.id, o.order_number])
-        );
-
-        const commissionItems: CommissionItem[] = attrData
-          .filter((a) => a.commission_amount_dkk && a.source_retailer_id)
-          .map((a) => ({
-            id: a.id,
-            retailer_name: retailerMap.get(a.source_retailer_id!) ?? 'Unknown',
-            amount_dkk: a.commission_amount_dkk!,
-            type: a.attribution_type,
-            order_number: orderNumMap.get(a.order_id) ?? null,
-            created_at: a.created_at,
-          }));
-
-        setCommissions(commissionItems);
-        setTotalCommissionOwed(commissionItems.reduce((sum, c) => sum + c.amount_dkk, 0));
-
-        // By store: scans in the store, purchases credited to it, its cut
-        const stores = new Map<string, StoreRow>();
-        const store = (id: string) => {
-          if (!stores.has(id)) stores.set(id, { id, name: retailerMap.get(id) ?? 'Unknown', scans: 0, buys: 0, cut: 0 });
-          return stores.get(id)!;
-        };
-        for (const id of storeScanIds) store(id).scans += 1;
-        for (const a of attrData) {
-          if (!a.source_retailer_id) continue;
-          const row = store(a.source_retailer_id);
-          row.buys += 1;
-          row.cut += a.commission_amount_dkk ?? 0;
-        }
-        setByStore(Array.from(stores.values()).sort((a, b) => b.scans - a.scans || b.buys - a.buys).slice(0, 5));
-
-        // Top products: scans and units bought
-        const productName = new Map(products.map((p) => [p.id, p.name]));
-        const productRows = new Map<string, ProductRow>();
-        const productRow = (id: string) => {
-          if (!productRows.has(id)) productRows.set(id, { id, name: productName.get(id) ?? 'Unknown product', scans: 0, buys: 0 });
-          return productRows.get(id)!;
-        };
-        for (const s of scans) if (s.product_id) productRow(s.product_id).scans += 1;
-        for (const it of (itemsRes.data ?? []) as { product_id: string | null; quantity: number }[]) {
-          if (it.product_id) productRow(it.product_id).buys += it.quantity;
-        }
-        setTopProducts(
-          Array.from(productRows.values()).sort((a, b) => b.scans - a.scans || b.buys - a.buys).slice(0, 5)
-        );
-
-        // Deposit data
-        const { data: heldSamples } = await supabase
-          .from('samples')
-          .select('deposit_amount_dkk, retailer_id')
-          .eq('brand_id', brandId)
-          .eq('deposit_status', 'held');
-
-        if (stale) return;
-
-        if (heldSamples?.length) {
-          const total = heldSamples.reduce((sum: number, s: { deposit_amount_dkk: number | null }) => sum + (s.deposit_amount_dkk ?? 0), 0);
-          setDepositsHeld(total);
-
-          const byRetailer = new Map<string, number>();
-          for (const s of heldSamples as { deposit_amount_dkk: number | null; retailer_id: string }[]) {
-            byRetailer.set(s.retailer_id, (byRetailer.get(s.retailer_id) ?? 0) + (s.deposit_amount_dkk ?? 0));
-          }
-
-          const rIds = Array.from(byRetailer.keys());
-          const { data: depRetailers } = await supabase.from('retailer_profiles').select('id, name').in('id', rIds);
-          const depRetailerMap = new Map((depRetailers ?? []).map((r: { id: string; name: string }) => [r.id, r.name]));
-
-          if (stale) return;
-
-          setDepositsByRetailer(
-            Array.from(byRetailer.entries()).map(([rid, t]) => ({
-              retailer_name: (depRetailerMap.get(rid) as string | undefined) ?? 'Unknown',
-              total: t,
-            })).sort((a, b) => b.total - a.total)
-          );
-        }
-
+        setError(rpcError ? 'Could not load the dashboard. Try again in a moment.' : '');
+        if (result) setData(result);
         setLoading(false);
         setRefreshing(false);
       });
-
     return () => {
       stale = true;
     };
-  }, [user, period]);
+  }, [user, period, productId, storeId, size]);
+
+  const sizeOptions = useMemo(() => {
+    const source = productId ? products.filter((p) => p.id === productId) : products;
+    return Array.from(new Set(source.flatMap((p) => p.sizes))).sort(bySize);
+  }, [products, productId]);
+
+  const chart = useMemo(() => {
+    if (!data) return [];
+    const now = new Date();
+    const { start } = periodRange(period, now);
+    // Rows come back per hour / day / month in the browser's time zone.
+    const rows = data.chart.map((r) => ({ ...r, ms: new Date(r.t).getTime() }));
+    return buckets(period, start, now).map((b) => {
+      const inside = rows.filter((r) => r.ms >= b.from && r.ms < b.to);
+      return {
+        label: b.label,
+        scans: inside.reduce((n, r) => n + r.scans, 0),
+        saves: inside.reduce((n, r) => n + r.saves, 0),
+        purchases: inside.reduce((n, r) => n + r.purchases, 0),
+      };
+    });
+  }, [data, period]);
 
   function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -415,133 +261,193 @@ export default function BrandDashboardPage() {
   }
 
   // "+18%" vs. the previous period; hidden when there's nothing to compare with.
-  function delta(current: number | null, previous: number | null): string | undefined {
-    if (current === null || previous === null || previous === 0) return undefined;
+  function delta(current: number, previous: number): string | undefined {
+    if (previous === 0) return undefined;
     const pct = Math.round(((current - previous) / previous) * 100);
     return `${pct >= 0 ? '+' : ''}${pct}%`;
   }
 
   const header = (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="font-brand text-heading-xl uppercase text-primary">Dashboard</h1>
-        <p className="mt-1 text-body text-slate">Demand, orders and settlement in one place</p>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-brand text-heading-xl uppercase text-primary">Dashboard</h1>
+          <p className="mt-1 text-body text-slate">Demand, orders and settlement in one place</p>
+        </div>
+        <Tabs
+          items={[
+            { value: 'day', label: 'Day' },
+            { value: 'week', label: 'Week' },
+            { value: 'month', label: 'Month' },
+            { value: 'year', label: 'Year' },
+          ]}
+          value={period}
+          onValueChange={(v) => setFilter('period', v === 'month' ? null : v)}
+          className="self-start sm:self-auto [&>button]:h-[42px]"
+        />
       </div>
-      <Tabs
-        items={[
-          { value: 'day', label: 'Day' },
-          { value: 'week', label: 'Week' },
-          { value: 'month', label: 'Month' },
-          { value: 'year', label: 'Year' },
-        ]}
-        value={period}
-        onValueChange={(v) => setPeriod(v as Period)}
-        className="self-start sm:self-auto [&>button]:h-[42px]"
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <Select
+          aria-label="Product"
+          value={productId ?? ''}
+          onChange={(e) => setFilter('product', e.target.value || null)}
+          className="sm:w-64"
+        >
+          <option value="">Product: All products</option>
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>
+              Product: {p.name}
+            </option>
+          ))}
+        </Select>
+        <Select
+          aria-label="Store"
+          value={storeId ?? ''}
+          onChange={(e) => setFilter('store', e.target.value || null)}
+          className="sm:w-56"
+        >
+          <option value="">Store: All stores</option>
+          {stores.map((s) => (
+            <option key={s.id} value={s.id}>
+              Store: {s.name}
+            </option>
+          ))}
+        </Select>
+        <Select
+          aria-label="Size"
+          value={size ?? ''}
+          onChange={(e) => setFilter('size', e.target.value || null)}
+          className="sm:w-48"
+        >
+          <option value="">Size: All sizes</option>
+          {sizeOptions.map((s) => (
+            <option key={s} value={s}>
+              Size: {s}
+            </option>
+          ))}
+        </Select>
+      </div>
     </div>
   );
 
-  if (loading) {
+  if (loading || !data) {
     return (
       <div className="space-y-7">
         {header}
-        <KPISkeleton />
-        <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-          <Skeleton className="h-72 w-full" />
-          <ListSkeleton rows={4} />
-        </div>
+        {error ? (
+          <p className="text-body text-accent-strong">{error}</p>
+        ) : (
+          <>
+            <KPISkeleton />
+            <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+              <Skeleton className="h-72 w-full" />
+              <ListSkeleton rows={4} />
+            </div>
+          </>
+        )}
       </div>
     );
   }
 
+  const { kpis } = data;
   const vs = `vs. ${PREV_LABEL[period]}`;
   const chartMax = Math.max(1, ...chart.map((b) => b.scans + b.saves + b.purchases));
   const labelEvery = chart.length > 16 ? 3 : 1;
+  const savesBySize = [...data.saves_by_size].sort((a, b) => bySize(a.size, b.size));
+  const sizeMax = Math.max(1, ...savesBySize.map((s) => s.saves));
+  const funnelMax = Math.max(1, kpis.scans);
+  const totalCommission = data.commissions.reduce((n, c) => n + c.amount_dkk, 0);
+  const depositsHeld = data.deposits.reduce((n, d) => n + d.total, 0);
 
   return (
     <div className={cn('space-y-7 transition-opacity', refreshing && 'opacity-60')}>
       {header}
+      {error && <p className="text-body text-accent-strong">{error}</p>}
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <StatTile label="Scans" value={kpis.scans.toLocaleString('en-GB')} delta={delta(kpis.scans, kpis.prevScans)} hint={vs} />
-        <StatTile
-          label="Saves"
-          value={kpis.saves === null ? '–' : kpis.saves.toLocaleString('en-GB')}
-          delta={delta(kpis.saves, kpis.prevSaves)}
-          hint={kpis.saves === null ? 'Not available yet' : vs}
-        />
+        <StatTile label="Scans" value={kpis.scans.toLocaleString('en-GB')} delta={delta(kpis.scans, kpis.prev_scans)} hint={vs} />
+        <StatTile label="Saves" value={kpis.saves.toLocaleString('en-GB')} delta={delta(kpis.saves, kpis.prev_saves)} hint={vs} />
         <StatTile
           label="Purchases"
           value={kpis.purchases.toLocaleString('en-GB')}
-          delta={delta(kpis.purchases, kpis.prevPurchases)}
+          delta={delta(kpis.purchases, kpis.prev_purchases)}
           hint={vs}
         />
         <StatTile
           label="Sales via Flaym"
           value={formatDKK(kpis.sales)}
-          hint={<span className="text-success">Store cut: {formatDKK(totalCommissionOwed)}</span>}
+          hint={<span className="text-success">Store cut: {formatDKK(kpis.store_cut)}</span>}
         />
       </div>
 
       {/* Orders waiting */}
-      {kpis.pendingOrders > 0 && (
+      {data.pending_orders > 0 && (
         <Link
           href="/brand/orders"
           className="group flex items-center justify-between gap-3 border border-line bg-surface px-5 py-4 transition-colors hover:border-primary"
         >
           <span className="flex items-center gap-3 text-body text-primary">
             <Badge tone="accent">New</Badge>
-            {kpis.pendingOrders} order{kpis.pendingOrders !== 1 ? 's' : ''} waiting to be shipped
+            {data.pending_orders} order{data.pending_orders !== 1 ? 's' : ''} waiting to be shipped
           </span>
           <ArrowRight className="h-4 w-4 text-slate transition-transform group-hover:translate-x-1" />
         </Link>
       )}
 
       <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-        {/* Activity over time */}
+        {/* Funnel + saves by size (Figma 02, left card) */}
         <Card padding="none" className="rounded-none p-5 lg:p-6">
-          <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
-            <SectionTitle title="Activity over time" />
-            <div className="flex flex-wrap gap-4 text-caption text-slate">
-              <Legend className="bg-line" label="Scans" />
-              <Legend className="bg-accent/50" label="Saves" />
-              <Legend className="bg-accent" label="Purchases" />
-            </div>
+          <SectionTitle title="From scan to purchase" />
+          <p className="mt-1 text-caption text-slate">{`${PERIOD_LABEL[period][0].toUpperCase()}${PERIOD_LABEL[period].slice(1)}, filtered as above`}</p>
+
+          <div className="mt-6 space-y-2">
+            <FunnelBar label="Scans" value={kpis.scans} max={funnelMax} className="bg-ash" />
+            <p className="pb-2 text-caption text-cinder">↓ {ratio(kpis.saves, kpis.scans)} of scans were saved</p>
+            <FunnelBar label="Saves" value={kpis.saves} max={funnelMax} className="bg-accent/50" />
+            <p className="pb-2 text-caption text-cinder">
+              ↓ {ratio(kpis.purchases, kpis.saves)} of saves were bought · {ratio(kpis.purchases, kpis.scans)} of scans
+            </p>
+            <FunnelBar label="Purchases" value={kpis.purchases} max={funnelMax} className="bg-accent" />
           </div>
-          {chart.every((b) => b.scans + b.saves + b.purchases === 0) ? (
-            <EmptyState
-              className="border-none py-12"
-              icon={<ScanLine className="h-5 w-5" />}
-              title={`No activity ${PERIOD_LABEL[period]}`}
-              description="Scans, saves and purchases show up here as people find your products in stores."
-            />
-          ) : (
-            <div>
-              <div className="flex h-48 items-end gap-[3px] sm:h-56 sm:gap-1.5" role="img" aria-label="Scans, saves and purchases per period">
-                {chart.map((b) => (
-                  <div key={b.label} className="flex h-full flex-1 flex-col justify-end gap-px" title={`${b.label}: ${b.scans} scans, ${b.saves} saves, ${b.purchases} purchases`}>
-                    <div className="bg-line" style={{ height: `${(b.scans / chartMax) * 100}%` }} />
-                    <div className="bg-accent/50" style={{ height: `${(b.saves / chartMax) * 100}%` }} />
-                    <div className="bg-accent" style={{ height: `${(b.purchases / chartMax) * 100}%` }} />
+          {size && (
+            <p className="mt-4 border-l-2 border-accent pl-3 text-caption text-slate">
+              Size {size}: saves and purchases are size {size} only. Scans count every size, because people scan before
+              they pick a size.
+            </p>
+          )}
+
+          <div className="mt-10">
+            <SectionTitle title="Saves by size" />
+            <p className="mt-1 text-caption text-slate">Shows which sizes to produce more of</p>
+            {savesBySize.length === 0 ? (
+              <p className="mt-6 text-caption text-slate">No saves {PERIOD_LABEL[period]}.</p>
+            ) : (
+              <div className="mt-6 flex items-end gap-3 sm:gap-6">
+                {savesBySize.map((s) => (
+                  <div key={s.size ?? 'none'} className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex h-32 items-end">
+                      <div
+                        className={cn('w-full', s.saves === sizeMax ? 'bg-accent' : 'bg-accent/50')}
+                        style={{ height: `${Math.max(4, (s.saves / sizeMax) * 100)}%` }}
+                        title={`${s.size ?? 'No size'}: ${s.saves} saves`}
+                      />
+                    </div>
+                    <p className="mt-2 flex flex-wrap gap-x-2 text-caption">
+                      <span className="font-medium text-primary">{s.size ?? 'No size'}</span>
+                      <span className="tabular-nums text-slate">{s.saves}</span>
+                    </p>
                   </div>
                 ))}
               </div>
-              <div className="mt-2 flex gap-[3px] sm:gap-1.5">
-                {chart.map((b, i) => (
-                  <span key={b.label} className="flex-1 text-center text-caption text-slate">
-                    {i % labelEvery === 0 ? b.label : ''}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </Card>
 
         {/* By store + top products */}
         <Card padding="none" className="rounded-none p-5 lg:p-6">
           <SectionTitle title="By store" />
-          {byStore.length === 0 ? (
+          {data.by_store.length === 0 ? (
             <p className="mb-6 mt-3 text-caption text-slate">No store scans or purchases {PERIOD_LABEL[period]}.</p>
           ) : (
             <div className="-mx-1 mb-6 mt-3 overflow-x-auto">
@@ -555,7 +461,7 @@ export default function BrandDashboardPage() {
                   </tr>
                 </THead>
                 <TBody>
-                  {byStore.map((s) => (
+                  {data.by_store.map((s) => (
                     <TR key={s.id}>
                       <TD className="px-3">{s.name}</TD>
                       <TD className="px-3 text-right tabular-nums">{s.scans}</TD>
@@ -569,7 +475,7 @@ export default function BrandDashboardPage() {
           )}
 
           <SectionTitle title="Top products" />
-          {topProducts.length === 0 ? (
+          {data.top_products.length === 0 ? (
             <p className="mt-3 text-caption text-slate">No product scans or purchases {PERIOD_LABEL[period]}.</p>
           ) : (
             <div className="-mx-1 mt-3 overflow-x-auto">
@@ -582,7 +488,7 @@ export default function BrandDashboardPage() {
                   </tr>
                 </THead>
                 <TBody>
-                  {topProducts.map((p) => (
+                  {data.top_products.map((p) => (
                     <TR key={p.id}>
                       <TD className="px-3">{p.name}</TD>
                       <TD className="px-3 text-right tabular-nums">{p.scans}</TD>
@@ -596,14 +502,53 @@ export default function BrandDashboardPage() {
         </Card>
       </div>
 
+      {/* Activity over time */}
+      <Card padding="none" className="rounded-none p-5 lg:p-6">
+        <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
+          <SectionTitle title="Activity over time" />
+          <div className="flex flex-wrap gap-4 text-caption text-slate">
+            <Legend className="bg-line" label="Scans" />
+            <Legend className="bg-accent/50" label="Saves" />
+            <Legend className="bg-accent" label="Purchases" />
+          </div>
+        </div>
+        {chart.every((b) => b.scans + b.saves + b.purchases === 0) ? (
+          <EmptyState
+            className="border-none py-12"
+            icon={<ScanLine className="h-5 w-5" />}
+            title={`No activity ${PERIOD_LABEL[period]}`}
+            description="Scans, saves and purchases show up here as people find your products in stores."
+          />
+        ) : (
+          <div>
+            <div className="flex h-48 items-end gap-[3px] sm:h-56 sm:gap-1.5" role="img" aria-label="Scans, saves and purchases per period">
+              {chart.map((b) => (
+                <div key={b.label} className="flex h-full flex-1 flex-col justify-end gap-px" title={`${b.label}: ${b.scans} scans, ${b.saves} saves, ${b.purchases} purchases`}>
+                  <div className="bg-line" style={{ height: `${(b.scans / chartMax) * 100}%` }} />
+                  <div className="bg-accent/50" style={{ height: `${(b.saves / chartMax) * 100}%` }} />
+                  <div className="bg-accent" style={{ height: `${(b.purchases / chartMax) * 100}%` }} />
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex gap-[3px] sm:gap-1.5">
+              {chart.map((b, i) => (
+                <span key={b.label} className="flex-1 text-center text-caption text-slate">
+                  {i % labelEvery === 0 ? b.label : ''}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Commission owed */}
         <Card padding="none" className="rounded-none p-5 lg:p-6">
           <SectionTitle
             title={`Commission ${PERIOD_LABEL[period]}`}
-            aside={commissions.length > 0 ? `${formatDKK(totalCommissionOwed)} owed` : undefined}
+            aside={data.commissions.length > 0 ? `${formatDKK(totalCommission)} owed` : undefined}
           />
-          {commissions.length === 0 ? (
+          {data.commissions.length === 0 ? (
             <EmptyState
               className="border-none py-8"
               icon={<Coins className="h-5 w-5" />}
@@ -612,7 +557,7 @@ export default function BrandDashboardPage() {
             />
           ) : (
             <ul className="mt-2 divide-y divide-line">
-              {commissions.map((c) => {
+              {data.commissions.map((c) => {
                 const typeLabel = c.type === 'direct' ? 'Direct' : c.type === 'deferred' ? 'Deferred' : 'Tier 2';
                 const typeTone = c.type === 'direct' ? 'accent' : c.type === 'deferred' ? 'neutral' : 'outline';
                 return (
@@ -634,14 +579,11 @@ export default function BrandDashboardPage() {
 
         {/* Deposits held */}
         <Card padding="none" className="rounded-none p-5 lg:p-6">
-          <SectionTitle
-            title="Deposits held"
-            aside={depositsHeld > 0 ? `${formatDKK(depositsHeld)} total` : undefined}
-          />
+          <SectionTitle title="Deposits held" aside={depositsHeld > 0 ? `${formatDKK(depositsHeld)} total` : undefined} />
           <p className="text-caption text-slate">
-            {kpis.activeSamples} active sample{kpis.activeSamples !== 1 ? 's' : ''} in stores
+            {data.active_samples} active sample{data.active_samples !== 1 ? 's' : ''} in stores
           </p>
-          {depositsByRetailer.length === 0 ? (
+          {data.deposits.length === 0 || depositsHeld === 0 ? (
             <EmptyState
               className="border-none py-8"
               icon={<Wallet className="h-5 w-5" />}
@@ -650,7 +592,7 @@ export default function BrandDashboardPage() {
             />
           ) : (
             <ul className="mt-2 divide-y divide-line">
-              {depositsByRetailer.map((r) => (
+              {data.deposits.map((r) => (
                 <li key={r.retailer_name} className="flex items-center justify-between gap-3 py-3 text-body-sm">
                   <span className="truncate text-primary">{r.retailer_name}</span>
                   <span className="whitespace-nowrap font-medium tabular-nums text-primary">{formatDKK(r.total)}</span>
@@ -663,27 +605,51 @@ export default function BrandDashboardPage() {
         {/* Activity feed */}
         <Card padding="none" className="rounded-none p-5 lg:p-6">
           <SectionTitle title="Recent activity" />
-          {activity.length === 0 ? (
+          {data.recent.length === 0 ? (
             <EmptyState
               className="border-none py-8"
               icon={<Clock className="h-5 w-5" />}
               title="No activity yet"
-              description="Scans and orders will appear here"
+              description="Scans, saves and purchases will appear here"
             />
           ) : (
             <ul className="mt-2 divide-y divide-line">
-              {activity.map((item) => (
+              {data.recent.map((item) => (
                 <li key={item.id} className="flex items-center gap-3 py-3">
-                  <span className={cn('shrink-0', item.type === 'scan' ? 'text-slate' : 'text-accent')}>
-                    {item.type === 'scan' ? <ScanLine className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
+                  <span className={cn('shrink-0', item.type === 'purchase' ? 'text-accent' : 'text-slate')}>
+                    {item.type === 'scan' ? (
+                      <ScanLine className="h-4 w-4" />
+                    ) : item.type === 'save' ? (
+                      <Bookmark className="h-4 w-4" />
+                    ) : (
+                      <ShoppingBag className="h-4 w-4" />
+                    )}
                   </span>
-                  <p className="min-w-0 flex-1 truncate text-body-sm text-primary">{item.description}</p>
+                  <p className="min-w-0 flex-1 truncate text-body-sm text-primary">
+                    {item.type === 'scan' ? 'Scan' : item.type === 'save' ? 'Save' : 'Purchase'} · {item.product}
+                    {item.size ? ` · ${item.size}` : ''}
+                    {item.store ? ` · ${item.store}` : ''}
+                  </p>
                   <span className="whitespace-nowrap text-caption text-slate">{timeAgo(item.time)}</span>
                 </li>
               ))}
             </ul>
           )}
         </Card>
+      </div>
+    </div>
+  );
+}
+
+function FunnelBar({ label, value, max, className }: { label: string; value: number; max: number; className: string }) {
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between">
+        <span className="text-label uppercase text-slate">{label}</span>
+        <span className="text-title tabular-nums text-primary">{value.toLocaleString('en-GB')}</span>
+      </div>
+      <div className="h-8 w-full">
+        <div className={cn('h-full', className)} style={{ width: `${Math.max(value > 0 ? 2 : 0, (value / max) * 100)}%` }} />
       </div>
     </div>
   );
