@@ -132,14 +132,22 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
       return;
     }
 
+    // A save records the size the shopper wants (it shows the brand which
+    // sizes to produce), so ask for one first, like Buy.
+    if (product.sizes?.length > 1 && !selectedSize) {
+      setSelectionError('Pick a size to save');
+      return;
+    }
+    setSelectionError('');
+
     setSaving(true);
     try {
-      await fetch('/api/saved-products', {
+      const res = await fetch('/api/saved-products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: product.id, scan_id: scanId }),
+        body: JSON.stringify({ product_id: product.id, size: selectedSize }),
       });
-      setSaved(true);
+      if (res.ok) setSaved(true);
     } catch {
       // silently fail
     }
@@ -344,6 +352,8 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
                   onClick={() => {
                     setSelectedSize(size);
                     setSelectionError('');
+                    // A different size can be saved again.
+                    if (size !== selectedSize) setSaved(false);
                   }}
                   className={cn(
                     'h-10 min-w-12 px-3 text-body transition-colors',

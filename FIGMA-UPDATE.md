@@ -13,7 +13,7 @@ Ticking an item means it's built and verified.
 ## Data and logic
 
 ### a) Events: scans, saves, purchases
-- [ ] **Scans**
+- [x] **Scans** (into `events`, Part A)
   - **Today:** `scans` (`supabase/migrations/001_initial_schema.sql:138`) stores:
     - user: `scanner_user_id`, null when anonymous
     - product: `product_id`
@@ -25,13 +25,13 @@ Ticking an item means it's built and verified.
     - Anonymous scans are never linked to the account after signup.
     - The giver (`?ref=`) isn't checked against a real order or owned item.
     - Scans have no size (fine, since a scan happens before a size is chosen).
-- [ ] **Saves**
+- [x] **Saves** (size + `events`, Part A)
   - **Today:** `saved_products` (001:234) stores `user_id`, `product_id`, `scan_id`, `saved_at` and `expires_at` (+90 days), with one row per user+product. `/api/saved-products` POST ties the save to the user's first scan of the product.
   - **Missing:**
     - No size, colour or variant.
     - Store and giver are only reachable through `scan_id → scans`, with no column of their own.
     - Removing a save hard-deletes the row, so no un-save history is kept.
-- [ ] **Purchases**
+- [x] **Purchases** (into `events`, Part A; commission rates still open)
   - **Today:** `orders.consumer_user_id`, `orders.created_at`. `order_items` has `product_id`, `product_variant_id`, `size`, `color`, `quantity` and `unit_price_dkk`. Store and giver are recorded in `attributions` (`source_retailer_id`, `source_user_id`, `scan_id`).
   - **Missing:**
     - Checkout (`src/app/api/checkout/route.ts`) always writes `deferred` at a hard-coded 15% and ignores the partnership's commission rates.
@@ -103,6 +103,19 @@ Ticking an item means it's built and verified.
 - [ ] **Web push (Figma App 16, lock-screen notifications)**
   - **Today:** none. `public/sw.js` only caches, and the service worker registers in production only. Notifications are Resend emails only (order confirmation, new order to the brand, status updates, invitations).
   - **Missing:** a `push` / `notificationclick` handler, VAPID keys, a `push_subscriptions` table (owner-only RLS), a `web-push` dependency, a permission prompt, and server-side sends on order status changes.
+
+---
+
+## Build parts (October 2026 run)
+
+- [x] **A Event data** — `events` table (migration 008): type, user, product, size (save/purchase only), store, tag, giver, time; indexes on brand, product, store, size and time.
+  - Written by `/api/scans`, `/api/saved-products` (Save now asks for a size) and `/api/checkout`. Save and checkout both credit the latest scan in the 90-day window (`src/lib/attribution.ts`), so store and giver carry through.
+  - Backfill: all scans and purchases. Saves are backfilled without size (never stored). Not recoverable: un-saved items (hard-deleted) and anonymous scans never linked to an account.
+  - Seed: `npm run db:seed-events` (`--reset` removes it), QA brand only, all rows marked `seed`.
+- [ ] **B Brand dashboard** — filters in the URL, funnel, saves by size, SQL aggregation.
+- [ ] **C Orders and menu counts** — bulk ship, Waiting badge, carrier + tracking, push, sidebar counts.
+- [ ] **D Print tag** — 50 × 70 mm tag, existing code, `tag_prints` log.
+- [ ] **E Brand stories and product images** — upload rules in browser and server.
 
 ---
 

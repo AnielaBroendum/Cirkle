@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { sendOrderConfirmation, sendNewOrderToBrand } from '@/lib/email';
+import { ATTRIBUTION_WINDOW_DAYS, findAttributingScan } from '@/lib/attribution';
+import { recordEvent } from '@/lib/events';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -80,7 +82,7 @@ export async function POST(request: NextRequest) {
     variantId = variant?.id ?? null;
   }
 
-  await admin.from('order_items').insert({
+  const { data: orderItem } = await admin.from('order_items').insert({
     order_id: order.id,
     product_id: product.id,
     product_variant_id: variantId,
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
     color: color || null,
     quantity: 1,
     unit_price_dkk: product.price_dkk,
-  });
+  }).select('id').single();
 
   await admin.from('order_events').insert({
     order_id: order.id,
@@ -106,26 +108,21 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  // Last scan wins (same rule as Save), so the purchase credits the same
+  // store or giver as the scan the shopper came from.
+  const recentScan = await findAttributingScan(admin, user.id, product_id);
 
-  const { data: scanRows } = await admin
-    .from('scans')
-    .select('*')
-    .eq('product_id', product_id)
-    .eq('scanner_user_id', user.id)
-    .gte('scanned_at', ninetyDaysAgo.toISOString())
-    .order('scanned_at', { ascending: false })
-    .limit(10);
-
-  // Most recent scan that actually attributes a sale: a retailer scan, or a
-  // peer scan with a real referring user. Phantom browse scans are ignored.
-  const recentScan =
-    (scanRows ?? []).find(
-      (s: { source_type: string; source_retailer_id: string | null; source_user_id: string | null }) =>
-        (s.source_type === 'retailer' && s.source_retailer_id) ||
-        (s.source_type === 'peer' && s.source_user_id)
-    ) ?? null;
+  await recordEvent(admin, {
+    type: 'purchase',
+    userId: user.id,
+    productId: product.id,
+    brandId: product.brand_id,
+    size: size || null,
+    scan: recentScan,
+    orderId: order.id,
+    orderItemId: orderItem?.id,
+    unitPriceOre: product.price_dkk,
+  });
 
   if (recentScan) {
     const isPeer = recentScan.source_type === 'peer';
@@ -142,7 +139,7 @@ export async function POST(request: NextRequest) {
       points_amount: isPeer ? 50 : null,
       status: 'pending',
       attribution_window_expires_at: new Date(
-        new Date(recentScan.scanned_at).getTime() + 90 * 24 * 60 * 60 * 1000
+        new Date(recentScan.scanned_at).getTime() + ATTRIBUTION_WINDOW_DAYS * 24 * 60 * 60 * 1000
       ).toISOString(),
     });
 

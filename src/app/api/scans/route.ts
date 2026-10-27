@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { recordEvent } from '@/lib/events';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
@@ -53,12 +54,14 @@ export async function POST(request: NextRequest) {
       source_user_id: source_user_id || null,
       user_agent: userAgent,
     })
-    .select('id')
+    .select('id, sample_id, source_type, source_retailer_id, source_user_id')
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  await recordEvent(supabase, { type: 'scan', userId: scanner_user_id, productId: product_id, scan: data });
 
   return NextResponse.json({ id: data.id });
 }

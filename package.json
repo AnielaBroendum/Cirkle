@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "db:seed-events": "node --env-file=.env.local --env-file=.env.test-accounts.local scripts/seed-events.mjs",
     "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/lib/database.types.ts"
   },
   "dependencies": {

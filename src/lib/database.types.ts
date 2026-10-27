@@ -509,6 +509,7 @@ export type Database = {
           user_id: string;
           product_id: string;
           scan_id: string | null;
+          size: string | null;
           saved_at: string;
           expires_at: string;
         };
@@ -517,6 +518,7 @@ export type Database = {
           user_id: string;
           product_id: string;
           scan_id?: string | null;
+          size?: string | null;
           saved_at?: string;
           expires_at?: string;
         };
@@ -525,9 +527,50 @@ export type Database = {
           user_id?: string;
           product_id?: string;
           scan_id?: string | null;
+          size?: string | null;
           saved_at?: string;
           expires_at?: string;
         };
+        Relationships: [];
+      };
+      events: {
+        Row: {
+          id: string;
+          type: 'scan' | 'save' | 'purchase';
+          user_id: string | null;
+          brand_id: string;
+          product_id: string;
+          size: string | null;
+          retailer_id: string | null;
+          sample_id: string | null;
+          giver_user_id: string | null;
+          scan_id: string | null;
+          order_id: string | null;
+          order_item_id: string | null;
+          quantity: number;
+          unit_price_dkk: number | null;
+          occurred_at: string;
+          origin: 'live' | 'backfill' | 'seed';
+        };
+        Insert: {
+          id?: string;
+          type: 'scan' | 'save' | 'purchase';
+          user_id?: string | null;
+          brand_id: string;
+          product_id: string;
+          size?: string | null;
+          retailer_id?: string | null;
+          sample_id?: string | null;
+          giver_user_id?: string | null;
+          scan_id?: string | null;
+          order_id?: string | null;
+          order_item_id?: string | null;
+          quantity?: number;
+          unit_price_dkk?: number | null;
+          occurred_at?: string;
+          origin?: 'live' | 'backfill' | 'seed';
+        };
+        Update: Partial<Database['public']['Tables']['events']['Insert']>;
         Relationships: [];
       };
       brand_retailer_partnerships: {
