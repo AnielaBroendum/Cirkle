@@ -4,21 +4,32 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { LayoutDashboard, Package, QrCode, ShoppingBag, Undo2, Settings, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Database } from '@/lib/database.types';
-import { Logo, SidebarNav, cn, type NavItem } from '@/components/ds';
+import {
+  AccountIcon,
+  DashboardIcon,
+  Logo,
+  LogOutIcon,
+  OrdersIcon,
+  ProductsIcon,
+  ReturnsIcon,
+  SidebarNav,
+  StoresQrIcon,
+  cn,
+  type NavItem,
+} from '@/components/ds';
 
 type BrandProfile = Database['public']['Tables']['brand_profiles']['Row'];
 
 // Figma "Brand Portal" nav. Stores & QR tags covers samples, sample requests,
 // swaps, deposits and partnerships (sub-tabs on those pages).
 const NAV_ITEMS: NavItem[] = [
-  { href: '/brand/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/brand/products', label: 'Products', icon: Package },
-  { href: '/brand/samples', label: 'Stores & QR tags', icon: QrCode, match: ['/brand/partnerships'] },
-  { href: '/brand/orders', label: 'Orders', icon: ShoppingBag },
-  { href: '/brand/returns', label: 'Returns', icon: Undo2 },
+  { href: '/brand/dashboard', label: 'Dashboard', icon: DashboardIcon },
+  { href: '/brand/products', label: 'Products', icon: ProductsIcon },
+  { href: '/brand/samples', label: 'Stores & QR tags', icon: StoresQrIcon, match: ['/brand/partnerships'] },
+  { href: '/brand/orders', label: 'Orders', icon: OrdersIcon },
+  { href: '/brand/returns', label: 'Returns', icon: ReturnsIcon },
 ];
 
 export default function BrandLayout({ children }: { children: React.ReactNode }) {
@@ -90,7 +101,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
                   : 'border-transparent text-on-primary/60 hover:text-on-primary'
               )}
             >
-              <Settings className={cn('h-[18px] w-[18px] shrink-0', accountActive && 'text-accent')} />
+              <AccountIcon className={cn('h-[18px] w-[18px] shrink-0', accountActive && 'text-accent')} />
               Account
             </Link>
             <button
@@ -101,7 +112,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
               }}
               className={cn(footerLink, 'border-transparent text-on-primary/60 hover:text-on-primary')}
             >
-              <LogOut className="h-[18px] w-[18px] shrink-0" />
+              <LogOutIcon className="h-[18px] w-[18px] shrink-0" />
               Log out
             </button>
           </div>

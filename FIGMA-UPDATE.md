@@ -139,4 +139,4 @@ Figma "Flaym / Colour" variables:
 Notes:
 - Figma has **no published text styles**. The scale is taken from the sizes used in the frames. Publishing text styles in Figma would make future syncs exact.
 - Portal frames also use a light divider, #EBE8E2. It isn't a Figma variable, so it isn't a token yet.
-- Follow-up: the nav layouts still use lucide icons; they can switch to the Figma icons in `ds/icons` (`NavItem.icon` accepts both).
+- Nav icons: the consumer tab bar and the brand/retailer sidebars use the Figma icons. Retailer Transactions and Brands keep lucide icons because the Figma Retail Portal nav has no icon for them.

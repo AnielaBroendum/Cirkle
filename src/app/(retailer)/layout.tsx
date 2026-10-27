@@ -3,20 +3,21 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { LayoutDashboard, QrCode, Store, LogOut, Receipt, Settings } from 'lucide-react';
+// Transactions and Brands have no Figma icon (the Retail Portal nav only has Dashboard, Products, Store profile).
+import { Receipt, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Database } from '@/lib/database.types';
-import { Logo, SidebarNav, type NavItem } from '@/components/ds';
+import { DashboardIcon, Logo, LogOutIcon, ProductsIcon, SidebarNav, StoreProfileIcon, type NavItem } from '@/components/ds';
 
 type RetailerProfile = Database['public']['Tables']['retailer_profiles']['Row'];
 
 // Figma "Retail Portal" nav. Products = the samples placed in the store.
 const NAV_ITEMS: NavItem[] = [
-  { href: '/retailer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/retailer/samples', label: 'Products', icon: QrCode },
+  { href: '/retailer/dashboard', label: 'Dashboard', icon: DashboardIcon },
+  { href: '/retailer/samples', label: 'Products', icon: ProductsIcon },
   { href: '/retailer/samples/transactions', label: 'Transactions', icon: Receipt },
   { href: '/retailer/brands', label: 'Brands', icon: Store },
-  { href: '/retailer/profile', label: 'Store profile', icon: Settings },
+  { href: '/retailer/profile', label: 'Store profile', icon: StoreProfileIcon },
 ];
 
 export default function RetailerLayout({ children }: { children: React.ReactNode }) {
@@ -82,7 +83,7 @@ export default function RetailerLayout({ children }: { children: React.ReactNode
             }}
             className="flex w-full items-center gap-3 px-2 py-2.5 text-body text-on-primary/60 transition-colors hover:text-on-primary"
           >
-            <LogOut className="h-[18px] w-[18px]" />
+            <LogOutIcon className="h-[18px] w-[18px]" />
             Log out
           </button>
         )}

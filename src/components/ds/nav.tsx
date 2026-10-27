@@ -95,7 +95,7 @@ export function BottomNav({ items, fixed = true, className }: BottomNavProps) {
         className
       )}
     >
-      {/* Figma "Tab bar": 24px icon at 10px from the top, 11px label below. */}
+      {/* Figma "Tab bar": 24px icon at 10px from the top, 12px label below. */}
       <ul className="mx-auto flex h-16 max-w-lg items-stretch">
         {items.map((item) => {
           const on = isItemActive(pathname, item);
@@ -109,7 +109,7 @@ export function BottomNav({ items, fixed = true, className }: BottomNavProps) {
                   on ? 'text-accent' : 'text-smoke hover:text-on-primary'
                 )}
               >
-                <item.icon className="h-6 w-6" strokeWidth={on ? 2 : 1.5} />
+                <item.icon className="h-6 w-6" />
                 {item.label}
               </Link>
             </li>
