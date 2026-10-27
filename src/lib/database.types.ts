@@ -624,6 +624,12 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['tag_prints']['Insert']>;
         Relationships: [];
       };
+      consumer_consents: {
+        Row: { id: string; user_id: string; consent: 'chain' | 'share_with_brands' | 'news_from_brands'; granted: boolean; source: 'consent_screen' | 'profile'; created_at: string };
+        Insert: { id?: string; user_id: string; consent: 'chain' | 'share_with_brands' | 'news_from_brands'; granted: boolean; source: 'consent_screen' | 'profile'; created_at?: string };
+        Update: Partial<Database['public']['Tables']['consumer_consents']['Insert']>;
+        Relationships: [];
+      };
       push_subscriptions: {
         Row: { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; user_agent: string | null; created_at: string };
         Insert: { id?: string; user_id: string; endpoint: string; p256dh: string; auth: string; user_agent?: string | null; created_at?: string };

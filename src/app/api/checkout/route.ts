@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase-admin';
 import { sendOrderConfirmation, sendNewOrderToBrand } from '@/lib/email';
 import { ATTRIBUTION_WINDOW_DAYS, findAttributingScan } from '@/lib/attribution';
 import { recordEvent } from '@/lib/events';
+import { isSoldOut } from '@/lib/stock';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -40,6 +41,14 @@ export async function POST(request: NextRequest) {
 
   if (productError || !product) {
     return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+  }
+
+  const { data: variants } = await admin
+    .from('product_variants')
+    .select('size, color, stock_count')
+    .eq('product_id', product_id);
+  if (isSoldOut(variants ?? [], size || null, color || null)) {
+    return NextResponse.json({ error: `Size ${size} is sold out` }, { status: 409 });
   }
 
   const { data: balanceResult } = await admin.rpc('get_points_balance', { p_user_id: user.id });

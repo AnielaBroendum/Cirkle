@@ -32,6 +32,11 @@ export default async function PeerDiscoveryPage({
   }
 
   const brand = product.brand_profiles as any;
+  const { data: variantRows } = await supabase
+    .from('product_variants')
+    .select('size, color, stock_count')
+    .eq('product_id', product.id);
+  const variants = variantRows ?? [];
 
   // Genuine peer discovery: a friend shared their product QR (?ref=userId).
   if (refUserId) {
@@ -47,6 +52,7 @@ export default async function PeerDiscoveryPage({
       <ProductPageClient
         product={product}
         brand={brand}
+        variants={variants}
         attribution={{
           type: 'peer',
           name: peerName,
@@ -61,9 +67,10 @@ export default async function PeerDiscoveryPage({
     );
   }
 
-  // No ref → opening a product you already discovered (e.g. from your Home or
-  // Saved). Surface where/when YOU scanned it; never invent attribution. If you
-  // never scanned this product, there's nothing to discover — go home.
+  // No ref → in-app browsing (Saved, History, Home). Same 04b layout as a scan.
+  // A save shows the store it credits ("Saved at …", Figma 04c); otherwise the
+  // first scan shows where you found it. Never invent attribution: with
+  // neither, the page just has no "Found at" line.
   const sb = await createServerSupabaseClient();
   const {
     data: { user },
@@ -73,29 +80,31 @@ export default async function PeerDiscoveryPage({
     redirect(`/auth/login?redirect=/d/${product.id}`);
   }
 
-  // First scan wins: show where the user FIRST discovered this product, even if
-  // it's displayed at several retailers and scanned more than once.
-  const { data: firstScan } = await supabase
-    .from('scans')
-    .select(
-      'source_type, scanned_at, retailer_profiles:source_retailer_id ( name ), profiles:source_user_id ( name )'
-    )
-    .eq('product_id', product.id)
-    .eq('scanner_user_id', user!.id)
-    .order('scanned_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const scanSource = 'source_type, scanned_at, retailer_profiles:source_retailer_id ( name ), profiles:source_user_id ( name )';
+  const [{ data: save }, { data: firstScan }] = await Promise.all([
+    supabase
+      .from('saved_products')
+      .select(`size, saved_at, scans:scan_id ( ${scanSource} )`)
+      .eq('product_id', product.id)
+      .eq('user_id', user!.id)
+      .maybeSingle(),
+    supabase
+      .from('scans')
+      .select(scanSource)
+      .eq('product_id', product.id)
+      .eq('scanner_user_id', user!.id)
+      .order('scanned_at', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  if (!firstScan) {
-    redirect('/consumer/home');
-  }
+  const scan = ((save as any)?.scans ?? firstScan) as any;
+  const retailerName = scan?.retailer_profiles?.name as string | undefined;
+  const peerName = scan?.profiles?.name as string | undefined;
 
-  const scan = firstScan as any;
-  const retailerName = scan.retailer_profiles?.name as string | undefined;
-  const peerName = scan.profiles?.name as string | undefined;
-
-  const attribution =
-    scan.source_type === 'retailer' && retailerName
+  const attribution = !scan
+    ? null
+    : scan.source_type === 'retailer' && retailerName
       ? { type: 'retailer' as const, name: retailerName, scannedAt: scan.scanned_at }
       : { type: 'peer' as const, name: peerName ?? 'a friend', scannedAt: scan.scanned_at };
 
@@ -103,7 +112,9 @@ export default async function PeerDiscoveryPage({
     <ProductPageClient
       product={product}
       brand={brand}
+      variants={variants}
       attribution={attribution}
+      saved={save ? { size: (save as any).size ?? null } : undefined}
       recordScan={false}
       scanData={{ product_id: product.id, source_type: 'peer' }}
     />

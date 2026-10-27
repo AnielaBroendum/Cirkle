@@ -28,6 +28,19 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // A shopper who never answered the consent screen (Figma 02) sees it first.
+      if (role === 'consumer') {
+        const { count } = await supabase
+          .from('consumer_consents')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', data.user.id)
+          .eq('consent', 'chain');
+        if (!count) {
+          const next = redirectTo === '/' || redirectTo.startsWith('/auth') ? '' : `?redirect=${encodeURIComponent(redirectTo)}`;
+          destination = `/consumer/consent${next}`;
+        }
+      }
+
       const url = new URL(destination, request.url);
       return NextResponse.redirect(url, { headers: response.headers });
     }

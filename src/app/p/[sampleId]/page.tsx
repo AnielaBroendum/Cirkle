@@ -43,11 +43,16 @@ export default async function ScanPage({ params }: { params: { sampleId: string 
   const product = sample.products as any;
   const brand = sample.brand_profiles as any;
   const retailer = sample.retailer_profiles as any;
+  const { data: variants } = await supabase
+    .from('product_variants')
+    .select('size, color, stock_count')
+    .eq('product_id', product.id);
 
   return (
     <ProductPageClient
       product={product}
       brand={brand}
+      variants={variants ?? []}
       attribution={{
         type: 'retailer',
         name: retailer.name,

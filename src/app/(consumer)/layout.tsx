@@ -8,8 +8,9 @@ import PageTransition from '@/components/pwa/page-transition';
 
 const TAB_ITEMS = consumerTabs();
 
-// Checkout has its own bottom action (Figma 06), so the tab bar is hidden there.
-const HIDE_NAV_PREFIXES = ['/consumer/checkout', '/consumer/basket'];
+// Checkout has its own bottom action (Figma 06), so the tab bar is hidden there,
+// and the consent screen (Figma 02) comes before the app.
+const HIDE_NAV_PREFIXES = ['/consumer/checkout', '/consumer/basket', '/consumer/consent'];
 
 export default function ConsumerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '';

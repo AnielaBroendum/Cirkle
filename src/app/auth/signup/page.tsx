@@ -73,7 +73,11 @@ function SignUpForm() {
     }
 
     const redirect = searchParams.get('redirect');
-    if (redirect && !redirect.startsWith('/auth')) {
+    if (role === 'consumer') {
+      // New shoppers choose their consents first (Figma 02), then carry on.
+      const next = redirect && !redirect.startsWith('/auth') ? `?redirect=${encodeURIComponent(redirect)}` : '';
+      router.push(`/consumer/consent${next}`);
+    } else if (redirect && !redirect.startsWith('/auth')) {
       router.push(redirect);
     } else {
       switch (role) {
@@ -82,9 +86,6 @@ function SignUpForm() {
           break;
         case 'retailer':
           router.push('/retailer/dashboard');
-          break;
-        case 'consumer':
-          router.push('/consumer/profile');
           break;
       }
     }

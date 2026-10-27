@@ -94,7 +94,7 @@ Ticking an item means it's built and verified.
     - Removed images stay in Storage.
 
 ### f) Consent
-- [ ] **"Share my data with brands" (Figma App 02)**
+- [x] **"Share my data with brands" (Figma App 02)** (migration 014, run 2 Part B; both optional consents start off)
   - **Today:** nothing stores consent. `profiles` has no consent field and signup has no checkbox.
   - **Missing:** storage (recommended: a `consumer_consents` table with owner-only RLS and a timestamp per choice) and the consent screen.
   - **Decision needed:** Figma shows "Share my data with brands" **on** by default. Under GDPR, optional consents must start **off**.
@@ -156,6 +156,24 @@ Ticking an item means it's built and verified.
     - Not credited: one returned and one cancelled order.
 
     The RPC totals matched hand-written SQL (749.25 / 157.20 / 134.85 kr), and so did the screen.
+- [x] **B Consumer app** (migration 014), checked at mobile width in the browser
+  - Product page: one 04b layout for scan (`/p`), peer link and in-app (`/d` from Saved, History, Home).
+    - Brand name is Ash, as in Figma (it was Smoke).
+    - From Saved it shows "Saved at [store] · The store still gets its cut." and "Saved ✓", with the saved size picked.
+    - `/d` no longer sends you Home when you never scanned the product. It shows the page with no "Found at" line instead of inventing one.
+  - Sold-out sizes (`src/lib/stock.ts`):
+    - A size is sold out when it has `product_variants` rows and all of them, for the chosen colour, are at 0 stock. Sizes without rows aren't tracked and stay available.
+    - The chip has a dashed Char border, Smoke strikethrough, is disabled, and has "Sold out" next to it.
+    - Checkout answers 409 for a sold-out size, and both checkout screens show that message.
+    - Note: the brand form creates variants at stock 0, so 38 of 47 variants are sold out until brands enter stock. QA Overshirt S was set to 5 for the check; M stays 0.
+  - Consent: `consumer_consents` is an append-only log (consent, granted, source, time) with owner-only RLS, insert and read only.
+    - No row means off, so existing users stay off.
+    - `/consumer/consent` (Figma 02, no tab bar): "Data for the chain" shows "Always on" and is logged as an acknowledgement. "Share my data with brands" and "News from brands" are switches that start off. "Start scanning" logs all three, then continues to `?redirect=` (for example back to the scanned product).
+    - New shoppers go there after signup, and via the auth callback if they never answered.
+    - Profile → "Privacy and data" has the same switches. Each change is a new row; the footnote shows when the choices last changed.
+    - The ds `Toggle` has a `tone="dark"` for the app.
+    - The consent isn't used to filter anything yet: brand dashboards only show counts.
+  - Bottom menu: Scan / Flayms / Profile with the Figma icons, checked against Figma's tab bar. Discovery stays out of the menu.
 
 ---
 

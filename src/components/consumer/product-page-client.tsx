@@ -11,6 +11,7 @@ import { BottomNav, Toast, cn } from '@/components/ds';
 import { addToBasket } from './basket-store';
 import { consumerTabs } from './tab-items';
 import { BrandStoriesViewer, type BrandStory } from './brand-stories-viewer';
+import { isSoldOut, type VariantStock } from '@/lib/stock';
 
 function timeAgo(iso?: string): string {
   if (!iso) return '';
@@ -45,12 +46,17 @@ type ProductPageProps = {
     /** Up to 10, shown on all the brand's products (Figma 13). */
     brand_stories?: (BrandStory & { position: number })[];
   };
+  /** Where the shopper found it. Null when opened in-app with nothing to credit. */
   attribution: {
     type: 'retailer' | 'peer';
     name: string;
     peerPointsMessage?: string;
     scannedAt?: string;
-  };
+  } | null;
+  /** Stock per size/colour; sizes with no rows aren't tracked and stay available. */
+  variants?: VariantStock[];
+  /** Set when the shopper already saved this product (Figma 04c). */
+  saved?: { size: string | null };
   scanData: {
     sample_id?: string;
     product_id: string;
@@ -62,15 +68,27 @@ type ProductPageProps = {
   recordScan?: boolean;
 };
 
-export default function ProductPageClient({ product, brand, attribution, scanData, recordScan = true }: ProductPageProps) {
+export default function ProductPageClient({
+  product,
+  brand,
+  attribution,
+  scanData,
+  recordScan = true,
+  variants = [],
+  saved: savedBefore,
+}: ProductPageProps) {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [currentImage, setCurrentImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState<string | null>(product.sizes?.length === 1 ? product.sizes[0] : null);
   const [selectedColor, setSelectedColor] = useState<string | null>(product.colors?.length === 1 ? product.colors[0] : null);
+  const soldOut = (size: string) => isSoldOut(variants, size, selectedColor);
+  const [selectedSize, setSelectedSize] = useState<string | null>(() => {
+    const initial = savedBefore?.size ?? (product.sizes?.length === 1 ? product.sizes[0] : null);
+    return initial && !isSoldOut(variants, initial, selectedColor) ? initial : null;
+  });
   const [selectionError, setSelectionError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(!!savedBefore);
   const [hydrated, setHydrated] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [storiesOpen, setStoriesOpen] = useState(false);
@@ -227,7 +245,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
       image: product.images?.[0] ?? null,
       size: selectedSize,
       color: selectedColor,
-      foundVia: { type: attribution.type, name: attribution.name },
+      foundVia: attribution ? { type: attribution.type, name: attribution.name } : undefined,
     });
     if (authLoading || !user) {
       // Come back to this product page first so the scan is recorded with the
@@ -335,30 +353,49 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
       <div className="px-5 pb-36 pt-[18px]">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-label uppercase text-smoke">{brand.name}</p>
+            <p className="text-label uppercase text-ash">{brand.name}</p>
             <h1 className="mt-1.5 font-brand text-heading-lg font-normal uppercase text-on-primary">{product.name}</h1>
           </div>
           <span className="whitespace-nowrap text-title font-medium leading-tight">{formatDKK(product.price_dkk)}</span>
         </div>
 
         {/* Where you found it */}
-        <p className="mt-4 text-caption text-ash">
-          {attribution.type === 'retailer' ? (inApp ? 'Saved at ' : 'Found at ') : 'Passed on by '}
-          <span className="text-accent">{attribution.name}</span>
-          {attribution.scannedAt && <span className="text-smoke"> · {timeAgo(attribution.scannedAt)}</span>}
-        </p>
-        {attribution.type === 'retailer' && inApp && (
+        {attribution && (
+          <p className="mt-4 text-caption text-ash">
+            {attribution.type === 'retailer' ? (inApp && saved ? 'Saved at ' : 'Found at ') : 'Passed on by '}
+            <span className="text-accent">{attribution.name}</span>
+            {attribution.scannedAt && <span className="text-smoke"> · {timeAgo(attribution.scannedAt)}</span>}
+          </p>
+        )}
+        {attribution?.type === 'retailer' && inApp && saved && (
           <p className="text-caption text-ash">The store still gets its cut.</p>
         )}
-        {attribution.type === 'peer' && attribution.peerPointsMessage && (
+        {attribution?.type === 'peer' && attribution.peerPointsMessage && (
           <p className="text-caption text-ash">{attribution.peerPointsMessage}</p>
         )}
 
         {/* Sizes */}
         {product.sizes?.length > 0 && (
-          <div className="mt-3.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Size">
+          <div className="mt-3.5 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Size">
             {product.sizes.map((size) => {
               const on = selectedSize === size;
+              // Figma 04b: dashed Char border, struck-through Smoke text, can't be picked.
+              if (soldOut(size)) {
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    role="radio"
+                    aria-checked={false}
+                    aria-disabled
+                    disabled
+                    aria-label={`${size}, sold out`}
+                    className="h-10 min-w-12 cursor-not-allowed border border-dashed border-char px-3 text-body text-smoke line-through"
+                  >
+                    {size}
+                  </button>
+                );
+              }
               return (
                 <button
                   key={size}
@@ -380,6 +417,7 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
                 </button>
               );
             })}
+            {product.sizes.some(soldOut) && <span className="ml-1.5 text-caption text-smoke">Sold out</span>}
           </div>
         )}
 
@@ -392,6 +430,8 @@ export default function ProductPageClient({ product, brand, attribution, scanDat
               const pick = () => {
                 setSelectedColor(color);
                 setSelectionError('');
+                // The chosen size may be sold out in the new colour.
+                if (selectedSize && isSoldOut(variants, selectedSize, color)) setSelectedSize(null);
               };
               return swatches ? (
                 <button

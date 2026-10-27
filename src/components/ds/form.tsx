@@ -130,9 +130,12 @@ type ToggleProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   label?: React.ReactNode;
+  /** `dark` is the consumer app switch (Figma App 02): Cinder track, Char knob; Flaym when on. */
+  tone?: 'light' | 'dark';
 };
 
-export function Toggle({ checked, onCheckedChange, label, className, disabled, ...props }: ToggleProps) {
+export function Toggle({ checked, onCheckedChange, label, tone = 'light', className, disabled, ...props }: ToggleProps) {
+  const dark = tone === 'dark';
   return (
     <span className={cn('inline-flex items-center gap-2.5 font-brand text-body text-primary', className)}>
       <button
@@ -142,16 +145,21 @@ export function Toggle({ checked, onCheckedChange, label, className, disabled, .
         disabled={disabled}
         onClick={() => onCheckedChange(!checked)}
         className={cn(
-          'relative inline-flex h-6 w-11 shrink-0 items-center rounded-pill border transition-colors',
+          'relative inline-flex shrink-0 items-center rounded-pill border transition-colors',
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40',
-          checked ? 'border-primary bg-primary' : 'border-line bg-surface-muted'
+          dark ? 'h-[26px] w-11 border-transparent' : 'h-6 w-11',
+          dark
+            ? checked ? 'bg-accent' : 'bg-line-dark'
+            : checked ? 'border-primary bg-primary' : 'border-line bg-surface-muted'
         )}
         {...props}
       >
         <span
           className={cn(
-            'inline-block h-[18px] w-[18px] rounded-pill bg-surface transition-transform',
-            checked ? 'translate-x-[22px]' : 'translate-x-[2px]'
+            'inline-block rounded-pill transition-transform',
+            dark ? 'h-5 w-5' : 'h-[18px] w-[18px] bg-surface',
+            dark && (checked ? 'bg-on-primary' : 'bg-char'),
+            dark ? (checked ? 'translate-x-[20px]' : 'translate-x-[2px]') : checked ? 'translate-x-[22px]' : 'translate-x-[2px]'
           )}
         />
       </button>

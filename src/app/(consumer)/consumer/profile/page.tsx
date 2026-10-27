@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase';
 import { buttonClasses, cn } from '@/components/ds';
 import ProfileHeader from '@/components/consumer/profile-header';
 import { Thumb } from '@/components/consumer/checkout-parts';
+import { PrivacySettings } from '@/components/consumer/privacy-settings';
 
 // Figma 09b "Profile – Owned". Points balance and history moved to the Flayms tab.
 
@@ -29,6 +30,7 @@ export default function ConsumerProfilePage() {
   const [email, setEmail] = useState('');
   const [saving, setSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -123,7 +125,18 @@ export default function ConsumerProfilePage() {
             Account settings
             <ChevronRight className={cn('h-4 w-4 text-accent transition-transform', showSettings && 'rotate-90')} />
           </button>
+          <button
+            type="button"
+            onClick={() => setShowPrivacy(!showPrivacy)}
+            aria-expanded={showPrivacy}
+            className="flex w-full items-center justify-between py-3.5 text-body text-on-primary"
+          >
+            Privacy and data
+            <ChevronRight className={cn('h-4 w-4 text-accent transition-transform', showPrivacy && 'rotate-90')} />
+          </button>
         </div>
+
+        {showPrivacy && <PrivacySettings />}
 
         {showSettings && (
           <form onSubmit={handleSaveSettings} className="mt-4 space-y-4">
