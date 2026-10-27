@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { createAdminClient } from '@/lib/supabase-admin';
-import { getBaseUrl } from '@/lib/base-url';
-import QRCode from 'qrcode';
+import { createSampleQr } from '@/lib/qr';
 
 export async function PATCH(
   request: NextRequest,
@@ -96,20 +95,8 @@ export async function PATCH(
     if (newSample) {
       updateData.new_sample_id = newSample.id;
 
-      const qrBaseUrl = getBaseUrl(request);
       try {
-        const qrBuffer = await QRCode.toBuffer(`${qrBaseUrl}/p/${newSample.id}`, {
-          type: 'png', width: 400, margin: 2,
-          color: { dark: '#2C2324', light: '#FFFFFF' },
-        });
-        const fileName = `qr-codes/${newSample.id}.png`;
-        const { error: uploadErr } = await admin.storage
-          .from('brand-assets')
-          .upload(fileName, qrBuffer, { contentType: 'image/png', upsert: true });
-        if (!uploadErr) {
-          const { data: urlData } = admin.storage.from('brand-assets').getPublicUrl(fileName);
-          await admin.from('samples').update({ qr_code_url: urlData.publicUrl }).eq('id', newSample.id);
-        }
+        await createSampleQr(admin, request, newSample.id);
       } catch { /* non-fatal */ }
 
       if (depositAmount > 0) {

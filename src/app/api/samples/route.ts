@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { getBaseUrl } from '@/lib/base-url';
-import QRCode from 'qrcode';
+import { createSampleQr } from '@/lib/qr';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -37,31 +36,7 @@ export async function POST(request: NextRequest) {
   }
 
   const sampleId = (sample as { id: string }).id;
-  const qrBaseUrl = getBaseUrl(request);
-  const scanUrl = `${qrBaseUrl}/p/${sampleId}`;
-
-  const qrBuffer = await QRCode.toBuffer(scanUrl, {
-    type: 'png',
-    width: 400,
-    margin: 2,
-    color: { dark: '#2C2324', light: '#FFFFFF' },
-  });
-
-  const fileName = `qr-codes/${sampleId}.png`;
-  const { error: uploadError } = await supabase.storage
-    .from('brand-assets')
-    .upload(fileName, qrBuffer, {
-      contentType: 'image/png',
-      upsert: true,
-    });
-
-  let qrCodeUrl: string | null = null;
-  if (!uploadError) {
-    const { data: urlData } = supabase.storage.from('brand-assets').getPublicUrl(fileName);
-    qrCodeUrl = urlData.publicUrl;
-
-    await supabase.from('samples').update({ qr_code_url: qrCodeUrl }).eq('id', sampleId);
-  }
+  const qrCodeUrl = await createSampleQr(supabase, request, sampleId);
 
   return NextResponse.json({ id: sampleId, qr_code_url: qrCodeUrl });
 }

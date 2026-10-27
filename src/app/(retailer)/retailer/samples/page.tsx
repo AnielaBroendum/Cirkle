@@ -323,24 +323,13 @@ export default function RetailerSamplesPage() {
   // Brand filter (Figma 03 segmented control) — client-side only.
   const brandCounts = samples.reduce<Map<string, number>>((m, s) => m.set(s.brand_name, (m.get(s.brand_name) ?? 0) + 1), new Map());
   const visibleSamples = brandFilter === 'all' ? samples : samples.filter((s) => s.brand_name === brandFilter);
-  const printableSamples = samples.filter((s) => s.qr_code_url);
+  const printableSamples = samples.filter((s) => s.qr_code_url && s.status === 'active');
 
-  // "Print all QR tags": opens the existing QR images in a print-ready window. No new data.
-  function printQrTags() {
-    const win = window.open('', '_blank');
-    if (!win) return;
-    const esc = (v: string) => v.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
-    const tags = printableSamples
-      .map(
-        (s) => `<figure><img src="${esc(s.qr_code_url as string)}" alt="" /><figcaption><b>${esc(s.product_name)}</b><br/>${esc(
-          s.brand_name
-        )}${s.size || s.color ? ' · ' + esc([s.size, s.color].filter(Boolean).join(' / ')) : ''}</figcaption></figure>`
-      )
-      .join('');
-    win.document.write(
-      `<!doctype html><title>QR tags</title><style>body{font-family:'IBM Plex Mono',monospace;margin:24px;color:#2C2324}main{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}figure{margin:0;border:1px solid #D5D1C8;padding:16px;text-align:center;break-inside:avoid}img{width:140px;height:140px}figcaption{font-size:12px;margin-top:8px;line-height:1.4}</style><main>${tags}</main><script>window.onload=()=>window.print()</script>`
-    );
-    win.document.close();
+  // Reprints the existing codes on 50 × 70 mm tags (/print/tags logs each one;
+  // the server only allows this store's own samples).
+  function printQrTags(ids: string[]) {
+    if (!ids.length) return;
+    window.open(`/print/tags?portal=retail&ids=${ids.join(',')}`, '_blank');
   }
 
   if (loading) {
@@ -366,13 +355,13 @@ export default function RetailerSamplesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-brand text-heading-xl uppercase text-primary">Products in the store</h1>
-          <p className="mt-1 text-body text-slate">Placed here by the brands. Print a tag if one is missing or worn.</p>
+          <p className="mt-1 text-body text-slate">Placed here by the brands. Print a tag yourself if one is missing or worn: it keeps the same code.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/retailer/samples/request" className={buttonClasses({ variant: 'secondary' })}>
             <Plus className="h-4 w-4" /> Request samples
           </Link>
-          <Button variant="accent" onClick={printQrTags} disabled={printableSamples.length === 0}>
+          <Button variant="accent" onClick={() => printQrTags(printableSamples.map((s) => s.id))} disabled={printableSamples.length === 0}>
             Print all QR tags
           </Button>
         </div>
@@ -458,6 +447,15 @@ export default function RetailerSamplesPage() {
                         {sample.scan_count} scans
                         {sample.last_scanned && <span className="text-slate"> · {formatDate(sample.last_scanned)}</span>}
                       </p>
+                      {sample.status === 'active' && sample.qr_code_url && (
+                        <button
+                          type="button"
+                          onClick={() => printQrTags([sample.id])}
+                          className="text-caption font-medium text-primary underline underline-offset-2 hover:text-accent"
+                        >
+                          Print tag
+                        </button>
+                      )}
                       {sample.status === 'active' && (
                         <Button size="sm" variant="ghost" onClick={() => openSwapModal(sample)} leftIcon={<ArrowLeftRight className="h-3.5 w-3.5" />}>
                           Swap

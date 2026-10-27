@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { createAdminClient } from '@/lib/supabase-admin';
-import { getBaseUrl } from '@/lib/base-url';
-import QRCode from 'qrcode';
+import { createSampleQr } from '@/lib/qr';
 
 export async function POST(
   request: NextRequest,
@@ -44,7 +43,6 @@ export async function POST(
   }
 
   const admin = createAdminClient();
-  const qrBaseUrl = getBaseUrl(request);
 
   for (const item of items) {
     const { data: sample, error: sampleErr } = await admin
@@ -65,24 +63,8 @@ export async function POST(
 
     if (sampleErr || !sample) continue;
 
-    const scanUrl = `${qrBaseUrl}/p/${sample.id}`;
     try {
-      const qrBuffer = await QRCode.toBuffer(scanUrl, {
-        type: 'png',
-        width: 400,
-        margin: 2,
-        color: { dark: '#2C2324', light: '#FFFFFF' },
-      });
-
-      const fileName = `qr-codes/${sample.id}.png`;
-      const { error: uploadError } = await admin.storage
-        .from('brand-assets')
-        .upload(fileName, qrBuffer, { contentType: 'image/png', upsert: true });
-
-      if (!uploadError) {
-        const { data: urlData } = admin.storage.from('brand-assets').getPublicUrl(fileName);
-        await admin.from('samples').update({ qr_code_url: urlData.publicUrl }).eq('id', sample.id);
-      }
+      await createSampleQr(admin, request, sample.id);
     } catch {
       // QR generation failure is non-fatal
     }

@@ -582,6 +582,12 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['events']['Insert']>;
         Relationships: [];
       };
+      tag_prints: {
+        Row: { id: string; sample_id: string; user_id: string; portal: 'brand' | 'retail'; printed_at: string };
+        Insert: { id?: string; sample_id: string; user_id: string; portal: 'brand' | 'retail'; printed_at?: string };
+        Update: Partial<Database['public']['Tables']['tag_prints']['Insert']>;
+        Relationships: [];
+      };
       push_subscriptions: {
         Row: { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; user_agent: string | null; created_at: string };
         Insert: { id?: string; user_id: string; endpoint: string; p256dh: string; auth: string; user_agent?: string | null; created_at?: string };

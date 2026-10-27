@@ -72,10 +72,10 @@ Ticking an item means it's built and verified.
 - [ ] **One code per product + brand + store**
   - **Today:** one `samples` row and one QR per physical sample. It encodes `{base}/p/{sample_id}`. There's no unique constraint on product + store, so one product can have several tags in a store.
   - **Missing:** a stable tag code per product + brand + store, if Figma means the tag rather than the sample. This decides whether swaps keep the same printed tag.
-- [ ] **Generation**
+- [x] **Generation** (`src/lib/qr.ts`, Part D)
   - **Today:** the PNG (`qrcode`, 400px) is generated inline in three routes: `api/samples`, `api/sample-requests/[id]/approve` and `api/swap-requests/[id]/status`. It's stored at `brand-assets/qr-codes/{sample_id}.png`, with the URL in `samples.qr_code_url`.
   - **Missing:** a shared `src/lib/qr.ts` (CLAUDE.md lists it, but it doesn't exist).
-- [ ] **Printing**
+- [x] **Printing** (Part D)
   - **Today:** two separate client-side `window.open` print grids, both with 3 columns:
     - Brand (`brand/samples/page.tsx`): 150px QR, product, size/colour, store.
     - Retailer (`retailer/samples/page.tsx`): 140px QR, product, brand, size/colour.
@@ -123,7 +123,11 @@ Ticking an item means it's built and verified.
   - Carrier (PostNord, GLS, DAO, Bring, Other) and optional tracking number per order, editable after shipping; known carriers get their tracking link automatically. The consumer tracking screen shows "With PostNord" and Figma 15's steps. "Out for delivery" has no data source yet (no carrier integration).
   - Web push: `web-push`, `push_subscriptions`, service-worker `push`/`notificationclick`, a "Turn on" prompt on the tracking screen (production builds only, as the service worker is). One message per step; Resend email is still always sent. Env: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`.
   - Sidebar counts: Orders = not shipped (New, confirmed, packed); Returns = requested, approved or received. Live via Realtime, after own actions and on tab focus.
-- [ ] **D Print tag** — 50 × 70 mm tag, existing code, `tag_prints` log.
+- [x] **D Print tag** (migration 011)
+  - "Print tag" per product and "Print N QR tags" in the brand portal (Stores & QR tags) and the retail portal (Products in the store) open `/print/tags`: 50 × 70 mm tags, nine per A4, dashed cut lines, Flaym logo, QR, "Scan to shop", product, brand, store.
+  - Reprints the existing stored QR of the oldest active sample for that product + store. No new codes; QR generation now lives in `src/lib/qr.ts`.
+  - `/api/tag-prints` only lets a brand print its own tags and a store its own store's tags (403 otherwise), and logs each tag in `tag_prints` (code, user, portal, time). No UI.
+  - RLS: the "Public can read active samples" policy is gone. It let anyone read every store's samples and deposits; nothing used it.
 - [ ] **E Brand stories and product images** — upload rules in browser and server.
 
 ---

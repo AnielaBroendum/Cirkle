@@ -269,29 +269,10 @@ export default function BrandSamplesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selection?.kind, selection?.id, samples]);
 
-  function printTags(storeName: string) {
-    const tags = printable.filter((s) => checked.has(s.id));
-    if (!tags.length) return;
-    const win = window.open('', '_blank', 'width=900,height=700');
-    if (!win) return;
-    const esc = (v: string) => v.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
-    const cells = tags
-      .map(
-        (s) => `<figure><img src="${esc(s.qr_code_url!)}" alt=""/><figcaption><strong>${esc(s.product?.name ?? 'Product')}</strong><span>${esc(
-          [s.size, s.color].filter(Boolean).join(' · ')
-        )}</span><span>${esc(storeName)}</span></figcaption></figure>`
-      )
-      .join('');
-    win.document.write(`<!doctype html><html><head><title>QR tags · ${esc(storeName)}</title><style>
-      body{font-family:'IBM Plex Mono',ui-monospace,monospace;color:#2C2324;margin:24px}
-      .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-      figure{margin:0;border:1px solid #D5D1C8;padding:16px;text-align:center;break-inside:avoid}
-      img{width:150px;height:150px}
-      figcaption{display:flex;flex-direction:column;gap:2px;font-size:12px;margin-top:8px}
-      strong{font-size:12px;font-weight:500}
-    </style></head><body><div class="grid">${cells}</div></body></html>`);
-    win.document.close();
-    win.onload = () => win.print();
+  // Reprints the existing codes on 50 × 70 mm tags (/print/tags logs each one).
+  function printTags(ids: string[]) {
+    if (!ids.length) return;
+    window.open(`/print/tags?portal=brand&ids=${ids.join(',')}`, '_blank');
   }
 
   const header = (
@@ -420,7 +401,7 @@ export default function BrandSamplesPage() {
                         >
                           {allChecked ? 'Clear all' : 'Select all'}
                         </Button>
-                        <Button variant="accent" disabled={count === 0} onClick={() => printTags(storeName)} leftIcon={<Printer className="h-4 w-4" />}>
+                        <Button variant="accent" disabled={count === 0} onClick={() => printTags(printable.filter((s) => checked.has(s.id)).map((s) => s.id))} leftIcon={<Printer className="h-4 w-4" />}>
                           Print {count} QR tag{count !== 1 ? 's' : ''}
                         </Button>
                       </div>
@@ -485,7 +466,18 @@ export default function BrandSamplesPage() {
                               </div>
                             </div>
                             {sample.qr_code_url ? (
-                              <Image src={sample.qr_code_url} alt="QR tag" width={40} height={40} className="shrink-0" />
+                              <span className="flex shrink-0 items-center gap-3">
+                                <Image src={sample.qr_code_url} alt="QR tag" width={40} height={40} />
+                                {printableRow && (
+                                  <button
+                                    type="button"
+                                    onClick={() => printTags([sample.id])}
+                                    className="text-caption font-medium text-primary underline underline-offset-2 hover:text-accent"
+                                  >
+                                    Print tag
+                                  </button>
+                                )}
+                              </span>
                             ) : (
                               <span className="w-10 shrink-0 text-caption text-slate">—</span>
                             )}
