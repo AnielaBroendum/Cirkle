@@ -51,22 +51,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event: string, session: { user: User | null } | null) => {
+      (_event: string, session: { user: User | null } | null) => {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
-        if (currentUser) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentUser.id)
-            .single();
-          setProfile(data);
-        } else {
-          setProfile(null);
-        }
+        // Never await a Supabase call inside this callback. Supabase waits for
+        // the callback while it starts up (SIGNED_IN / TOKEN_REFRESHED on page
+        // load), and a query here waits for that start-up to finish: a deadlock
+        // that left the portals on "Loading…". Run it after the callback instead.
+        setTimeout(async () => {
+          if (currentUser) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', currentUser.id)
+              .single();
+            setProfile(data);
+          } else {
+            setProfile(null);
+          }
 
-        setLoading(false);
+          setLoading(false);
+        }, 0);
       }
     );
 
