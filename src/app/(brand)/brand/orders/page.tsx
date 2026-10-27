@@ -5,13 +5,18 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
 import { ShoppingBag, ChevronRight } from 'lucide-react';
+import { CARRIERS, waitingDays } from '@/lib/orders';
+import { refreshNavCounts } from '@/components/brand/nav-counts';
 import {
+  Badge,
   Button,
+  Checkbox,
   EmptyState,
   Field,
   Input,
   ListSkeleton,
   Modal,
+  Select,
   Skeleton,
   StatusPill,
   Tabs,
@@ -48,7 +53,10 @@ type Order = {
   shipping_city: string;
   shipping_postal_code: string;
   shipping_country: string;
+  carrier: string | null;
   tracking_number: string | null;
+  tracking_url: string | null;
+  shipped_at: string | null;
   created_at: string;
   consumer_user_id: string;
   order_items: OrderItem[];
@@ -78,12 +86,13 @@ const STATUS_SORT_ORDER: Record<string, number> = {
   cancelled: 5,
 };
 
-const NEXT_STATUS: Record<string, { status: string; label: string; needsTracking?: boolean }> = {
+// Optional steps before shipping. Shipping itself is always offered (Figma 06
+// ships straight from New), with carrier and tracking.
+const STEP_BEFORE_SHIPPING: Record<string, { status: string; label: string }> = {
   pending: { status: 'confirmed', label: 'Confirm' },
   confirmed: { status: 'packed', label: 'Mark as packed' },
-  packed: { status: 'shipped', label: 'Mark as shipped', needsTracking: true },
-  shipped: { status: 'delivered', label: 'Mark as delivered' },
 };
+const SHIPPABLE = ['pending', 'confirmed', 'packed'];
 
 type FilterStatus = 'all' | 'new' | 'in_progress' | 'shipped' | 'delivered';
 
@@ -99,9 +108,13 @@ export default function BrandOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [carrierInput, setCarrierInput] = useState('');
   const [trackingInput, setTrackingInput] = useState('');
   const [trackingUrlInput, setTrackingUrlInput] = useState('');
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [bulkShipping, setBulkShipping] = useState(false);
+  const [actionError, setActionError] = useState('');
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [credits, setCredits] = useState<Map<string, Credit>>(new Map());
   // xl and up show the detail panel beside the table; smaller screens use a sheet.
@@ -132,7 +145,7 @@ export default function BrandOrdersPage() {
       .select(`
         id, order_number, status, total_dkk,
         shipping_name, shipping_address, shipping_city, shipping_postal_code, shipping_country,
-        tracking_number, created_at, consumer_user_id,
+        carrier, tracking_number, tracking_url, shipped_at, created_at, consumer_user_id,
         order_items (id, product_name, size, color, quantity, unit_price_dkk),
         order_events (id, status, note, created_at),
         profiles!orders_consumer_user_id_fkey (name, email)
@@ -179,13 +192,29 @@ export default function BrandOrdersPage() {
     loadOrders();
   }, [loadOrders]);
 
+  // Fill the carrier and tracking fields from the order being looked at.
+  useEffect(() => {
+    const o = orders.find((x) => x.id === expandedOrder);
+    setCarrierInput(o?.carrier ?? '');
+    setTrackingInput(o?.tracking_number ?? '');
+    setTrackingUrlInput(o?.carrier === 'Other' ? o.tracking_url ?? '' : '');
+    setActionError('');
+  }, [expandedOrder]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function afterChange() {
+    await loadOrders();
+    refreshNavCounts();
+  }
+
   async function updateStatus(orderId: string, newStatus: string) {
     setUpdatingOrder(orderId);
+    setActionError('');
     try {
       const body: Record<string, string> = { status: newStatus };
-      if (newStatus === 'shipped' && trackingInput) {
-        body.tracking_number = trackingInput;
-        if (trackingUrlInput) body.tracking_url = trackingUrlInput;
+      if (newStatus === 'shipped') {
+        if (carrierInput) body.carrier = carrierInput;
+        if (trackingInput) body.tracking_number = trackingInput;
+        if (carrierInput === 'Other' && trackingUrlInput) body.tracking_url = trackingUrlInput;
       }
 
       const res = await fetch(`/api/orders/${orderId}/status`, {
@@ -195,13 +224,58 @@ export default function BrandOrdersPage() {
       });
 
       if (res.ok) {
-        setTrackingInput('');
-        setTrackingUrlInput('');
-        setExpandedOrder(null);
-        await loadOrders();
+        setChecked((prev) => {
+          const next = new Set(prev);
+          next.delete(orderId);
+          return next;
+        });
+        await afterChange();
+      } else {
+        setActionError((await res.json().catch(() => null))?.error ?? 'Could not update the order.');
       }
     } finally {
       setUpdatingOrder(null);
+    }
+  }
+
+  // Carrier and tracking can be added or corrected after shipping.
+  async function saveTracking(orderId: string) {
+    setUpdatingOrder(orderId);
+    setActionError('');
+    try {
+      const res = await fetch(`/api/orders/${orderId}/tracking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          carrier: carrierInput || null,
+          tracking_number: trackingInput || null,
+          tracking_url: carrierInput === 'Other' ? trackingUrlInput || null : null,
+        }),
+      });
+      if (res.ok) await loadOrders();
+      else setActionError((await res.json().catch(() => null))?.error ?? 'Could not save tracking.');
+    } finally {
+      setUpdatingOrder(null);
+    }
+  }
+
+  async function shipSelected() {
+    setBulkShipping(true);
+    setActionError('');
+    try {
+      const res = await fetch('/api/orders/ship', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_ids: Array.from(checked) }),
+      });
+      const data = await res.json().catch(() => null);
+      const failed = ((data?.results ?? []) as { ok: boolean; error?: string }[]).filter((r) => !r.ok);
+      if (!res.ok && res.status !== 207) setActionError(data?.error ?? 'Could not ship the selected orders.');
+      else if (failed.length) setActionError(failed.map((f) => f.error).join(' '));
+      setChecked(new Set());
+      await afterChange();
+    } finally {
+      setBulkShipping(false);
     }
   }
 
@@ -236,6 +310,24 @@ export default function BrandOrdersPage() {
   }
 
   const count = (key: Exclude<FilterStatus, 'all'>) => orders.filter((o) => FILTER_STATUSES[key].includes(o.status)).length;
+  const shippableShown = filteredOrders.filter((o) => SHIPPABLE.includes(o.status));
+  const allChecked = shippableShown.length > 0 && shippableShown.every((o) => checked.has(o.id));
+  const toggle = (id: string) =>
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = () => setChecked(allChecked ? new Set() : new Set(shippableShown.map((o) => o.id)));
+  const waitingPill = (order: Order) => {
+    const days = waitingDays(order);
+    return days === null ? null : (
+      <Badge tone="warning" title={`New for ${days} days`}>
+        Waiting
+      </Badge>
+    );
+  };
   const selected = orders.find((o) => o.id === expandedOrder) ?? null;
   const select = (id: string) => setExpandedOrder(id === expandedOrder ? null : id);
   const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -248,14 +340,18 @@ export default function BrandOrdersPage() {
 
   // Order detail: ship to, items, the chain, history and the next step
   const detail = (order: Order) => {
-    const nextAction = NEXT_STATUS[order.status];
+    const canShip = SHIPPABLE.includes(order.status);
+    const stepBefore = STEP_BEFORE_SHIPPING[order.status];
     const isUpdating = updatingOrder === order.id;
     const credit = credits.get(order.id);
     return (
       <div className="flex flex-col gap-5 font-brand">
         <div className="flex items-center justify-between gap-3">
           <p className="text-heading-lg">#{order.order_number}</p>
-          <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
+          <div className="flex items-center gap-2">
+            <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
+            {waitingPill(order)}
+          </div>
         </div>
 
         <div>
@@ -294,10 +390,19 @@ export default function BrandOrdersPage() {
           {!credit && <p className="text-caption text-slate">Bought without a scan</p>}
         </div>
 
-        {order.tracking_number && (
+        {order.shipped_at && (
           <div>
-            <p className="mb-1 text-label uppercase text-slate">Tracking</p>
-            <p className="text-body-sm text-primary">{order.tracking_number}</p>
+            <p className="mb-1 text-label uppercase text-slate">Shipped</p>
+            <p className="text-body-sm text-primary">
+              {new Date(order.shipped_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              {order.carrier ? ` · ${order.carrier}` : ''}
+              {order.tracking_number ? ` · ${order.tracking_number}` : ''}
+            </p>
+            {order.tracking_url && (
+              <a href={order.tracking_url} target="_blank" rel="noreferrer" className="text-caption text-cinder underline">
+                Open tracking page
+              </a>
+            )}
           </div>
         )}
 
@@ -323,45 +428,65 @@ export default function BrandOrdersPage() {
           </ol>
         </div>
 
-        {/* Next step */}
-        {nextAction && (
+        {/* Next step: ship (with carrier and tracking), or deliver */}
+        {(canShip || order.status === 'shipped') && (
           <div className="space-y-3 border-t border-line pt-5">
-            {nextAction.needsTracking && (
+            <Field label="Carrier" htmlFor={`carrier-${order.id}`}>
+              <Select id={`carrier-${order.id}`} value={carrierInput} onChange={(e) => setCarrierInput(e.target.value)}>
+                <option value="">Choose carrier</option>
+                {CARRIERS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Tracking number (optional)" htmlFor={`tracking-${order.id}`}>
+              <Input
+                id={`tracking-${order.id}`}
+                type="text"
+                placeholder="e.g. 00370712345678901"
+                value={trackingInput}
+                onChange={(e) => setTrackingInput(e.target.value)}
+              />
+            </Field>
+            {carrierInput === 'Other' && (
+              <Field label="Tracking link (optional)" htmlFor={`tracking-url-${order.id}`}>
+                <Input
+                  id={`tracking-url-${order.id}`}
+                  type="url"
+                  placeholder="https://"
+                  value={trackingUrlInput}
+                  onChange={(e) => setTrackingUrlInput(e.target.value)}
+                />
+              </Field>
+            )}
+            {actionError && <p className="text-caption text-accent-strong">{actionError}</p>}
+            {canShip ? (
+              <Button fullWidth size="lg" onClick={() => updateStatus(order.id, 'shipped')} disabled={isUpdating} loading={isUpdating}>
+                Mark as shipped
+              </Button>
+            ) : (
               <>
-                <Field label="Tracking number" htmlFor={`tracking-${order.id}`}>
-                  <Input
-                    id={`tracking-${order.id}`}
-                    type="text"
-                    placeholder="e.g. 00370712345678901"
-                    value={trackingInput}
-                    onChange={(e) => setTrackingInput(e.target.value)}
-                  />
-                </Field>
-                <Field label="Tracking URL (optional)" htmlFor={`tracking-url-${order.id}`}>
-                  <Input
-                    id={`tracking-url-${order.id}`}
-                    type="url"
-                    placeholder="https://"
-                    value={trackingUrlInput}
-                    onChange={(e) => setTrackingUrlInput(e.target.value)}
-                  />
-                </Field>
+                <Button fullWidth variant="secondary" onClick={() => saveTracking(order.id)} disabled={isUpdating}>
+                  Save tracking
+                </Button>
+                <Button fullWidth size="lg" onClick={() => updateStatus(order.id, 'delivered')} disabled={isUpdating} loading={isUpdating}>
+                  Mark as delivered
+                </Button>
               </>
             )}
-            <Button
-              fullWidth
-              size="lg"
-              onClick={() => updateStatus(order.id, nextAction.status)}
-              disabled={isUpdating || (nextAction.needsTracking && !trackingInput)}
-              loading={isUpdating}
-            >
-              {isUpdating ? 'Updating…' : nextAction.label}
-            </Button>
-            {order.status === 'pending' && (
-              <Button fullWidth variant="secondary" onClick={() => updateStatus(order.id, 'cancelled')} disabled={isUpdating}>
+            {stepBefore && (
+              <Button fullWidth variant="secondary" onClick={() => updateStatus(order.id, stepBefore.status)} disabled={isUpdating}>
+                {stepBefore.label}
+              </Button>
+            )}
+            {(order.status === 'pending' || order.status === 'confirmed') && (
+              <Button fullWidth variant="ghost" onClick={() => updateStatus(order.id, 'cancelled')} disabled={isUpdating}>
                 Cancel order
               </Button>
             )}
+            <p className="text-caption text-slate">The customer sees each step in the Flaym app.</p>
           </div>
         )}
       </div>
@@ -372,6 +497,7 @@ export default function BrandOrdersPage() {
     <div className="space-y-6">
       {header}
 
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <Tabs
         variant="underline"
         items={[
@@ -385,6 +511,14 @@ export default function BrandOrdersPage() {
         onValueChange={(v) => setFilter(v as FilterStatus)}
         className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       />
+        <div className="flex items-center gap-3">
+          <span className="whitespace-nowrap text-caption text-slate">{checked.size} selected</span>
+          <Button size="sm" onClick={shipSelected} disabled={checked.size === 0 || bulkShipping} loading={bulkShipping}>
+            Mark selected as shipped
+          </Button>
+        </div>
+      </div>
+      {actionError && !selected && <p className="text-caption text-accent-strong">{actionError}</p>}
 
       {filteredOrders.length === 0 ? (
         <EmptyState
@@ -402,12 +536,21 @@ export default function BrandOrdersPage() {
           {/* Mobile: list */}
           <ul className="divide-y divide-line border border-line bg-surface md:hidden">
             {filteredOrders.map((order) => (
-              <li key={order.id}>
-                <button type="button" onClick={() => select(order.id)} className="flex w-full items-center gap-3 p-4 text-left">
+              <li key={order.id} className="flex items-center">
+                {SHIPPABLE.includes(order.status) && (
+                  <Checkbox
+                    aria-label={`Select order ${order.order_number}`}
+                    checked={checked.has(order.id)}
+                    onChange={() => toggle(order.id)}
+                    className="pl-4"
+                  />
+                )}
+                <button type="button" onClick={() => select(order.id)} className="flex min-w-0 flex-1 items-center gap-3 p-4 text-left">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-body-sm font-medium text-primary">#{order.order_number}</span>
                       <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
+                      {waitingPill(order)}
                     </div>
                     <p className="mt-1 truncate text-caption text-slate">
                       {shortDate(order.created_at)} · {order.order_items.length} item{order.order_items.length !== 1 ? 's' : ''} · {creditLabel(order.id)}
@@ -425,7 +568,15 @@ export default function BrandOrdersPage() {
             <table className="w-full border-collapse font-brand text-body-sm text-primary">
               <THead>
                 <tr>
-                  <TH className="px-5">Order</TH>
+                  <TH className="w-10 pl-5 pr-0">
+                    <Checkbox
+                      aria-label="Select all orders that can be shipped"
+                      checked={allChecked}
+                      disabled={shippableShown.length === 0}
+                      onChange={toggleAll}
+                    />
+                  </TH>
+                  <TH className="px-3">Order</TH>
                   <TH>Date</TH>
                   <TH className="text-right">Items</TH>
                   <TH>Credited store</TH>
@@ -441,7 +592,16 @@ export default function BrandOrdersPage() {
                     aria-selected={order.id === expandedOrder}
                     className={cn('cursor-pointer transition-colors', order.id === expandedOrder ? 'bg-canvas-warm' : 'hover:bg-surface-muted/40')}
                   >
-                    <TD className="px-5">
+                    <TD className="pl-5 pr-0" onClick={(e) => e.stopPropagation()}>
+                      {SHIPPABLE.includes(order.status) && (
+                        <Checkbox
+                          aria-label={`Select order ${order.order_number}`}
+                          checked={checked.has(order.id)}
+                          onChange={() => toggle(order.id)}
+                        />
+                      )}
+                    </TD>
+                    <TD className="px-3">
                       <button type="button" onClick={(e) => { e.stopPropagation(); select(order.id); }} className="font-medium hover:underline">
                         #{order.order_number}
                       </button>
@@ -451,7 +611,10 @@ export default function BrandOrdersPage() {
                     <TD className="max-w-[200px] truncate">{creditLabel(order.id)}</TD>
                     <TD className="whitespace-nowrap text-right tabular-nums">{formatDKK(order.total_dkk)}</TD>
                     <TD className="px-5">
-                      <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
+                      <div className="flex items-center gap-2">
+                        <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
+                        {waitingPill(order)}
+                      </div>
                     </TD>
                   </tr>
                 ))}

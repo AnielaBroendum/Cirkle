@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
+import { refreshNavCounts } from '@/components/brand/nav-counts';
 import { formatDKK } from '@/lib/utils';
 import { Undo2, Package } from 'lucide-react';
 import { Button, EmptyState, ListSkeleton, StatusPill, Tabs, THead, TBody, TR, TH, TD } from '@/components/ds';
@@ -128,6 +129,7 @@ export default function BrandReturnsPage() {
       setActionError('Could not update this return. Please try again.');
     } else {
       setReturns((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+      refreshNavCounts();
     }
     setUpdating(null);
   }

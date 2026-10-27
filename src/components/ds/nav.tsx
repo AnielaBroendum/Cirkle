@@ -15,6 +15,8 @@ export type NavItem = {
   icon: React.ComponentType<{ className?: string; strokeWidth?: string | number }>;
   /** Extra route prefixes that also mark this item active (e.g. Profile's sub-tabs). */
   match?: string[];
+  /** Count pill after the label (Figma portal nav: Orders 3). Hidden at 0. */
+  badge?: number;
 };
 
 // Same active rule as the current layouts.
@@ -202,6 +204,14 @@ export function SidebarNav({ items, homeHref, account, footer, embedded = false,
               >
                 <item.icon className={cn('h-[18px] w-[18px] shrink-0', on && 'text-accent')} />
                 {item.label}
+                {!!item.badge && (
+                  <span
+                    aria-label={`${item.badge} waiting`}
+                    className="ml-auto grid h-5 min-w-5 place-items-center rounded-pill bg-accent px-1.5 text-caption font-medium tabular-nums text-on-primary"
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

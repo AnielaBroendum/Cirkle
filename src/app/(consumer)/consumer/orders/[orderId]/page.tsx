@@ -9,6 +9,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
 import OrderTimeline from '@/components/consumer/order-timeline';
+import PushPrompt from '@/components/pwa/push-prompt';
 import { buttonClasses } from '@/components/ds';
 import { DarkCard, ScreenHeader, Thumb } from '@/components/consumer/checkout-parts';
 import { expectedDelivery, formatRange, isPastDay } from '@/components/consumer/order-utils';
@@ -24,6 +25,7 @@ type OrderDetail = {
   shipping_address: string;
   shipping_city: string;
   shipping_postal_code: string;
+  carrier: string | null;
   tracking_number: string | null;
   tracking_url: string | null;
   created_at: string;
@@ -178,7 +180,12 @@ export default function OrderDetailPage() {
             <p className="text-label uppercase text-smoke">{cancelled ? 'Order' : isPastDay(to) ? 'Was expected' : 'Expected delivery'}</p>
             <p className="mt-2 text-[34px] font-medium leading-tight text-on-primary">{cancelled ? 'Cancelled' : formatRange(from, to)}</p>
             <p className="mt-2 text-body-sm text-ash">
-              {order.tracking_number ? `Tracking ${order.tracking_number}` : 'Ships from the brand'} · {order.brand_profiles.name}
+              {order.carrier && order.carrier !== 'Other'
+                ? `With ${order.carrier}`
+                : order.tracking_number
+                  ? `Tracking ${order.tracking_number}`
+                  : 'Ships from the brand'}{' '}
+              · {order.brand_profiles.name}
             </p>
           </section>
         )}
@@ -204,6 +211,9 @@ export default function OrderDetailPage() {
             Track parcel <ExternalLink className="h-3.5 w-3.5" />
           </a>
         )}
+
+        {/* Figma 16: a message at each step, if the shopper allows it */}
+        {!delivered && !cancelled && <PushPrompt />}
 
         {/* Live map: Phase 2 in Figma */}
         {!delivered && !cancelled && (

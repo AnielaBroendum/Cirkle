@@ -126,13 +126,20 @@ const STATUS_LABELS: Record<string, string> = {
 
 export async function sendOrderStatusUpdate(
   consumerEmail: string,
-  order: { order_number: number; status: string; tracking_number?: string | null; tracking_url?: string | null },
+  order: {
+    order_number: number;
+    status: string;
+    carrier?: string | null;
+    tracking_number?: string | null;
+    tracking_url?: string | null;
+  },
   brandName: string,
 ) {
   const statusLabel = STATUS_LABELS[order.status] || order.status;
-  const trackingHtml = order.tracking_number
+  const carrierName = order.carrier && order.carrier !== 'Other' ? order.carrier : null;
+  const trackingHtml = order.tracking_number || (order.status === 'shipped' && carrierName)
     ? box(
-        `<p style="font-size: 14px; font-weight: 500; color: ${C.success}; margin: 0;">Tracking: ${esc(order.tracking_number)}</p>
+        `<p style="font-size: 14px; font-weight: 500; color: ${C.success}; margin: 0;">${carrierName ? `${esc(carrierName)}` : 'Tracking'}${order.tracking_number ? `: ${esc(order.tracking_number)}` : ''}</p>
          ${order.tracking_url ? `<a href="${esc(order.tracking_url)}" style="font-size: 14px; color: ${C.primary}; text-decoration: underline; margin-top: 8px; display: inline-block;">Track your package</a>` : ''}`,
         C.successSubtle,
       )

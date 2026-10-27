@@ -10,8 +10,18 @@ type OrderEvent = {
   created_at: string;
 };
 
-// Figma 15 "Tracking" wording for each order status.
-const STATUS_LABELS: Record<string, string> = {
+// Figma 15 "Tracking" steps. Each step lists the order statuses that reach it.
+// "Out for delivery" has no data source yet (no carrier integration), so it
+// only lights up together with Delivered.
+const STEPS: { label: string; statuses: string[] }[] = [
+  { label: 'Order received', statuses: ['pending'] },
+  { label: 'Being packed', statuses: ['confirmed', 'packed'] },
+  { label: 'On its way', statuses: ['shipped'] },
+  { label: 'Out for delivery', statuses: [] },
+  { label: 'Delivered', statuses: ['delivered'] },
+];
+
+const CANCELLED_LABELS: Record<string, string> = {
   pending: 'Order received',
   confirmed: 'Confirmed',
   packed: 'Being packed',
@@ -20,27 +30,37 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 };
 
-const STATUS_ORDER = ['pending', 'confirmed', 'packed', 'shipped', 'delivered'];
+type Step = { key: string; label: string; complete: boolean; event?: OrderEvent };
 
 export default function OrderTimeline({ events }: { events: OrderEvent[] }) {
-  const completedStatuses = new Set(events.map((e) => e.status));
-  const eventMap = new Map(events.map((e) => [e.status, e]));
-  const isCancelled = completedStatuses.has('cancelled');
+  const reached = new Set(events.map((e) => e.status));
+  const isCancelled = reached.has('cancelled');
 
-  const steps = isCancelled ? events.map((e) => e.status) : STATUS_ORDER;
+  let steps: Step[];
+  if (isCancelled) {
+    steps = events.map((e) => ({ key: e.id, label: CANCELLED_LABELS[e.status] ?? e.status, complete: true, event: e }));
+  } else {
+    // A later status completes every earlier step: shipping can skip confirm/pack.
+    const furthest = STEPS.reduce((last, step, i) => (step.statuses.some((st) => reached.has(st)) ? i : last), 0);
+    steps = STEPS.map((step, i) => ({
+      key: step.label,
+      label: step.label,
+      complete: i <= furthest,
+      event: [...events].reverse().find((e) => step.statuses.includes(e.status)),
+    }));
+  }
   // The latest completed step is shown in medium weight ("On its way" in Figma).
-  const currentIndex = steps.reduce((last, s, i) => (completedStatuses.has(s) ? i : last), -1);
+  const currentIndex = steps.reduce((last, s, i) => (s.complete ? i : last), -1);
 
   return (
     <ol>
-      {steps.map((status, i) => {
-        const event = eventMap.get(status);
-        const isComplete = completedStatuses.has(status);
+      {steps.map((step, i) => {
+        const { event, complete: isComplete } = step;
         const isLast = i === steps.length - 1;
-        const nextComplete = completedStatuses.has(steps[i + 1]);
+        const nextComplete = steps[i + 1]?.complete ?? false;
 
         return (
-          <li key={status} className="flex gap-4">
+          <li key={step.key} className="flex gap-4">
             {/* Flame (done) or open step, joined by a 2px line */}
             <div className="flex w-3.5 flex-col items-center">
               <span className="grid h-[17px] place-items-center">
@@ -61,7 +81,7 @@ export default function OrderTimeline({ events }: { events: OrderEvent[] }) {
                   i === currentIndex && 'font-medium'
                 )}
               >
-                {STATUS_LABELS[status] ?? STATUS_LABELS.pending}
+                {step.label}
               </p>
               {event && (
                 <p className="mt-1 text-caption text-smoke">

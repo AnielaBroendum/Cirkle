@@ -6,6 +6,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import type { Database } from '@/lib/database.types';
+import { useBrandNavCounts } from '@/components/brand/nav-counts';
 import {
   AccountIcon,
   DashboardIcon,
@@ -38,6 +39,7 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
   const { user, profile, loading, signOut } = useAuth();
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const counts = useBrandNavCounts(!!brandProfile?.onboarding_complete);
 
   useEffect(() => {
     if (loading) return;
@@ -85,7 +87,13 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-canvas-warm font-brand text-primary">
       <SidebarNav
-        items={NAV_ITEMS}
+        items={NAV_ITEMS.map((item) =>
+          item.href === '/brand/orders'
+            ? { ...item, badge: counts.orders }
+            : item.href === '/brand/returns'
+              ? { ...item, badge: counts.returns }
+              : item
+        )}
         homeHref="/brand/dashboard"
         account={brandName ? { name: brandName, role: 'Brand Portal' } : undefined}
         footer={(close) => (
