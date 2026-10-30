@@ -19,7 +19,7 @@ A three-sided marketplace for fashion. Brands upload products and send physical 
 ## Three User Roles
 
 ### Brand
-Signs up → completes onboarding wizard (profile, product upload) → creates samples with QR codes → invites retailers → receives and fulfills orders from own warehouse → sees dashboard with scans/sales/commissions owed.
+Signs up → completes onboarding (brand profile only; products are added afterwards from the product library) → creates samples with QR codes → invites retailers → receives and fulfills orders from own warehouse → sees dashboard with scans/sales/commissions owed.
 
 ### Retailer
 Receives email invitation from a brand → accepts → completes onboarding (store profile) → receives physical samples → displays them with QR tags → earns commission when scans lead to sales → sees dashboard.
