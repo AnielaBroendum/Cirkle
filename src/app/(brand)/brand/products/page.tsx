@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
+import { formatPriceRange, priceRange, type VariantPrice } from '@/lib/pricing';
 import { Plus, Package, Pencil, Trash2, Search } from 'lucide-react';
 import {
   Button,
@@ -26,7 +27,7 @@ import {
 } from '@/components/ds';
 import type { Database } from '@/lib/database.types';
 
-type Product = Database['public']['Tables']['products']['Row'];
+type Product = Database['public']['Tables']['products']['Row'] & { product_variants?: VariantPrice[] };
 
 type Filter = 'all' | 'in_stores' | 'inactive';
 
@@ -62,7 +63,7 @@ export default function BrandProductsPage() {
         setBrandProfileId(data.id);
         return supabase
           .from('products')
-          .select('*')
+          .select('*, product_variants(size, color, price_dkk)')
           .eq('brand_id', data.id)
           .order('created_at', { ascending: false });
       })
@@ -223,7 +224,7 @@ export default function BrandProductsPage() {
                         {product.name}
                       </Link>
                       <p className="mt-0.5 truncate text-caption text-slate">
-                        {[product.category, sizeRange(product.sizes), formatDKK(product.price_dkk)].filter(Boolean).join(' · ')}
+                        {[product.category, sizeRange(product.sizes), formatPriceRange(priceRange(product.price_dkk, product.product_variants ?? []))].filter(Boolean).join(' · ')}
                       </p>
                       <p className="mt-0.5 text-caption text-slate">In {inStores(product)} store{inStores(product) !== 1 ? 's' : ''}</p>
                       <div className="mt-3 flex items-center justify-between gap-2">
@@ -275,7 +276,7 @@ export default function BrandProductsPage() {
                         </TD>
                         <TD>{product.category || <span className="text-slate">—</span>}</TD>
                         <TD className="whitespace-nowrap">{sizeRange(product.sizes)}</TD>
-                        <TD className="whitespace-nowrap text-right tabular-nums">{formatDKK(product.price_dkk)}</TD>
+                        <TD className="whitespace-nowrap text-right tabular-nums">{formatPriceRange(priceRange(product.price_dkk, product.product_variants ?? []))}</TD>
                         <TD className="whitespace-nowrap text-right tabular-nums text-slate">
                           {product.deposit_amount_dkk ? formatDKK(product.deposit_amount_dkk) : '—'}
                         </TD>

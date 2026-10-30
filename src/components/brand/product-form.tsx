@@ -43,7 +43,8 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
   const [newSize, setNewSize] = useState('');
 
   const [variants, setVariants] = useState<
-    { size: string; color: string; stock_count: number; id?: string }[]
+    // priceKr: '' means the base price is used.
+    { size: string; color: string; stock_count: number; priceKr: string; id?: string }[]
   >([]);
 
   const sizes = Array.from(new Set(sizesText.split(',').map((s) => s.trim()).filter(Boolean)));
@@ -63,6 +64,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
           size,
           color,
           stock_count: current?.stock_count ?? existing?.stock_count ?? 0,
+          priceKr: current?.priceKr ?? (existing?.price_dkk != null ? String(existing.price_dkk / 100) : ''),
           id: existing?.id,
         });
       }
@@ -82,6 +84,12 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
     const priceOre = parseDKKtoOre(parseFloat(priceKr));
 
     const depositOre = depositKr ? parseDKKtoOre(parseFloat(depositKr)) : null;
+
+    if (variants.some((v) => v.priceKr.trim() && !(parseFloat(v.priceKr) > 0))) {
+      setError('Variant prices must be more than 0 kr, or empty to use the base price.');
+      setLoading(false);
+      return;
+    }
 
     const productData = {
       brand_id: brandProfileId,
@@ -139,6 +147,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
           size: v.size,
           color: v.color,
           stock_count: v.stock_count,
+          price_dkk: v.priceKr.trim() ? parseDKKtoOre(parseFloat(v.priceKr)) : null,
         }))
       );
       if (variantErr) {
@@ -176,6 +185,20 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
     setVariants((prev) =>
       prev.map((v, i) => (i === index ? { ...v, stock_count: Math.max(0, value) } : v))
     );
+  }
+
+  function setVariantPrice(index: number, value: string) {
+    setVariants((prev) => prev.map((v, i) => (i === index ? { ...v, priceKr: value } : v)));
+  }
+
+  // A colour's price fills every size of that colour; sizes can still differ below.
+  function setColorPrice(color: string, value: string) {
+    setVariants((prev) => prev.map((v) => (v.color === color ? { ...v, priceKr: value } : v)));
+  }
+
+  function colorPrice(color: string): string {
+    const prices = new Set(variants.filter((v) => v.color === color).map((v) => v.priceKr.trim()));
+    return prices.size === 1 ? Array.from(prices)[0] : '';
   }
 
   const canSave = !loading && !!name.trim() && !!priceKr;
@@ -338,13 +361,41 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
           {/* Variant stock management */}
           {variants.length > 0 && (
             <div className="mt-6 border-t border-line pt-5">
-              <h2 className="mb-3 font-brand text-body uppercase tracking-[0.3px] text-primary">Stock per variant</h2>
+              <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">Price per colour</h2>
+              <p className="mb-3 mt-1 text-caption text-slate">
+                Optional. Leave empty to use the base price{priceKr ? ` (${formatDKK(parseDKKtoOre(parseFloat(priceKr) || 0))})` : ''}.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {colors.map((color) => {
+                  const mixed = colorPrice(color) === '' && variants.some((v) => v.color === color && v.priceKr.trim());
+                  return (
+                    <Field key={color} label={color} htmlFor={`pf-color-price-${color}`}>
+                      <Input
+                        id={`pf-color-price-${color}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={colorPrice(color)}
+                        onChange={(e) => setColorPrice(color, e.target.value)}
+                        placeholder={mixed ? 'Varies by size' : priceKr || 'Base price'}
+                      />
+                    </Field>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {variants.length > 0 && (
+            <div className="mt-6 border-t border-line pt-5">
+              <h2 className="mb-3 font-brand text-body uppercase tracking-[0.3px] text-primary">Stock and price per variant</h2>
               <div className="-mx-1 overflow-x-auto">
                 <table className="w-full border-collapse font-brand text-body-sm text-primary">
                   <thead>
                     <tr>
                       <th className="border-b border-line px-3 py-2 text-left text-label font-medium uppercase text-slate">Size</th>
                       <th className="border-b border-line px-3 py-2 text-left text-label font-medium uppercase text-slate">Colour</th>
+                      <th className="border-b border-line px-3 py-2 text-right text-label font-medium uppercase text-slate">Price (kr)</th>
                       <th className="border-b border-line px-3 py-2 text-right text-label font-medium uppercase text-slate">Quantity</th>
                     </tr>
                   </thead>
@@ -353,6 +404,18 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
                       <tr key={`${v.size}-${v.color}`}>
                         <td className="px-3 py-2">{v.size}</td>
                         <td className="px-3 py-2">{v.color}</td>
+                        <td className="px-3 py-2 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={v.priceKr}
+                            onChange={(e) => setVariantPrice(i, e.target.value)}
+                            placeholder={priceKr || 'Base'}
+                            aria-label={`Price ${v.size} ${v.color}, empty for base price`}
+                            className="h-8 w-24 rounded-control border border-line bg-surface px-2 text-right font-brand text-body-sm text-primary outline-none placeholder:text-slate focus:border-primary"
+                          />
+                        </td>
                         <td className="px-3 py-2">
                           <div className="flex items-center justify-end gap-1.5">
                             <StockButton label={`Decrease ${v.size} ${v.color}`} onClick={() => updateVariantStock(i, -1)}>
@@ -379,7 +442,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
             </div>
           )}
           {variants.length === 0 && (
-            <p className="mt-5 text-caption text-slate">Add sizes and colours to set stock per variant.</p>
+            <p className="mt-5 text-caption text-slate">Add sizes and colours to set stock and price per variant.</p>
           )}
         </Card>
 
