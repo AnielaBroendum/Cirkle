@@ -45,7 +45,7 @@ export default async function ScanPage({ params }: { params: { sampleId: string 
   const retailer = sample.retailer_profiles as any;
   const { data: variants } = await supabase
     .from('product_variants')
-    .select('size, color, stock_count')
+    .select('size, color, stock_count, price_dkk')
     .eq('product_id', product.id);
 
   return (

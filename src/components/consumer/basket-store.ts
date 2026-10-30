@@ -1,6 +1,8 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
+import { createClient } from '@/lib/supabase';
+import { priceRange, type VariantPrice } from '@/lib/pricing';
 
 // Client-side basket (Figma 05). Lives in localStorage so it survives the
 // signup redirect. Checkout still goes through POST /api/checkout, once per
@@ -13,7 +15,7 @@ export type BasketItem = {
   name: string;
   brandId: string;
   brandName: string;
-  /** Display only, in øre. The API recomputes the real price. */
+  /** Display only, in øre; refreshed by useBasketPrices. The API recomputes the real price. */
   priceOre: number;
   image: string | null;
   size: string | null;
@@ -84,6 +86,43 @@ export function clearBasket(keys?: string[]) {
 
 export function useBasket(): BasketItem[] {
   return useSyncExternalStore(subscribe, read, () => EMPTY);
+}
+
+/**
+ * Re-reads each item's current price (variant price, else the product's) so the
+ * basket doesn't show what it cost when it was added. Checkout still prices
+ * every order on the server.
+ */
+export async function refreshBasketPrices() {
+  const items = read();
+  const ids = Array.from(new Set(items.map((i) => i.productId)));
+  if (ids.length === 0) return;
+  const { data } = await createClient()
+    .from('products')
+    .select('id, price_dkk, product_variants(size, color, price_dkk)')
+    .in('id', ids);
+  if (!data) return;
+  const products = new Map(
+    (data as { id: string; price_dkk: number; product_variants: VariantPrice[] }[]).map((p) => [p.id, p])
+  );
+  // Read again: the basket may have changed while the query ran.
+  let changed = false;
+  const next = read().map((item) => {
+    const p = products.get(item.productId);
+    if (!p) return item; // inactive or gone: checkout will say so
+    const priceOre = priceRange(p.price_dkk, p.product_variants ?? [], item.size, item.color).min;
+    if (priceOre === item.priceOre) return item;
+    changed = true;
+    return { ...item, priceOre };
+  });
+  if (changed) write(next);
+}
+
+/** Refreshes basket prices once when the page mounts. */
+export function useBasketPrices() {
+  useEffect(() => {
+    refreshBasketPrices().catch(() => {});
+  }, []);
 }
 
 // Same flat delivery fee the checkout has always shown, now per brand.

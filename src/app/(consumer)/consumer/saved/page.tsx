@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { formatDKK } from '@/lib/utils';
+import { formatPriceRange, priceRange, type VariantPrice } from '@/lib/pricing';
 import { X } from 'lucide-react';
 import { cn } from '@/components/ds';
 import ProfileHeader from '@/components/consumer/profile-header';
@@ -21,6 +21,7 @@ type SavedProduct = {
     price_dkk: number;
     images: string[];
     brand_profiles: { name: string };
+    product_variants: VariantPrice[];
   };
 };
 
@@ -39,7 +40,8 @@ export default function ConsumerSavedPage() {
         id, product_id, saved_at, expires_at,
         products (
           id, name, price_dkk, images,
-          brand_profiles (name)
+          brand_profiles (name),
+          product_variants (size, color, price_dkk)
         )
       `)
       .eq('user_id', user.id)
@@ -99,7 +101,7 @@ export default function ConsumerSavedPage() {
                     <div className="min-w-0">
                       <p className="truncate text-body text-on-primary">{product?.name}</p>
                       <p className="truncate text-caption text-smoke">
-                        {product?.brand_profiles?.name} · {formatDKK(product?.price_dkk || 0)}
+                        {product?.brand_profiles?.name} · {formatPriceRange(priceRange(product?.price_dkk || 0, product?.product_variants ?? []))}
                       </p>
                       <p className={cn('mt-1 text-label tracking-normal', expired ? 'text-accent' : 'text-smoke')}>
                         {expired ? 'Expired' : `${days} days left`}

@@ -5,13 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Share2, Link as LinkIcon, Loader2 } from 'lucide-react';
-import { formatDKK } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
 import { BottomNav, Toast, cn } from '@/components/ds';
 import { addToBasket } from './basket-store';
 import { consumerTabs } from './tab-items';
 import { BrandStoriesViewer, type BrandStory } from './brand-stories-viewer';
 import { isSoldOut, type VariantStock } from '@/lib/stock';
+import { formatPriceRange, priceRange, type VariantPrice } from '@/lib/pricing';
 
 function timeAgo(iso?: string): string {
   if (!iso) return '';
@@ -53,8 +53,8 @@ type ProductPageProps = {
     peerPointsMessage?: string;
     scannedAt?: string;
   } | null;
-  /** Stock per size/colour; sizes with no rows aren't tracked and stay available. */
-  variants?: VariantStock[];
+  /** Stock and optional price per size/colour; sizes with no rows aren't tracked and stay available. */
+  variants?: (VariantStock & VariantPrice)[];
   /** Set when the shopper already saved this product (Figma 04c). */
   saved?: { size: string | null };
   scanData: {
@@ -93,6 +93,8 @@ export default function ProductPageClient({
   const [showCopied, setShowCopied] = useState(false);
   const [storiesOpen, setStoriesOpen] = useState(false);
   const stories = [...(brand.brand_stories ?? [])].sort((a, b) => a.position - b.position);
+  // Price of the picked size/colour; "From …" while variants still differ.
+  const price = priceRange(product.price_dkk, variants, selectedSize, selectedColor);
   const scanRecorded = useRef(false);
   const [scanId, setScanId] = useState<string | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -241,7 +243,7 @@ export default function ProductPageClient({
       name: product.name,
       brandId: brand.id,
       brandName: brand.name,
-      priceOre: product.price_dkk,
+      priceOre: price.min, // display only; checkout prices it on the server
       image: product.images?.[0] ?? null,
       size: selectedSize,
       color: selectedColor,
@@ -356,7 +358,7 @@ export default function ProductPageClient({
             <p className="text-label uppercase text-ash">{brand.name}</p>
             <h1 className="mt-1.5 font-brand text-heading-lg font-normal uppercase text-on-primary">{product.name}</h1>
           </div>
-          <span className="whitespace-nowrap text-title font-medium leading-tight">{formatDKK(product.price_dkk)}</span>
+          <span className="whitespace-nowrap text-title font-medium leading-tight">{formatPriceRange(price)}</span>
         </div>
 
         {/* Where you found it */}

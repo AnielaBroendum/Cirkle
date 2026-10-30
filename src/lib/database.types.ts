@@ -219,6 +219,7 @@ export type Database = {
           color: string;
           sku: string | null;
           stock_count: number;
+          price_dkk: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -229,6 +230,7 @@ export type Database = {
           color: string;
           sku?: string | null;
           stock_count?: number;
+          price_dkk?: number | null;
         };
         Update: {
           id?: string;
@@ -237,6 +239,7 @@ export type Database = {
           color?: string;
           sku?: string | null;
           stock_count?: number;
+          price_dkk?: number | null;
         };
         Relationships: [];
       };

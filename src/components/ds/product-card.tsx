@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
 import { formatDKK } from '@/lib/utils';
+import { FROM_LABEL } from '@/lib/pricing';
 import { cn } from './cn';
 import { Badge, type BadgeTone } from './badge';
 
 type ProductCardProps = {
   name: string;
-  /** Price in øre. */
+  /** Price in øre; the lowest one when variants differ (see priceFrom). */
   price: number;
+  /** Shows "From [price]": the product's variants cost different amounts. */
+  priceFrom?: boolean;
   brand?: string | null;
   imageUrl?: string | null;
   href?: string;
@@ -18,7 +21,7 @@ type ProductCardProps = {
   className?: string;
 };
 
-export function ProductCard({ name, price, brand, imageUrl, href, badge, saved, onToggleSave, className }: ProductCardProps) {
+export function ProductCard({ name, price, priceFrom, brand, imageUrl, href, badge, saved, onToggleSave, className }: ProductCardProps) {
   const body = (
     <>
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-flaym-gradient">
@@ -35,7 +38,7 @@ export function ProductCard({ name, price, brand, imageUrl, href, badge, saved, 
       <div className="space-y-1 p-3">
         {brand && <p className="truncate text-label uppercase text-slate">{brand}</p>}
         <p className="line-clamp-2 text-body text-primary">{name}</p>
-        <p className="text-body font-medium text-primary">{formatDKK(price)}</p>
+        <p className="text-body font-medium text-primary">{priceFrom ? `${FROM_LABEL} ${formatDKK(price)}` : formatDKK(price)}</p>
       </div>
     </>
   );

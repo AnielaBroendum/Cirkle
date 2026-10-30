@@ -34,7 +34,7 @@ export default async function PeerDiscoveryPage({
   const brand = product.brand_profiles as any;
   const { data: variantRows } = await supabase
     .from('product_variants')
-    .select('size, color, stock_count')
+    .select('size, color, stock_count, price_dkk')
     .eq('product_id', product.id);
   const variants = variantRows ?? [];
 

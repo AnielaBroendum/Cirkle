@@ -83,13 +83,13 @@ The host is not hardcoded: `src/lib/base-url.ts` uses `NEXT_PUBLIC_QR_BASE_URL`,
 
 ## Database
 
-The schema is the migrations in `supabase/migrations` (001–014), applied in order. Every database change goes in a new numbered file there. Key tables:
+The schema is the migrations in `supabase/migrations` (001–015), applied in order. Every database change goes in a new numbered file there. Key tables:
 
 - `users` — extended via Supabase Auth, adds role + profile fields
 - `brand_profiles` — brand-specific data (name, logo, description)
 - `retailer_profiles` — store-specific data (name, address, photos)
 - `products` — items brands sell (name, price, images, materials)
-- `product_variants` — size/color combos with stock tracking
+- `product_variants` — size/color combos with stock tracking and an optional `price_dkk` (015) that overrides the product's price; NULL means the base price. `src/lib/pricing.ts` works out the price of a selection, and lists show "From [lowest]" when variants differ
 - `samples` — physical items in stores, each with unique QR
 - `scans` — every QR scan event with attribution data
 - `orders` — purchases with status tracking
@@ -159,6 +159,7 @@ src/
     orders.ts, order-updates.ts — Order rules, carriers, status changes with email + push
     payouts.ts              — Store payout status and dates
     stock.ts                — Sold-out sizes
+    pricing.ts              — Variant prices and "From" ranges
     consents.ts             — Shopper consents
     media-rules.ts, media-probe.ts — Upload rules for stories and product images
     push.ts                 — Web push sends

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { buttonClasses } from '@/components/ds';
 import { formatDKK } from '@/lib/utils';
-import { DELIVERY_FEE_ORE, groupByBrand, removeFromBasket, useBasket, type BasketItem } from '@/components/consumer/basket-store';
+import { DELIVERY_FEE_ORE, groupByBrand, removeFromBasket, useBasket, useBasketPrices, type BasketItem } from '@/components/consumer/basket-store';
 import { BottomAction, Eyebrow, ScreenHeader, SummaryCard, Thumb } from '@/components/consumer/checkout-parts';
 
 function itemMeta(item: BasketItem) {
@@ -16,6 +16,7 @@ function itemMeta(item: BasketItem) {
 export default function BasketPage() {
   const router = useRouter();
   const items = useBasket();
+  useBasketPrices();
   // localStorage is only readable after mount; avoid flashing the empty state.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);

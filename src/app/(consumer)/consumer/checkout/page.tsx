@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { DELIVERY_FEE_ORE, clearBasket, groupByBrand, useBasket, type BasketItem } from '@/components/consumer/basket-store';
+import { DELIVERY_FEE_ORE, clearBasket, groupByBrand, useBasket, useBasketPrices, type BasketItem } from '@/components/consumer/basket-store';
 import {
   BottomAction,
   DeliverToCard,
@@ -19,7 +19,7 @@ import {
 } from '@/components/consumer/checkout-parts';
 import { formatDKK } from '@/lib/utils';
 
-type OrderResult = { order_id: string; order_number: number; brand_name: string; product_name: string };
+type OrderResult = { order_id: string; order_number: number; brand_name: string; product_name: string; unit_price_dkk: number };
 
 // Figma 06: checkout for the whole basket. Each basket item is sent to the
 // existing POST /api/checkout on its own, so every item becomes its own order
@@ -28,6 +28,7 @@ export default function BasketCheckoutPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const items = useBasket();
+  useBasketPrices();
   const [mounted, setMounted] = useState(false);
 
   const [shipping, setShipping] = useState({ name: '', address: '', postalCode: '', city: '' });
@@ -92,7 +93,8 @@ export default function BasketCheckoutPage() {
           continue;
         }
         orders.push(data);
-        done.push(item);
+        // The server's price wins over what the basket remembered.
+        done.push({ ...item, priceOre: data.unit_price_dkk ?? item.priceOre });
       } catch {
         failed.push({ item, message: 'Network error — please try again' });
       }

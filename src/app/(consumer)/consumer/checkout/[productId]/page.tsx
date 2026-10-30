@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
+import { formatPriceRange, priceRange, type VariantPrice } from '@/lib/pricing';
 import { cn } from '@/components/ds';
 import {
   BottomAction,
@@ -29,6 +30,7 @@ type Product = {
   sizes: string[];
   colors: string[];
   brand_profiles: { id: string; name: string };
+  product_variants: VariantPrice[];
 };
 
 type OrderResult = {
@@ -36,6 +38,7 @@ type OrderResult = {
   order_number: number;
   brand_name: string;
   product_name: string;
+  unit_price_dkk: number;
 };
 
 export default function CheckoutPage() {
@@ -66,7 +69,7 @@ export default function CheckoutPage() {
 
     supabase
       .from('products')
-      .select('id, name, price_dkk, images, sizes, colors, brand_profiles(id, name)')
+      .select('id, name, price_dkk, images, sizes, colors, brand_profiles(id, name), product_variants(size, color, price_dkk)')
       .eq('id', productId)
       .eq('is_active', true)
       .single()
@@ -143,11 +146,15 @@ export default function CheckoutPage() {
     }
   }
 
-  const maxPointsUsable = product ? Math.floor(product.price_dkk / 100) : 0;
+  // Shown only: the API prices the variant itself.
+  const price = product
+    ? priceRange(product.price_dkk, product.product_variants ?? [], selectedSize || null, selectedColor || null)
+    : { min: 0, max: 0 };
+  const maxPointsUsable = Math.floor(price.min / 100);
   const pointsCapped = Math.min(pointsBalance, maxPointsUsable);
   const discountOre = pointsToUse * 100;
   const shippingOre = 4900;
-  const totalOre = product ? Math.max(product.price_dkk + shippingOre - discountOre, 0) : 0;
+  const totalOre = Math.max(price.min + shippingOre - discountOre, 0);
 
   // ---- Order placed (Figma 14) ----
   if (orderResult) {
@@ -158,7 +165,7 @@ export default function CheckoutPage() {
             name: orderResult.product_name,
             brand: orderResult.brand_name,
             size: selectedSize || null,
-            priceOre: product?.price_dkk ?? 0,
+            priceOre: orderResult.unit_price_dkk,
             image: product?.images?.[0] ?? null,
           },
         ]}
@@ -200,7 +207,7 @@ export default function CheckoutPage() {
               {[selectedSize && `Size ${selectedSize}`, selectedColor].filter(Boolean).join(' · ') || 'Select options below'}
             </p>
           </div>
-          <span className="text-body text-on-primary">{formatDKK(product.price_dkk)}</span>
+          <span className="text-body text-on-primary">{formatPriceRange(price)}</span>
         </DarkCard>
 
         {/* Size */}
@@ -249,7 +256,7 @@ export default function CheckoutPage() {
 
         <SummaryCard
           rows={[
-            { label: 'Subtotal', valueOre: product.price_dkk },
+            { label: 'Subtotal', valueOre: price.min },
             { label: 'Delivery', valueOre: shippingOre },
             ...(pointsToUse > 0 ? [{ label: `Flayms (−${pointsToUse})`, valueOre: -discountOre, accent: true }] : []),
           ]}

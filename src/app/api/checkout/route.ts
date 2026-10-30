@@ -5,6 +5,7 @@ import { sendOrderConfirmation, sendNewOrderToBrand } from '@/lib/email';
 import { ATTRIBUTION_WINDOW_DAYS, findAttributingScan } from '@/lib/attribution';
 import { recordEvent } from '@/lib/events';
 import { isSoldOut } from '@/lib/stock';
+import { priceRange } from '@/lib/pricing';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -45,17 +46,25 @@ export async function POST(request: NextRequest) {
 
   const { data: variants } = await admin
     .from('product_variants')
-    .select('size, color, stock_count')
+    .select('size, color, stock_count, price_dkk')
     .eq('product_id', product_id);
   if (isSoldOut(variants ?? [], size || null, color || null)) {
     return NextResponse.json({ error: `Size ${size} is sold out` }, { status: 409 });
   }
 
+  // The price comes from the variant (or the product's base price), never from
+  // the browser. If the size/colour sent doesn't pin down one price, ask for it.
+  const price = priceRange(product.price_dkk, variants ?? [], size || null, color || null);
+  if (price.min !== price.max) {
+    return NextResponse.json({ error: 'Pick a size and colour' }, { status: 400 });
+  }
+  const unitPriceOre = price.min;
+
   const { data: balanceResult } = await admin.rpc('get_points_balance', { p_user_id: user.id });
   const pointsBalance = balanceResult ?? 0;
   const pointsToUse = Math.min(Math.max(points_to_use || 0, 0), pointsBalance);
   const discountOre = pointsToUse * 100;
-  const totalOre = Math.max(product.price_dkk - discountOre, 0);
+  const totalOre = Math.max(unitPriceOre - discountOre, 0);
 
   const { data: order, error: orderError } = await admin
     .from('orders')
@@ -99,7 +108,7 @@ export async function POST(request: NextRequest) {
     size: size || null,
     color: color || null,
     quantity: 1,
-    unit_price_dkk: product.price_dkk,
+    unit_price_dkk: unitPriceOre,
   }).select('id').single();
 
   await admin.from('order_events').insert({
@@ -130,7 +139,7 @@ export async function POST(request: NextRequest) {
     scan: recentScan,
     orderId: order.id,
     orderItemId: orderItem?.id,
-    unitPriceOre: product.price_dkk,
+    unitPriceOre,
   });
 
   if (recentScan) {
@@ -144,7 +153,7 @@ export async function POST(request: NextRequest) {
       source_retailer_id: recentScan.source_retailer_id,
       source_user_id: recentScan.source_user_id,
       commission_rate: isPeer ? null : 1500,
-      commission_amount_dkk: isPeer ? null : Math.round(product.price_dkk * 0.15),
+      commission_amount_dkk: isPeer ? null : Math.round(unitPriceOre * 0.15),
       points_amount: isPeer ? 50 : null,
       status: 'pending',
       attribution_window_expires_at: new Date(
@@ -229,5 +238,6 @@ export async function POST(request: NextRequest) {
     order_number: order.order_number,
     brand_name: product.brand_profiles.name,
     product_name: product.name,
+    unit_price_dkk: unitPriceOre,
   });
 }
