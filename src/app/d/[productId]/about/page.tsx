@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase-admin';
 import BackButton from '@/components/consumer/back-button';
+import { AboutTabBar } from '@/components/consumer/about-tab-bar';
 
 // Figma 12 "About (DPP)". Public like the product page, so a shopper who
 // scanned a tag can read it before signing up. Only `materials` and the
@@ -32,7 +33,7 @@ export default async function ProductAboutPage({ params }: { params: { productId
   const brand = product.brand_profiles as unknown as { name: string; description: string | null };
 
   return (
-    <div className="mx-auto min-h-screen max-w-lg bg-canvas-dark px-5 pb-12 font-brand text-on-primary">
+    <div className="mx-auto min-h-screen max-w-lg bg-canvas-dark px-5 pb-28 font-brand text-on-primary">
       <header className="grid h-[52px] grid-cols-[1fr_auto_1fr] items-end pb-1">
         <BackButton fallbackHref={`/d/${product.id}`} />
         <h1 className="font-brand text-title font-normal uppercase leading-none tracking-[0.4px]">About</h1>
@@ -61,6 +62,7 @@ export default async function ProductAboutPage({ params }: { params: { productId
           ›
         </span>
       </div>
+      <AboutTabBar />
     </div>
   );
 }
