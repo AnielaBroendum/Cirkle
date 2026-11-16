@@ -24,7 +24,7 @@ export default function Home() {
           <p className="text-caption italic tracking-[3.6px]">FORWARD</p>
         </div>
 
-        <p className="mb-5 text-center text-body-sm">Scan it. Save it. Pass it on.</p>
+        <p className="mb-5 text-center text-body-sm">Fashion worth wanting.</p>
 
         <div className="space-y-3">
           {ROLES.map(({ role, label, tone }) => (

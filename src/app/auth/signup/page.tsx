@@ -171,7 +171,7 @@ export default function SignUpPage() {
     <AuthShell
       eyebrow="Flaym"
       title="Create account"
-      intro="Scan it. Save it. Pass it on."
+      intro="Fashion worth wanting."
     >
       <Suspense>
         <SignUpForm />
