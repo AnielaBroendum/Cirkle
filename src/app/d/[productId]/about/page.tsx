@@ -52,7 +52,7 @@ export default async function ProductAboutPage({ params }: { params: { productId
         {product.description || brand.description}
       </Section>
 
-      <div className="mt-10 flex items-center justify-between gap-3 border border-line-dark-subtle bg-surface-dark p-[15px]">
+      <div className="mt-10 flex items-center justify-between gap-3 border border-line-dark-subtle bg-surface-dark p-[14px]">
         <div>
           <p className="text-body text-on-primary">Repair and care</p>
           <p className="mt-1 text-caption text-smoke">Repair and care guides are coming soon.</p>

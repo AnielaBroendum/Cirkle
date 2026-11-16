@@ -78,7 +78,7 @@ export default function FlaymsPage() {
 
       {/* Passed on · Lit */}
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <Card tone="app" padding="none" className="h-[104px] p-[15px]">
+        <Card tone="app" padding="none" className="h-[104px] p-[14px]">
           <p className="text-[40px] font-medium leading-none text-on-primary">{stats ? stats.passedOn : '–'}</p>
           <p className="mt-4 text-label uppercase text-smoke">Passed on</p>
         </Card>
