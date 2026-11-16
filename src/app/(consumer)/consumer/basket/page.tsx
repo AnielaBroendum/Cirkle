@@ -46,7 +46,7 @@ export default function BasketPage() {
           <p className="font-brand text-title uppercase tracking-[0.4px] text-on-primary">Your basket is empty</p>
           <p className="mt-3 max-w-[260px] text-body text-ash">Scan a Flaym tag in a store, or open something you saved.</p>
           <div className="mt-8 flex w-full max-w-[280px] flex-col gap-2.5">
-            <button type="button" onClick={() => router.push('/consumer/home')} className={buttonClasses({ variant: 'accent', fullWidth: true })}>
+            <button type="button" onClick={() => router.push('/consumer/home')} className={buttonClasses({ variant: 'flame', fullWidth: true })}>
               Scan a tag
             </button>
             <button
