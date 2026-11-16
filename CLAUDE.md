@@ -187,6 +187,15 @@ src/
 - Use Supabase's `createServerClient` in server components and API routes
 - Use Supabase's `createBrowserClient` in client components
 
+### Redesign rules (Figma v2 consumer app, branch `figma-v2-consumer`)
+
+Work plan and screen checklist: `FIGMA-V2.md`.
+
+- UI only. No changes to data, the database or migrations, API routes, auth or business logic. If a screen needs any of those, list it in `FIGMA-V2.md` and ask first.
+- Only the consumer app (PWA) is in scope. The Brand and Retail portals must look and behave exactly as before, so don't change shared ds components or tokens in a way that shows up there.
+- Use the design tokens in `tailwind.config.ts` and the components in `src/components/ds` (below). No hard-coded colours.
+- Commit after each finished part.
+
 ### Design system (Flaym)
 
 The UI follows the Flaym Figma file. Use only these tokens (defined in `tailwind.config.ts`) and the components in `src/components/ds/`. Tailwind's default palette (`gray-*`, `red-*`, etc.) is not part of the design.
