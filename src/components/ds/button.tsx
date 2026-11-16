@@ -1,13 +1,16 @@
 import { forwardRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from './cn';
+import { flameSurface } from './surfaces';
 
-export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost';
+export type ButtonVariant = 'primary' | 'accent' | 'flame' | 'secondary' | 'ghost';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-primary text-on-primary hover:bg-primary/90',
   accent: 'bg-accent text-on-primary hover:bg-accent/90',
+  // Figma v2 consumer CTA. Portals keep primary/accent.
+  flame: `${flameSurface} hover:brightness-110`,
   secondary: 'border border-line bg-surface text-primary hover:border-primary',
   ghost: 'text-primary hover:bg-surface-muted',
 };
