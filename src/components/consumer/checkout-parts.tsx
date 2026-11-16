@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Apple, CreditCard, Loader2, Minus, Plus, Smartphone } from 'lucide-react';
-import { cn, flameSurface } from '@/components/ds';
+import { BottomNav, cn, flameSurface } from '@/components/ds';
+import { consumerTabs } from './tab-items';
 import { formatDKK } from '@/lib/utils';
 
 // Shared pieces for the Figma 05 Basket / 06 Checkout / 14 Order placed screens.
@@ -199,6 +200,7 @@ export function BottomAction({
   type = 'button',
   onClick,
   href,
+  aboveNav,
 }: {
   note?: React.ReactNode;
   children: React.ReactNode;
@@ -207,6 +209,8 @@ export function BottomAction({
   type?: 'button' | 'submit';
   onClick?: () => void;
   href?: string;
+  /** Sit on top of the tab bar instead of the screen edge (Figma 14 keeps the tab bar). */
+  aboveNav?: boolean;
 }) {
   const cls =
     cn(
@@ -214,7 +218,12 @@ export function BottomAction({
       flameSurface
     );
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 bg-canvas-dark pb-[env(safe-area-inset-bottom)]">
+    <div
+      className={cn(
+        'fixed inset-x-0 z-40 bg-canvas-dark',
+        aboveNav ? 'bottom-[calc(4rem+env(safe-area-inset-bottom))]' : 'bottom-0 pb-[env(safe-area-inset-bottom)]'
+      )}
+    >
       <div className="mx-auto max-w-lg px-5 pb-4 pt-3">
         {note && <p className="mb-3 text-center text-label tracking-normal text-smoke">{note}</p>}
         {href ? (
@@ -247,7 +256,7 @@ export function OrderPlaced({
   note?: React.ReactNode;
 }) {
   return (
-    <div className="px-5 pb-28 pt-[117px] text-center">
+    <div className="px-5 pb-44 pt-[117px] text-center">
       <div className="mx-auto grid h-[88px] w-[88px] place-items-center border-[3px] border-accent text-[40px] leading-none text-accent">
         ✓
       </div>
@@ -272,7 +281,12 @@ export function OrderPlaced({
         ))}
       </ul>
       {note && <div className="mt-4 text-caption text-ash">{note}</div>}
-      <BottomAction href={orderHref}>Follow your order</BottomAction>
+      <BottomAction href={orderHref} aboveNav>
+        Follow your order
+      </BottomAction>
+      {/* Figma v2 14 keeps the tab bar, Profile active (orders live under Profile).
+          The checkout route hides the layout's tab bar, so the placed screen adds its own. */}
+      <BottomNav items={consumerTabs({ profileMatch: ['/consumer/checkout'] })} />
     </div>
   );
 }
