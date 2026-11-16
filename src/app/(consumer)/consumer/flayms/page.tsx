@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { Logo, cn } from '@/components/ds';
+import { Card, Logo, cn } from '@/components/ds';
 import { FlameIcon, Thumb } from '@/components/consumer/checkout-parts';
 import { timeAgo } from '@/components/consumer/time-ago';
 import type { FlaymsStats } from '@/components/consumer/use-flayms';
@@ -78,14 +78,14 @@ export default function FlaymsPage() {
 
       {/* Passed on · Lit */}
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="h-[104px] bg-surface-dark p-4">
+        <Card tone="app" padding="none" className="h-[104px] p-[15px]">
           <p className="text-[40px] font-medium leading-none text-on-primary">{stats ? stats.passedOn : '–'}</p>
           <p className="mt-4 text-label uppercase text-smoke">Passed on</p>
-        </div>
-        <div className="h-[104px] bg-accent p-4 text-on-primary">
+        </Card>
+        <Card tone="flame" padding="none" className="h-[104px] p-[15px]">
           <p className="text-[40px] font-medium leading-none">{stats ? stats.lit : '–'}</p>
           <p className="mt-4 text-label uppercase">Lit</p>
-        </div>
+        </Card>
       </div>
       <p className="mt-4 text-caption text-ash">A flame is lit when someone buys something you passed on.</p>
 
@@ -114,7 +114,7 @@ export default function FlaymsPage() {
           ))}
         </div>
       ) : stats.latest.length === 0 ? (
-        <div className="mt-3 bg-surface-dark p-4">
+        <div className="mt-3 border border-line-dark-subtle bg-surface-dark p-4">
           <p className="text-body text-on-primary">Nothing passed on yet</p>
           <p className="mt-1 text-caption text-smoke">
             When something you own arrives, let a friend scan its code from{' '}
