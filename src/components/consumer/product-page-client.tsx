@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Share2, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
-import { BottomNav, Toast, cn } from '@/components/ds';
+import { BottomNav, Toast, cn, flameSurface } from '@/components/ds';
 import { addToBasket } from './basket-store';
 import { consumerTabs } from './tab-items';
 import { BrandStoriesViewer, type BrandStory } from './brand-stories-viewer';
@@ -491,7 +491,7 @@ export default function ProductPageClient({
           <a
             href={buyHref}
             onClick={handleBuyToBasket}
-            className="flex h-[52px] flex-1 items-center justify-center bg-accent text-body-lg font-medium text-on-primary transition-colors hover:bg-accent/90"
+            className={cn('flex h-[52px] flex-1 items-center justify-center text-body-lg font-medium uppercase tracking-[0.8px] transition-[filter] hover:brightness-110', flameSurface)}
           >
             Buy
           </a>
@@ -499,7 +499,7 @@ export default function ProductPageClient({
             type="button"
             onClick={handleSave}
             disabled={saving || saved || !hydrated}
-            className="flex h-[52px] flex-1 items-center justify-center gap-2 border border-char text-body-lg font-medium text-on-primary transition-colors hover:border-on-primary disabled:hover:border-char"
+            className="flex h-[52px] flex-1 items-center justify-center gap-2 border border-char text-body-lg font-medium uppercase tracking-[0.8px] text-on-primary transition-colors hover:border-on-primary disabled:hover:border-char"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? 'Saved ✓' : 'Save'}
           </button>

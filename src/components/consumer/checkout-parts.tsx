@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Apple, CreditCard, Loader2, Minus, Plus, Smartphone } from 'lucide-react';
-import { cn } from '@/components/ds';
+import { BottomNav, cn, flameSurface } from '@/components/ds';
+import { consumerTabs } from './tab-items';
 import { formatDKK } from '@/lib/utils';
 
 // Shared pieces for the Figma 05 Basket / 06 Checkout / 14 Order placed screens.
@@ -31,7 +32,8 @@ export function ScreenHeader({ title, onBack, right }: { title: string; onBack?:
 }
 
 export function DarkCard({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cn('bg-surface-dark p-4', className)}>{children}</div>;
+  // Figma v2 card on the dark page: 1px white-6% border, content 15px from the edge.
+  return <div className={cn('border border-line-dark-subtle bg-surface-dark p-[14px]', className)}>{children}</div>;
 }
 
 export function Eyebrow({ className, children }: { className?: string; children: React.ReactNode }) {
@@ -106,9 +108,9 @@ export function PaymentPicker({ value, onChange }: { value: PaymentMethod; onCha
         {METHODS.map((m) => {
           const on = value === m.id;
           return (
-            <label key={m.id} className={cn('flex h-14 cursor-pointer items-center gap-3.5 bg-surface-dark px-4', on && 'outline outline-1 outline-accent/40')}>
+            <label key={m.id} className="flex h-14 cursor-pointer items-center gap-3.5 border border-line-dark-subtle bg-surface-dark px-[14px]">
               <input type="radio" name="payment" value={m.id} checked={on} onChange={() => onChange(m.id)} className="sr-only" />
-              <span className="grid h-6 w-9 place-items-center rounded bg-on-primary/10 text-on-primary">
+              <span className="grid h-6 w-9 place-items-center bg-on-primary/10 text-on-primary">
                 <m.icon className="h-4 w-4" />
               </span>
               <span className="flex-1 text-body text-on-primary">{m.label}</span>
@@ -189,7 +191,7 @@ export function SummaryCard({ rows, totalOre }: { rows: { label: string; valueOr
   );
 }
 
-/** Fixed bottom action (Figma 52px Flaym-orange button). */
+/** Fixed bottom action (Figma v2 52px flame-gradient button). */
 export function BottomAction({
   note,
   children,
@@ -198,6 +200,7 @@ export function BottomAction({
   type = 'button',
   onClick,
   href,
+  aboveNav,
 }: {
   note?: React.ReactNode;
   children: React.ReactNode;
@@ -206,11 +209,21 @@ export function BottomAction({
   type?: 'button' | 'submit';
   onClick?: () => void;
   href?: string;
+  /** Sit on top of the tab bar instead of the screen edge (Figma 14 keeps the tab bar). */
+  aboveNav?: boolean;
 }) {
   const cls =
-    'flex h-[52px] w-full items-center justify-center gap-2 bg-accent text-body-lg font-medium text-on-primary transition-colors hover:bg-accent/90 disabled:opacity-50';
+    cn(
+      'flex h-[52px] w-full items-center justify-center gap-2 text-body-lg font-medium uppercase tracking-[0.8px] transition-[filter] hover:brightness-110 disabled:opacity-50',
+      flameSurface
+    );
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 bg-canvas-dark pb-[env(safe-area-inset-bottom)]">
+    <div
+      className={cn(
+        'fixed inset-x-0 z-40 bg-canvas-dark',
+        aboveNav ? 'bottom-[calc(4rem+env(safe-area-inset-bottom))]' : 'bottom-0 pb-[env(safe-area-inset-bottom)]'
+      )}
+    >
       <div className="mx-auto max-w-lg px-5 pb-4 pt-3">
         {note && <p className="mb-3 text-center text-label tracking-normal text-smoke">{note}</p>}
         {href ? (
@@ -243,8 +256,8 @@ export function OrderPlaced({
   note?: React.ReactNode;
 }) {
   return (
-    <div className="px-5 pb-28 pt-[117px] text-center">
-      <div className="mx-auto grid h-[88px] w-[88px] place-items-center rounded-pill border-[3px] border-accent text-[40px] leading-none text-accent">
+    <div className="px-5 pb-44 pt-[117px] text-center">
+      <div className="mx-auto grid h-[88px] w-[88px] place-items-center border-[3px] border-accent text-[40px] leading-none text-accent">
         ✓
       </div>
       <h1 className="mt-6 font-brand text-[24px] font-normal uppercase tracking-[0.5px] text-on-primary">Order placed</h1>
@@ -256,7 +269,7 @@ export function OrderPlaced({
       )}
       <ul className="mt-6 space-y-2 text-left">
         {items.map((item, i) => (
-          <li key={i} className="flex items-center gap-3.5 bg-surface-dark p-4">
+          <li key={i} className="flex items-center gap-3.5 border border-line-dark-subtle bg-surface-dark p-[14px]">
             <Thumb src={item.image} alt={item.name} className="h-[70px] w-14" />
             <div className="min-w-0">
               <p className="truncate text-body text-on-primary">{item.name}</p>
@@ -268,7 +281,12 @@ export function OrderPlaced({
         ))}
       </ul>
       {note && <div className="mt-4 text-caption text-ash">{note}</div>}
-      <BottomAction href={orderHref}>Follow your order</BottomAction>
+      <BottomAction href={orderHref} aboveNav>
+        Follow your order
+      </BottomAction>
+      {/* Figma v2 14 keeps the tab bar, Profile active (orders live under Profile).
+          The checkout route hides the layout's tab bar, so the placed screen adds its own. */}
+      <BottomNav items={consumerTabs({ profileMatch: ['/consumer/checkout'] })} />
     </div>
   );
 }

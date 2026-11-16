@@ -15,7 +15,7 @@ export function ConsentCard({
   disabled?: boolean;
 }) {
   return (
-    <ul className="divide-y divide-line-dark bg-surface-dark px-4">
+    <ul className="divide-y divide-line-dark border border-line-dark-subtle bg-surface-dark px-[14px]">
       <ConsentRow kind="chain" aside={<span className="text-caption text-smoke">Always on</span>} />
       {OPTIONAL_CONSENTS.map((kind) => (
         <ConsentRow

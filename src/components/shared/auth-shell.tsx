@@ -16,7 +16,7 @@ export function AuthShell({ eyebrow, title, intro, children }: AuthShellProps) {
       <Link
         href="/"
         aria-label="Flaym home"
-        className="flex h-40 shrink-0 flex-col items-center justify-center gap-2 bg-flaym-gradient lg:sticky lg:top-0 lg:h-screen lg:w-1/2 lg:gap-5"
+        className="flex h-40 shrink-0 flex-col items-center justify-center gap-2 bg-flaym-welcome lg:sticky lg:top-0 lg:h-screen lg:w-1/2 lg:gap-5"
       >
         <Logo height={40} className="lg:hidden" />
         <Logo height={106} className="hidden lg:inline-block" />

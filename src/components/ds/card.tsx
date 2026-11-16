@@ -1,18 +1,28 @@
 import { cn } from './cn';
+import { flameSurface } from './surfaces';
 
 type CardProps = React.HTMLAttributes<HTMLDivElement> & {
   padding?: 'none' | 'sm' | 'md' | 'lg';
-  tone?: 'light' | 'dark';
+  /** light/dark: portals. app: card on the consumer app's dark page. flame: highlight tile or banner (Figma v2). */
+  tone?: 'light' | 'dark' | 'app' | 'flame';
 };
 
 const PADDING = { none: '', sm: 'p-3', md: 'p-5', lg: 'p-7' };
+
+const TONES = {
+  light: 'border-line bg-surface text-primary',
+  dark: 'border-primary bg-primary text-on-primary',
+  app: 'border-line-dark-subtle bg-surface-dark text-on-primary',
+  // bg-origin-border: paint the gradient under the transparent border, so it doesn't repeat at the edges.
+  flame: `border-transparent bg-origin-border ${flameSurface}`,
+};
 
 export function Card({ padding = 'md', tone = 'light', className, ...props }: CardProps) {
   return (
     <div
       className={cn(
         'rounded-control border font-brand',
-        tone === 'light' ? 'border-line bg-surface text-primary' : 'border-primary bg-primary text-on-primary',
+        TONES[tone],
         PADDING[padding],
         className
       )}

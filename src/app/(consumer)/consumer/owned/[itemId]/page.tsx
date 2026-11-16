@@ -87,7 +87,7 @@ export default function OwnedItemPage() {
         </p>
         <Link
           href={item ? `/consumer/orders/${item.orders.id}` : '/consumer/profile'}
-          className={buttonClasses({ variant: 'accent', className: 'mt-8 w-full max-w-[280px]' })}
+          className={buttonClasses({ variant: 'flame', className: 'mt-8 w-full max-w-[280px]' })}
         >
           {item ? 'Follow your order' : 'Back to Profile'}
         </Link>
@@ -116,18 +116,18 @@ export default function OwnedItemPage() {
       <div className="px-5 pt-[18px]">
         <p className="text-label uppercase text-smoke">{item.products?.brand_profiles?.name}</p>
         <h1 className="mt-1.5 font-brand text-heading-lg font-normal uppercase text-on-primary">{item.product_name}</h1>
-        <span className="mt-3 inline-block rounded-pill bg-accent-subtle px-2.5 py-0.5 text-caption font-medium text-accent-strong">
+        <span className="mt-3 inline-block bg-accent-tint px-2.5 py-0.5 text-caption font-medium text-accent">
           Owned since {new Date(deliveredAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
         </span>
 
-        <dl className="mt-3.5 space-y-2.5 bg-surface-dark p-4 text-body-sm">
+        <dl className="mt-3.5 space-y-2.5 border border-line-dark-subtle bg-surface-dark p-[14px] text-body-sm">
           <div className="flex justify-between">
             <dt className="text-smoke">Passed on</dt>
             <dd className="text-on-primary">{stats ? `${productStats.passedOn} ${productStats.passedOn === 1 ? 'time' : 'times'}` : '–'}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-smoke">Flames lit</dt>
-            <dd className="text-accent">{stats ? productStats.lit : '–'}</dd>
+            <dd className="text-accent-bright">{stats ? productStats.lit : '–'}</dd>
           </div>
           {boughtAt && (
             <div className="flex justify-between">
@@ -146,7 +146,7 @@ export default function OwnedItemPage() {
         <div className="mx-auto max-w-lg px-5 pb-2 pt-3">
           <Link
             href={`/consumer/qr?order=${item.orders.id}&product=${item.product_id}`}
-            className="flex h-[52px] w-full items-center justify-center bg-accent text-body-lg font-medium text-on-primary hover:bg-accent/90"
+            className={buttonClasses({ variant: 'flame', fullWidth: true, className: 'h-[52px] text-body-lg' })}
           >
             Pass it on
           </Link>

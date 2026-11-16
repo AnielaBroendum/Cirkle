@@ -132,7 +132,7 @@ export default function RequestReturnPage() {
           <p className="mt-3 max-w-[260px] text-body text-ash">
             {order ? 'You can request a return once your order has arrived.' : 'It may belong to another account, or the link is wrong.'}
           </p>
-          <Link href={order ? `/consumer/orders/${order.id}` : '/consumer/orders'} className={buttonClasses({ variant: 'accent', className: 'mt-8 w-full max-w-[280px]' })}>
+          <Link href={order ? `/consumer/orders/${order.id}` : '/consumer/orders'} className={buttonClasses({ variant: 'flame', className: 'mt-8 w-full max-w-[280px]' })}>
             {order ? 'Back to your order' : 'See your orders'}
           </Link>
         </div>
@@ -145,7 +145,7 @@ export default function RequestReturnPage() {
   if (sent) {
     return (
       <div className="px-5 pb-28 pt-[117px] text-center">
-        <div className="mx-auto grid h-[88px] w-[88px] place-items-center rounded-pill border-[3px] border-accent text-[40px] leading-none text-accent">✓</div>
+        <div className="mx-auto grid h-[88px] w-[88px] place-items-center border-[3px] border-accent text-[40px] leading-none text-accent">✓</div>
         <h1 className="mt-6 font-brand text-[24px] font-normal uppercase tracking-[0.5px] text-on-primary">Return requested</h1>
         <p className="mx-auto mt-4 max-w-[280px] text-body text-ash">
           {brand} will review it. Flaym refunds you once the brand approves.
@@ -181,7 +181,7 @@ export default function RequestReturnPage() {
             return (
               <li key={item.id}>
                 {pickable ? (
-                  <button type="button" onClick={() => setItemId(item.id)} className="flex w-full items-center gap-3.5 bg-surface-dark p-3 hover:outline hover:outline-1 hover:outline-char">
+                  <button type="button" onClick={() => setItemId(item.id)} className="flex w-full items-center gap-3.5 border border-line-dark-subtle bg-surface-dark p-[11px] hover:border-char">
                     {content}
                   </button>
                 ) : (
@@ -199,7 +199,7 @@ export default function RequestReturnPage() {
         )}
 
         {already ? (
-          <div className="mt-6 bg-surface-dark p-4">
+          <div className="mt-6 border border-line-dark-subtle bg-surface-dark p-[14px]">
             <p className="text-label uppercase text-smoke">Already requested</p>
             <p className="mt-2 text-body text-on-primary">{STATUS_TEXT[already.status] ?? already.status}</p>
             <p className="mt-1 text-caption text-smoke">
@@ -215,7 +215,7 @@ export default function RequestReturnPage() {
                   {REASONS.map((r) => {
                     const on = reason === r.id;
                     return (
-                      <label key={r.id} className={cn('flex h-[50px] cursor-pointer items-center justify-between bg-surface-dark px-4', on && 'outline outline-1 outline-accent/40')}>
+                      <label key={r.id} className="flex h-[50px] cursor-pointer items-center justify-between border border-line-dark-subtle bg-surface-dark px-[14px]">
                         <input
                           type="radio"
                           name="reason"

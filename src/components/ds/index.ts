@@ -4,6 +4,7 @@ export { Logo } from './logo';
 export { Button, buttonClasses, type ButtonProps, type ButtonVariant, type ButtonSize } from './button';
 export { Field, Input, Textarea, Select, Checkbox, Toggle, controlClasses } from './form';
 export { Card, CardHeader } from './card';
+export { flameSurface } from './surfaces';
 export { Badge, StatusPill, statusTone, type BadgeTone } from './badge';
 export { Avatar } from './avatar';
 export { Modal } from './modal';

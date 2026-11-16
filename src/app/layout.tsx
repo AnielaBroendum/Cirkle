@@ -14,7 +14,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Flaym — Scan it. Save it. Pass it on.',
+  title: 'Flaym — Fashion worth wanting.',
   description: 'Scan, discover and buy fashion from your favourite brands, in stores and from friends.',
   manifest: '/manifest.json',
   icons: {

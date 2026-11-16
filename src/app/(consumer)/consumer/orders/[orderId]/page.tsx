@@ -130,7 +130,7 @@ export default function OrderDetailPage() {
         <div className="flex flex-col items-center px-5 pt-24 text-center">
           <p className="font-brand text-title uppercase tracking-[0.4px] text-on-primary">Order not found</p>
           <p className="mt-3 max-w-[260px] text-body text-ash">It may belong to another account, or the link is wrong.</p>
-          <Link href="/consumer/orders" className={buttonClasses({ variant: 'accent', className: 'mt-8 w-full max-w-[280px]' })}>
+          <Link href="/consumer/orders" className={buttonClasses({ variant: 'flame', className: 'mt-8 w-full max-w-[280px]' })}>
             See your orders
           </Link>
         </div>
@@ -163,13 +163,13 @@ export default function OrderDetailPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/icons/flame-white.svg" alt="" width={18} height={26} className="absolute right-3.5 top-3.5" />
             </div>
-            <span className="mt-6 inline-block rounded-pill bg-accent-subtle px-2.5 py-0.5 text-caption font-medium text-accent-strong">Moved to Owned</span>
+            <span className="mt-6 inline-block bg-accent-tint px-2.5 py-0.5 text-caption font-medium text-accent">Moved to Owned</span>
             <p className="mt-4 text-body text-ash">
               When someone asks,
               <br />
               pass the flame on.
             </p>
-            <a href="#pass-it-on" className="mt-8 flex h-[52px] w-full items-center justify-center bg-accent text-body-lg font-medium text-on-primary hover:bg-accent/90">
+            <a href="#pass-it-on" className={buttonClasses({ variant: 'flame', fullWidth: true, className: 'mt-8 h-[52px] text-body-lg' })}>
               Pass it on
             </a>
             {deliveredAt && <p className="mt-3 text-caption text-smoke">Delivered {new Date(deliveredAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</p>}
@@ -217,15 +217,15 @@ export default function OrderDetailPage() {
 
         {/* Live map: Phase 2 in Figma */}
         {!delivered && !cancelled && (
-          <div className="mt-6 flex flex-col items-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-char px-4 py-5 text-center">
+          <div className="mt-6 flex flex-col items-center gap-2 border-[1.5px] border-dashed border-char px-4 py-5 text-center">
             <p className="text-body-sm text-ash">Live map if the carrier supports it</p>
-            <span className="rounded-pill bg-warning-subtle px-2 py-0.5 text-label font-medium uppercase text-warning">Phase 2</span>
+            <span className="bg-accent-tint px-[7px] py-0.5 text-label font-semibold uppercase tracking-[0.6px] text-accent">Phase 2</span>
           </div>
         )}
 
         {/* Peer discovery QR (Figma 10b "Pass it on") */}
         {peerQR && peerQR.length > 0 && (
-          <section id="pass-it-on" className="mt-8 scroll-mt-6 bg-surface-dark p-5">
+          <section id="pass-it-on" className="mt-8 scroll-mt-6 border border-line-dark-subtle bg-surface-dark p-5">
             <p className="text-label uppercase text-smoke">Pass it on</p>
             <p className="mt-2 text-body text-ash">Friends scan this code to find it. When they buy, you get 50 Flayms.</p>
             {peerQR.map((qr) => (
@@ -236,7 +236,7 @@ export default function OrderDetailPage() {
                   <button
                     type="button"
                     onClick={() => shareQR(qr.url)}
-                    className="flex h-11 flex-1 items-center justify-center gap-2 bg-accent text-body font-medium text-on-primary hover:bg-accent/90"
+                    className={buttonClasses({ variant: 'flame', className: 'flex-1 text-body' })}
                   >
                     <Share2 className="h-4 w-4" /> Share
                   </button>
@@ -258,7 +258,7 @@ export default function OrderDetailPage() {
           <p className="text-label uppercase text-smoke">Products</p>
           <ul className="mt-3 space-y-2">
             {order.order_items.map((item) => (
-              <li key={item.id} className="flex items-center gap-3.5 bg-surface-dark p-4">
+              <li key={item.id} className="flex items-center gap-3.5 border border-line-dark-subtle bg-surface-dark p-[14px]">
                 <Thumb src={item.products?.images?.[0] ?? null} alt={item.product_name} className="h-[70px] w-14" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-body text-on-primary">{item.product_name}</p>

@@ -87,7 +87,7 @@ export default function ConsumerProfilePage() {
             ))}
           </div>
         ) : owned.length === 0 ? (
-          <div className="bg-surface-dark p-4">
+          <div className="border border-line-dark-subtle bg-surface-dark p-[14px]">
             <p className="text-body text-on-primary">Nothing owned yet</p>
             <p className="mt-1 text-caption text-smoke">Things you buy show up here once they&rsquo;re delivered. Then you can pass them on.</p>
           </div>
@@ -158,7 +158,7 @@ export default function ConsumerProfilePage() {
                 className="mt-1.5 w-full border-b border-line-dark bg-transparent py-2 text-body text-smoke"
               />
             </label>
-            <button type="submit" disabled={saving} className={buttonClasses({ variant: 'accent', fullWidth: true })}>
+            <button type="submit" disabled={saving} className={buttonClasses({ variant: 'flame', fullWidth: true })}>
               {saving ? 'Saving…' : 'Save changes'}
             </button>
           </form>

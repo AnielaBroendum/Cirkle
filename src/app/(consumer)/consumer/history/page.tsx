@@ -137,7 +137,7 @@ export default function ConsumerHistoryPage() {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="bg-surface-dark p-4">
+          <div className="border border-line-dark-subtle bg-surface-dark p-[14px]">
             <p className="text-body text-on-primary">No history yet</p>
             <p className="mt-1 text-caption text-smoke">
               Everything you scan shows up here.{' '}

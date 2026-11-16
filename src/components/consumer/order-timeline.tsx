@@ -67,7 +67,7 @@ export default function OrderTimeline({ events }: { events: OrderEvent[] }) {
                 {isComplete ? (
                   <FlameIcon />
                 ) : (
-                  <span className="h-3.5 w-3.5 rounded-pill border-2 border-char bg-canvas-dark" />
+                  <span className="h-3.5 w-3.5 rounded-pill border-2 border-char bg-primary" />
                 )}
               </span>
               {!isLast && <span className={cn('my-1 w-0.5 flex-1', isComplete && nextComplete ? 'bg-accent' : 'bg-line-dark')} />}

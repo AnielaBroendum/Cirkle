@@ -41,6 +41,15 @@ const SWATCHES = [
   { name: 'warning-text', figma: 'status/warning text', hex: '#8A5200', className: 'bg-warning-text' },
 ];
 
+// Figma v2 consumer app: hard-coded fills in Figma, aliases here (see FIGMA-V2.md).
+const V2_SWATCHES = [
+  { name: 'canvas-dark', figma: 'v2 app page', hex: '#1A1415', className: 'bg-canvas-dark' },
+  { name: 'surface-dark', figma: 'app card', hex: '#3A2F30', className: 'bg-surface-dark' },
+  { name: 'line-dark-subtle', figma: 'v2 card border', hex: 'white 6%', className: 'bg-canvas-dark', inner: 'border border-line-dark-subtle bg-surface-dark' },
+  { name: 'accent-tint', figma: 'v2 tinted pill', hex: 'Flaym 12%', className: 'bg-canvas-dark', inner: 'bg-accent-tint' },
+  { name: 'flame-gradient', figma: 'v2 CTA, highlight', hex: '#FF8A3D → #FF5000 → #D23C00', className: 'bg-flame-gradient' },
+];
+
 const TYPE_SCALE = [
   { token: 'text-display', size: '36px', upper: true },
   { token: 'text-heading-xl', size: '32px', upper: true },
@@ -114,6 +123,54 @@ export function DsPreview() {
                 </div>
               </div>
             ))}
+          </div>
+        </Section>
+
+        <Section title="Consumer app v2">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {V2_SWATCHES.map((s) => (
+              <div key={s.name} className="border border-line bg-surface">
+                <div className={`h-16 border-b border-line p-3 ${s.className}`}>
+                  {s.inner && <div className={`h-full ${s.inner}`} />}
+                </div>
+                <div className="p-3">
+                  <p className="text-body font-medium">{s.name}</p>
+                  <p className="text-caption text-slate">{s.figma}</p>
+                  <p className="text-caption text-slate">{s.hex}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-4 bg-canvas-dark p-5 text-on-primary">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="flame" size="sm">Small</Button>
+              <Button variant="flame">Flame</Button>
+              <Button variant="flame" size="lg">Large</Button>
+              <Button variant="flame" loading>Loading</Button>
+              <Button variant="flame" disabled>Disabled</Button>
+            </div>
+            <Button variant="flame" size="lg" fullWidth className="h-[52px] text-body-lg">Go to checkout</Button>
+            <div className="grid grid-cols-2 gap-3">
+              <Card tone="app" padding="sm">
+                <p className="text-label uppercase text-smoke">Passed on</p>
+                <p className="mt-2 text-heading-xl">23</p>
+              </Card>
+              <Card tone="flame" padding="sm">
+                <p className="text-label uppercase">Lit</p>
+                <p className="mt-2 text-heading-xl">6</p>
+              </Card>
+            </div>
+            <Card tone="flame" padding="sm">
+              <p className="text-label uppercase">Arriving</p>
+              <p className="mt-1 text-title">Thu 16 Oct</p>
+            </Card>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="bg-accent-tint px-2.5 py-1 text-label uppercase text-accent">Moved to Owned</span>
+              <span className="bg-accent-tint px-2.5 py-1 text-label uppercase text-accent">Phase 2</span>
+            </div>
+            <p className="text-caption text-smoke">
+              White on the flame gradient is below WCAG AA for 14–15px labels (2.35–4.79:1). See FIGMA-V2.md.
+            </p>
           </div>
         </Section>
 

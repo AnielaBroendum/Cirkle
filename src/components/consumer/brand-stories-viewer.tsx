@@ -61,7 +61,7 @@ export function BrandStoriesViewer({
       role="dialog"
       aria-modal="true"
       aria-label={`${brand.name} stories`}
-      className="fixed inset-0 z-50 mx-auto max-w-lg bg-canvas-dark font-brand text-on-primary"
+      className="fixed inset-0 z-50 mx-auto max-w-lg bg-flaym-stories font-brand text-on-primary"
       onTouchStart={(e) => (touchY.current = e.touches[0].clientY)}
       onTouchEnd={(e) => {
         if (touchY.current !== null && e.changedTouches[0].clientY - touchY.current > 80) onClose();

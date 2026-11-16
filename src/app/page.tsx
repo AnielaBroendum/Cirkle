@@ -11,7 +11,7 @@ const ROLES = [
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col bg-flaym-gradient font-brand text-on-primary">
+    <main className="flex min-h-screen flex-col bg-flaym-welcome font-brand text-on-primary">
       <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col px-5 pb-8">
         <div className="flex justify-end pt-6">
           <Link href="/auth/login" className="text-body text-on-primary hover:underline">
@@ -24,7 +24,7 @@ export default function Home() {
           <p className="text-caption italic tracking-[3.6px]">FORWARD</p>
         </div>
 
-        <p className="mb-5 text-center text-body-sm">Scan it. Save it. Pass it on.</p>
+        <p className="mb-5 text-center text-body-sm">Fashion worth wanting.</p>
 
         <div className="space-y-3">
           {ROLES.map(({ role, label, tone }) => (

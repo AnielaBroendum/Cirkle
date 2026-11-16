@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase-admin';
 import BackButton from '@/components/consumer/back-button';
+import { AboutTabBar } from '@/components/consumer/about-tab-bar';
 
 // Figma 12 "About (DPP)". Public like the product page, so a shopper who
 // scanned a tag can read it before signing up. Only `materials` and the
@@ -32,7 +33,7 @@ export default async function ProductAboutPage({ params }: { params: { productId
   const brand = product.brand_profiles as unknown as { name: string; description: string | null };
 
   return (
-    <div className="mx-auto min-h-screen max-w-lg bg-canvas-dark px-5 pb-12 font-brand text-on-primary">
+    <div className="mx-auto min-h-screen max-w-lg bg-canvas-dark px-5 pb-28 font-brand text-on-primary">
       <header className="grid h-[52px] grid-cols-[1fr_auto_1fr] items-end pb-1">
         <BackButton fallbackHref={`/d/${product.id}`} />
         <h1 className="font-brand text-title font-normal uppercase leading-none tracking-[0.4px]">About</h1>
@@ -52,15 +53,16 @@ export default async function ProductAboutPage({ params }: { params: { productId
         {product.description || brand.description}
       </Section>
 
-      <div className="mt-10 flex items-center justify-between bg-surface-dark p-4">
+      <div className="mt-10 flex items-center justify-between gap-3 border border-line-dark-subtle bg-surface-dark p-[14px]">
         <div>
           <p className="text-body text-on-primary">Repair and care</p>
           <p className="mt-1 text-caption text-smoke">Repair and care guides are coming soon.</p>
         </div>
-        <span className="text-[16px] text-smoke" aria-hidden>
+        <span className="shrink-0 text-[16px] text-accent" aria-hidden>
           ›
         </span>
       </div>
+      <AboutTabBar />
     </div>
   );
 }
