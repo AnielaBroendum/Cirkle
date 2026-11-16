@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { buttonClasses, cn } from '@/components/ds';
+import { Card, buttonClasses, cn } from '@/components/ds';
 import { ScreenHeader } from '@/components/consumer/checkout-parts';
 import { ACTIVE_STATUSES, expectedDelivery, formatDay, isPastDay } from '@/components/consumer/order-utils';
 
@@ -54,18 +54,18 @@ function OrderCard({ order }: { order: Order }) {
   const count = order.order_items?.length ?? 0;
 
   return (
-    <Link href={`/consumer/orders/${order.id}`} className="block bg-surface-dark p-4 transition-colors hover:bg-surface-dark/80">
+    <Link href={`/consumer/orders/${order.id}`} className="block border border-line-dark-subtle bg-surface-dark p-[14px] transition-colors hover:bg-surface-dark/80">
       <div className="flex items-start justify-between gap-3">
         <p className="min-w-0 truncate text-body text-on-primary">
           {order.brand_profiles?.name ?? order.order_items?.[0]?.product_name ?? 'Order'} · {count} {count === 1 ? 'item' : 'items'}
         </p>
-        <span className="shrink-0 rounded-pill bg-line-dark px-2.5 py-0.5 text-caption font-medium text-on-primary">#{order.order_number}</span>
+        <span className="shrink-0 bg-line-dark px-2.5 py-0.5 text-caption font-medium text-on-primary">#{order.order_number}</span>
       </div>
       <ol className="mt-4 space-y-4">
         {steps.map((s) => (
           <li key={s.label} className="flex gap-3.5">
             <span
-              className={cn('mt-0.5 h-3.5 w-3.5 shrink-0 rounded-pill border-2', s.done ? 'border-accent bg-accent' : 'border-char bg-canvas-dark')}
+              className={cn('mt-0.5 h-3.5 w-3.5 shrink-0 rounded-pill border-2', s.done ? 'border-accent bg-accent' : 'border-char bg-primary')}
               aria-hidden
             />
             <div>
@@ -128,17 +128,17 @@ export default function ConsumerOrdersPage() {
         <div className="flex flex-col items-center px-5 pt-24 text-center">
           <p className="font-brand text-title uppercase tracking-[0.4px] text-on-primary">No orders yet</p>
           <p className="mt-3 max-w-[260px] text-body text-ash">Scan a Flaym tag in a store to discover and buy something.</p>
-          <Link href="/consumer/home" className={buttonClasses({ variant: 'accent', className: 'mt-8 w-full max-w-[280px]' })}>
+          <Link href="/consumer/home" className={buttonClasses({ variant: 'flame', className: 'mt-8 w-full max-w-[280px]' })}>
             Scan a tag
           </Link>
         </div>
       ) : (
         <div className="space-y-4 px-5 pt-5">
           {nextArrival && (
-            <div className="bg-accent px-5 py-5 text-on-primary">
+            <Card tone="flame" padding="none" className="px-[19px] py-[19px]">
               <p className="text-label uppercase">{isPastDay(nextArrival) ? 'Was expected' : 'Arriving'}</p>
               <p className="mt-1 text-[30px] font-medium leading-tight">{formatDay(nextArrival)}</p>
-            </div>
+            </Card>
           )}
           {orders.map((order) => (
             <OrderCard key={order.id} order={order} />
