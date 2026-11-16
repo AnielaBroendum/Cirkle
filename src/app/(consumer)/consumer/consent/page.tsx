@@ -73,7 +73,7 @@ function ConsentScreen() {
 
       {error && <p className="mt-4 text-caption text-accent">{error}</p>}
 
-      <Button variant="accent" size="lg" fullWidth loading={saving} onClick={start} className="mt-auto h-[52px]">
+      <Button variant="flame" size="lg" fullWidth loading={saving} onClick={start} className="mt-auto h-[52px]">
         Start scanning
       </Button>
     </div>

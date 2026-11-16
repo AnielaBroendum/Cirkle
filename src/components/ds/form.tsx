@@ -130,7 +130,7 @@ type ToggleProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   label?: React.ReactNode;
-  /** `dark` is the consumer app switch (Figma App 02): Cinder track, Char knob; Flaym when on. */
+  /** `dark` is the consumer app switch (Figma App 02 v2): square Cinder track, round Char knob; Flaym when on. Consumer only. */
   tone?: 'light' | 'dark';
 };
 
@@ -145,7 +145,8 @@ export function Toggle({ checked, onCheckedChange, label, tone = 'light', classN
         disabled={disabled}
         onClick={() => onCheckedChange(!checked)}
         className={cn(
-          'relative inline-flex shrink-0 items-center rounded-pill border transition-colors',
+          'relative inline-flex shrink-0 items-center border transition-colors',
+          dark ? 'rounded-control' : 'rounded-pill',
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40',
           dark ? 'h-[26px] w-11 border-transparent' : 'h-6 w-11',
           dark
