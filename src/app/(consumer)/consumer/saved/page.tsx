@@ -81,7 +81,7 @@ export default function ConsumerSavedPage() {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="mt-2 bg-surface-dark p-4">
+          <div className="mt-2 border border-line-dark-subtle bg-surface-dark p-[14px]">
             <p className="text-body text-on-primary">Nothing saved yet</p>
             <p className="mt-1 text-caption text-smoke">Scan a Flaym tag and tap Save. The store still gets its cut if you buy within 90 days.</p>
           </div>
@@ -110,7 +110,7 @@ export default function ConsumerSavedPage() {
                     {!expired && (
                       <a
                         href={`/consumer/checkout/${product.id}`}
-                        className="rounded-pill bg-accent px-2.5 py-0.5 text-caption font-medium text-on-primary hover:bg-accent/90"
+                        className="bg-accent px-2.5 py-0.5 text-caption font-medium text-on-primary hover:bg-accent/90"
                       >
                         Buy
                       </a>
