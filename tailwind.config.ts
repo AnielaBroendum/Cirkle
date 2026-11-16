@@ -54,6 +54,7 @@ const config: Config = {
           subtle: '#FFE3D6', //    "New" pill background
           strong: '#B33800', //    "New" pill text
           tint: 'rgb(255 80 0 / 0.12)', // tinted pill on bg-canvas-dark, with text-accent (Figma v2)
+          bright: '#FF6E2B', //  orange text on a surface-dark card: Flaym lightened to 4.61:1 on #3A2F30 (Flaym is 3.9)
         },
         success: {
           DEFAULT: '#2F7D4F', // "Delivered" pill text
@@ -87,7 +88,9 @@ const config: Config = {
       backgroundImage: {
         // Figma v2 accent gradient (CTAs, highlight tiles). Figma's angle varies per box
         // (171.55° on 350×52, 163.13° on 171.5×52 …); each is 180° − atan(h/w), i.e. `to bottom right`.
-        'flame-gradient': 'linear-gradient(to bottom right, #FF8A3D 0%, #FF5000 45.833%, #D23C00 83.333%)',
+        // Stops darkened for WCAG AA (white text ≥ 4.5:1 at every point): Figma's #FF8A3D → #C74F00 (4.62)
+        // and #FF5000 → #D34200 (4.62), same hue and saturation; #D23C00 (4.79) is unchanged. See FIGMA-V2.md.
+        'flame-gradient': 'linear-gradient(to bottom right, #C74F00 0%, #D34200 45.833%, #D23C00 83.333%)',
         'flaym-gradient':
           'linear-gradient(180deg, #D5D1C8 0%, #EE9A6C 50%, #FF5000 70%, #7A2E12 100%)',
         // Figma "App / 03 Scan": backdrop behind the camera view.

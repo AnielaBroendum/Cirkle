@@ -127,7 +127,7 @@ export default function OwnedItemPage() {
           </div>
           <div className="flex justify-between">
             <dt className="text-smoke">Flames lit</dt>
-            <dd className="text-accent">{stats ? productStats.lit : '–'}</dd>
+            <dd className="text-accent-bright">{stats ? productStats.lit : '–'}</dd>
           </div>
           {boughtAt && (
             <div className="flex justify-between">

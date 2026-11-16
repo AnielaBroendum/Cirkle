@@ -73,6 +73,8 @@ Every colour change in v2 is a hard-coded fill. In Figma, only text colours and 
 
 Button labels are 14–15px medium, so they count as normal text and need 4.5:1. White on the flame gradient fails AA, worst at the light top-left corner. The current solid #FF5000 buttons already fail (3.28), so this isn't new, but v2 makes it worse. Possible fixes need a design call: darker gradient stops, Obsidian text on the gradient (7.75 / 5.54 / 3.80), or larger bold labels.
 
+**Fixed (16 Nov 2026):** the app's `bg-flame-gradient` now uses darker stops so white text passes AA everywhere on it: #FF8A3D → **#C74F00** (4.62), #FF5000 → **#D34200** (4.62), #D23C00 unchanged (4.79). Each stop keeps Figma's hue and saturation and is darkened only as far as needed. Orange text on a `surface-dark` card uses the new `accent-bright` **#FF6E2B** (4.61 on #3A2F30, 6.51 on #1A1415), so far only on "Flames lit" (18). Other orange text inside cards still uses `accent` (3.9): the Flayms discount in checkout and on the order summary, and links in empty-state cards. Figma itself is unchanged.
+
 ## b) Screen checklist (21 v2 screens)
 
 Changes that apply to every solid-background screen, written as "**common**" below: page background `canvas-dark` #1A1415, cards get the `border-line-dark-subtle` border, tab-bar icon wrappers go square.
@@ -81,7 +83,7 @@ Changes that apply to every solid-background screen, written as "**common**" bel
 - [x] **02 Consent** (`378:969`): `consumer/consent/page.tsx`, `components/consumer/consent-card.tsx`. **Common**; "Start scanning" → `flame`. v2 toggles are square tracks with a round knob; ds `Toggle` stays the same, so square it locally or add a variant. Done: the `dark` tone (consumer only) has a square track.
 - [x] **03 Scan** (`378:990`): `consumer/home/page.tsx`. `bg-flaym-scan` unchanged. Tab-bar icon wrappers only. Checked: our `BottomNav` has no icon wrappers, so nothing to change.
 - [x] **08 Flayms** (`378:1012`): `consumer/flayms/page.tsx`. **Common**; "Lit" tile `bg-accent` → Card `tone="flame"`; "Passed on" tile gets the border.
-- [x] **12 About (DPP)** (`378:1051`): `d/[productId]/about/page.tsx`. **Common** ("Repair and care" card border). In the v2 mock the repair line runs under the › chevron; keep our layout clear of it. Done: › is Flaym orange as in v2.
+- [x] **12 About (DPP)** (`378:1051`): `d/[productId]/about/page.tsx`. **Common** ("Repair and care" card border). In the v2 mock the repair line runs under the › chevron; keep our layout clear of it. Done: › is Flaym orange as in v2, and signed-in shoppers get the tab bar (Scan active) as in v2.
 - [x] **04b Product page (swipe nudge)** (`378:1078`): `p/[sampleId]/page.tsx`, `d/[productId]/page.tsx`, `components/consumer/product-page-client.tsx` (sets its own `bg-canvas-dark`). **Common**; Buy (hand-built `bg-accent`) → `flame`. Done; Buy and Save labels are uppercase as in v2. Swipe nudge, size chips, sold-out chip and swatches are unchanged.
 - [x] **13 Brand stories** (`378:1125`): `components/consumer/brand-stories-viewer.tsx`. Progress bars and avatar unchanged. Done: the v2 gradient is now the backdrop behind a story (`bg-flaym-stories`, shows while it loads).
 - [x] **05 Basket (several brands)** (`378:1146`): `consumer/basket/page.tsx`, `checkout-parts.tsx` (`SummaryCard`, `BottomAction`). **Common**; "Go to checkout" (`BottomAction`) → `flame`.
