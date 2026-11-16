@@ -95,9 +95,9 @@ Changes that apply to every solid-background screen, written as "**common**" bel
 - [x] **11 Request a return** (`378:1388`): `consumer/orders/[orderId]/return/page.tsx`. **Common** on the 4 reason cards; "Send return request" → `flame`.
 - [x] **07 Order status** (`378:1412`): `consumer/orders/page.tsx`. **Common** on order cards; "Arriving" banner `bg-accent` → Card `tone="flame"`; order-number pills square.
 - [x] **10b Pass it on (from Owned)** (`378:1454`): `consumer/qr/page.tsx` (detail view with `?order=&product=`). Page background only; white "Share link" button unchanged (label now uppercase as in v2). The order page's own pass-it-on section (`orders/[orderId]/page.tsx`, Share = `bg-accent`) → `flame` for consistency.
-- [ ] **19 Profile – Saved** (`378:1468`): `consumer/saved/page.tsx`. **Common**; "Buy" pills stay solid `bg-accent` but go square.
-- [ ] **20 Profile – History** (`378:1514`): `consumer/history/page.tsx`. **Common** only.
-- [ ] **04c Product page (from Saved)** (`378:1681`): same `product-page-client.tsx` via `/d/[productId]`. Same as 04b; "Saved at …" copy already exists.
+- [x] **19 Profile – Saved** (`378:1468`): `consumer/saved/page.tsx`. **Common**; "Buy" pills stay solid `bg-accent` but go square.
+- [x] **20 Profile – History** (`378:1514`): `consumer/history/page.tsx`. **Common** only.
+- [x] **04c Product page (from Saved)** (`378:1681`): same `product-page-client.tsx` via `/d/[productId]`. Same as 04b; "Saved at …" copy already exists.
 
 Also restyle (not a separate v2 screen): `BottomNav` stays `bg-primary`; the `(consumer)/layout.tsx` background follows `canvas-dark` automatically.
 
