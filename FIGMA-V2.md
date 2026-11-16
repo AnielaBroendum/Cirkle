@@ -88,7 +88,7 @@ Changes that apply to every solid-background screen, written as "**common**" bel
 - [x] **13 Brand stories** (`378:1125`): `components/consumer/brand-stories-viewer.tsx`. Progress bars and avatar unchanged. Done: the v2 gradient is now the backdrop behind a story (`bg-flaym-stories`, shows while it loads).
 - [x] **05 Basket (several brands)** (`378:1146`): `consumer/basket/page.tsx`, `checkout-parts.tsx` (`SummaryCard`, `BottomAction`). **Common**; "Go to checkout" (`BottomAction`) → `flame`.
 - [x] **06 Checkout and payment** (`378:1175`): `consumer/checkout/page.tsx`, `consumer/checkout/[productId]/page.tsx`, `checkout-parts.tsx` (`DarkCard`, `DeliverToCard`, `DeliveryCard`, `PaymentPicker`, `FlaymsCard`). **Common** on all five cards; Pay → `flame`; payment logo tiles square.
-- [x] **14 Order placed** (`378:1208`): `OrderPlaced` in `checkout-parts.tsx`. **Common**; "Follow your order" → `flame`; check badge circle → square (keeps 3px #FF5000 border).
+- [x] **14 Order placed** (`378:1208`): `OrderPlaced` in `checkout-parts.tsx`. **Common**; "Follow your order" → `flame`; check badge circle → square (keeps 3px #FF5000 border). Done; the tab bar now shows under "Follow your order" with Profile active, as in v2 (16 Nov 2026).
 - [x] **15 Tracking** (`378:1235`): `consumer/orders/[orderId]/page.tsx` (not-delivered state), `components/consumer/order-timeline.tsx`. **Common**; "Phase 2" pill `bg-warning-subtle text-warning` → `bg-accent-tint text-accent`, square; live-map box square. Timeline colours unchanged; hollow step dots are `bg-primary` (#2C2324) as drawn.
 - [x] **16 Notifications (lock screen)** (`378:1274`): no app screen; these are OS web pushes (`src/lib/push.ts`, `src/lib/order-updates.ts`, `public/sw.js`). Nothing to restyle: the OS draws the notification. The v2 highlight and square cards are mock-only. Ticked with no change.
 - [x] **17 Delivered** (`378:1299`): `consumer/orders/[orderId]/page.tsx` (`status === 'delivered'`). **Common**; "Moved to Owned" pill `bg-accent-subtle` → `bg-accent-tint text-accent`, square; "Pass it on" → `flame`.
@@ -102,6 +102,10 @@ Changes that apply to every solid-background screen, written as "**common**" bel
 - [x] **04c Product page (from Saved)** (`378:1681`): same `product-page-client.tsx` via `/d/[productId]`. Same as 04b; "Saved at …" copy already exists.
 
 Also restyle (not a separate v2 screen): `BottomNav` stays `bg-primary`; the `(consumer)/layout.tsx` background follows `canvas-dark` automatically.
+
+Status bar (not in Figma): `theme-color` was the old #2C2324 everywhere. Consumer screens (`(consumer)`, `p/[sampleId]`, `d/[productId]` layouts) and the PWA `manifest.json` now use #1A1415; the portals keep #2C2324 (16 Nov 2026).
+
+**Final check (16 Nov 2026):** the whole flow was walked at 375 px as the QA shopper (consent → scan → product → save → basket → checkout → order placed → tracking → orders → delivered → owned item → pass it on → return → profile tabs, plus Flayms, About and Brand stories) and compared with each v2 frame. All screens match apart from the section c items and these deliberate differences: Basket and Checkout keep a back arrow and a centred title (v2 Basket has a left-aligned title and no back arrow); prices show as "549 kr" (v2 mocks show "DKK 1.600"); Flayms adds the Flayms balance and an Earned & spent list; the sold-out size chip has a dashed border. No hard-coded colours remain in the consumer app.
 
 ## c) In v2 but not in the app
 
