@@ -38,7 +38,7 @@ Every colour change in v2 is a hard-coded fill. In Figma, only text colours and 
 **Flame gradient:** `#FF8A3D 0%`, `#FF5000 45.833%`, `#D23C00 83.333%`. Figma reports a different CSS angle on each box: 171.55° on 350×52 buttons, 163.13° on the 171.5×52 Buy button, 164.21° on the 350×99 Arriving banner, 168.54° on the 358×73 push card and 148.39° on the 169×104 Lit card. Each angle equals `180° − atan(height / width)`, which is what CSS `linear-gradient(to bottom right, …)` gives. So one token, `linear-gradient(to bottom right, #FF8A3D 0%, #FF5000 45.833%, #D23C00 83.333%)`, matches every box.
 
 **Full-screen gradients (unchanged, 180°):**
-- Welcome (01): #D5D1C8 0%, #F08A55 30%, #FF5000 50%, #8A3414 70%, #2C2324 100%. Our `bg-flaym-gradient` uses the older 4-stop version (#D5D1C8, #EE9A6C 50%, #FF5000 70%, #7A2E12); that difference existed before v2.
+- Welcome (01): #D5D1C8 0%, #F08A55 30%, #FF5000 50%, #8A3414 70%, #2C2324 100%. Done (16 Nov 2026): new token `bg-flaym-welcome` with these stops, used on Welcome and the auth panel (login, signup, invite; the portals v2 login uses the same panel). `bg-flaym-gradient` keeps the older 4-stop version for image placeholders and the portal onboarding panels.
 - Scan (03): #8A3414 0%, #C4501C 30%, #5A2A1C 70%, #2C2324 100% = `bg-flaym-scan`.
 - Brand stories (13): #8A3414 0%, #FF5000 45%, #C4501C 70%, #2C2324 100%.
 - Lock screen (16): #5A2A1C → #2C2324 at 60%.

@@ -91,6 +91,10 @@ const config: Config = {
         // Stops darkened for WCAG AA (white text ≥ 4.5:1 at every point): Figma's #FF8A3D → #C74F00 (4.62)
         // and #FF5000 → #D34200 (4.62), same hue and saturation; #D23C00 (4.79) is unchanged. See FIGMA-V2.md.
         'flame-gradient': 'linear-gradient(to bottom right, #C74F00 0%, #D34200 45.833%, #D23C00 83.333%)',
+        // Figma v2 "App / 01 Welcome and login" (378:956), 180°. Welcome page and the auth panel
+        // (login, signup, invite). flaym-gradient below stays for image placeholders and onboarding.
+        'flaym-welcome':
+          'linear-gradient(180deg, #D5D1C8 0%, #F08A55 30%, #FF5000 50%, #8A3414 70%, #2C2324 100%)',
         'flaym-gradient':
           'linear-gradient(180deg, #D5D1C8 0%, #EE9A6C 50%, #FF5000 70%, #7A2E12 100%)',
         // Figma "App / 03 Scan": backdrop behind the camera view.

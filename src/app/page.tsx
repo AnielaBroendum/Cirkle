@@ -11,7 +11,7 @@ const ROLES = [
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col bg-flaym-gradient font-brand text-on-primary">
+    <main className="flex min-h-screen flex-col bg-flaym-welcome font-brand text-on-primary">
       <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col px-5 pb-8">
         <div className="flex justify-end pt-6">
           <Link href="/auth/login" className="text-body text-on-primary hover:underline">

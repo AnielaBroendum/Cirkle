@@ -9,7 +9,7 @@ const twMerge = extendTailwindMerge({
       'font-size': [
         { text: ['display', 'heading-xl', 'heading-lg', 'title', 'body-lg', 'body', 'body-sm', 'caption', 'label', 'button'] },
       ],
-      'bg-image': [{ bg: ['flaym-gradient', 'flaym-scan', 'flaym-stories', 'flame-gradient'] }],
+      'bg-image': [{ bg: ['flaym-gradient', 'flaym-welcome', 'flaym-scan', 'flaym-stories', 'flame-gradient'] }],
     },
   },
 });
