@@ -172,7 +172,7 @@ function ConsumerQRWalletPage() {
               <button
                 type="button"
                 onClick={() => handleShare(focused)}
-                className="flex h-[52px] w-full items-center justify-center gap-2 bg-on-primary text-body-lg font-medium text-primary hover:bg-on-primary/90"
+                className="flex h-[52px] w-full items-center justify-center gap-2 bg-on-primary text-body-lg font-medium uppercase tracking-[0.8px] text-primary hover:bg-on-primary/90"
               >
                 {copied === focused.key ? (
                   <>
@@ -205,14 +205,14 @@ function ConsumerQRWalletPage() {
             ))}
           </div>
         ) : cards.length === 0 ? (
-          <div className="bg-surface-dark p-4">
+          <div className="border border-line-dark-subtle bg-surface-dark p-[14px]">
             <p className="text-body text-on-primary">No QR codes yet</p>
             <p className="mt-1 text-caption text-smoke">Buy something. Your shareable code appears once it&rsquo;s delivered.</p>
           </div>
         ) : (
           <ul className="space-y-4">
             {cards.map((card) => (
-              <li key={card.key} className="bg-surface-dark">
+              <li key={card.key} className="border border-line-dark-subtle bg-surface-dark">
                 <div className="flex items-center gap-3.5 p-4">
                   <Thumb src={card.image ?? null} alt={card.productName} className="h-[60px] w-12" />
                   <div className="min-w-0 flex-1">
