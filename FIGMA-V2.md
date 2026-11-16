@@ -77,10 +77,10 @@ Button labels are 14–15px medium, so they count as normal text and need 4.5:1.
 
 Changes that apply to every solid-background screen, written as "**common**" below: page background `canvas-dark` #1A1415, cards get the `border-line-dark-subtle` border, tab-bar icon wrappers go square.
 
-- [ ] **01 Welcome and login** (`378:956`): `src/app/page.tsx` (landing + role buttons); `src/app/auth/signup/page.tsx` (`intro`). Copy "Scan it. Save it. Pass it on." → "Fashion worth wanting." in both. Background gradient unchanged. v2 shows Apple / Google / email sign-in instead of our three role buttons (see c).
-- [ ] **02 Consent** (`378:969`): `consumer/consent/page.tsx`, `components/consumer/consent-card.tsx`. **Common**; "Start scanning" → `flame`. v2 toggles are square tracks with a round knob; ds `Toggle` stays the same, so square it locally or add a variant.
-- [ ] **03 Scan** (`378:990`): `consumer/home/page.tsx`. `bg-flaym-scan` unchanged. Tab-bar icon wrappers only.
-- [ ] **08 Flayms** (`378:1012`): `consumer/flayms/page.tsx`. **Common**; "Lit" tile `bg-accent` → Card `tone="flame"`; "Passed on" tile gets the border.
+- [x] **01 Welcome and login** (`378:956`): `src/app/page.tsx` (landing + role buttons); `src/app/auth/signup/page.tsx` (`intro`). Copy "Scan it. Save it. Pass it on." → "Fashion worth wanting." in both. Background gradient unchanged. v2 shows Apple / Google / email sign-in instead of our three role buttons (see c).
+- [x] **02 Consent** (`378:969`): `consumer/consent/page.tsx`, `components/consumer/consent-card.tsx`. **Common**; "Start scanning" → `flame`. v2 toggles are square tracks with a round knob; ds `Toggle` stays the same, so square it locally or add a variant. Done: the `dark` tone (consumer only) has a square track.
+- [x] **03 Scan** (`378:990`): `consumer/home/page.tsx`. `bg-flaym-scan` unchanged. Tab-bar icon wrappers only. Checked: our `BottomNav` has no icon wrappers, so nothing to change.
+- [x] **08 Flayms** (`378:1012`): `consumer/flayms/page.tsx`. **Common**; "Lit" tile `bg-accent` → Card `tone="flame"`; "Passed on" tile gets the border.
 - [ ] **12 About (DPP)** (`378:1051`): `d/[productId]/about/page.tsx`. **Common** ("Repair and care" card border). In the v2 mock the repair line runs under the › chevron; keep our layout clear of it.
 - [ ] **04b Product page (swipe nudge)** (`378:1078`): `p/[sampleId]/page.tsx`, `d/[productId]/page.tsx`, `components/consumer/product-page-client.tsx` (sets its own `bg-canvas-dark`). **Common**; Buy (hand-built `bg-accent`) → `flame`. Swipe nudge, size chips, sold-out chip and swatches are unchanged.
 - [ ] **13 Brand stories** (`378:1125`): `components/consumer/brand-stories-viewer.tsx`. No changes (gradient, progress bars, avatar unchanged).
