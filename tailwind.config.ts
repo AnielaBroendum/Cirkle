@@ -93,6 +93,9 @@ const config: Config = {
         // Figma "App / 03 Scan": backdrop behind the camera view.
         'flaym-scan':
           'linear-gradient(180deg, #8A3414 0%, #C4501C 30%, #5A2A1C 70%, #2C2324 100%)',
+        // Figma v2 "App / 13 Brand stories": backdrop behind a story (shows while it loads).
+        'flaym-stories':
+          'linear-gradient(180deg, #8A3414 0%, #FF5000 45%, #C4501C 70%, #2C2324 100%)',
       },
       borderRadius: {
         // Flaym: square controls, fully rounded pills.
