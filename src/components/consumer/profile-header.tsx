@@ -65,7 +65,7 @@ export default function ProfileHeader({ savedCount }: { savedCount?: number } = 
         </Link>
       </div>
 
-      <nav className="mt-3 flex border-b border-line-dark" aria-label="Profile sections">
+      <nav className="mt-3 flex gap-1 border-b border-line-dark" aria-label="Profile sections">
         {TABS.map((tab) => {
           const on = pathname === tab.href;
           return (
@@ -74,8 +74,9 @@ export default function ProfileHeader({ savedCount }: { savedCount?: number } = 
               href={tab.href}
               aria-current={on ? 'page' : undefined}
               className={cn(
-                '-mb-px border-b px-3.5 pb-2.5 pt-2.5 text-body-sm transition-colors',
-                on ? 'border-accent text-accent' : 'border-transparent text-smoke hover:text-on-primary'
+                // Figma v2 folder tabs: the active one is a raised Obsidian tab with a 2px Flaym underline.
+                '-mb-px border-b-2 px-3.5 pb-[9px] pt-2.5 text-body-sm transition-colors',
+                on ? 'border-accent bg-primary text-on-primary' : 'border-transparent text-smoke hover:text-on-primary'
               )}
             >
               {tab.label} {counts ? counts[tab.key] : ''}
