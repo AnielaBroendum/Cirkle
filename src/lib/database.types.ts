@@ -970,6 +970,25 @@ export type Database = {
           missing_tags: string[];
         } | null;
       };
+      get_retailer_profile_stats: {
+        Args: { p_tz?: string };
+        Returns: {
+          earned_total: number;
+          brand_count: number;
+          since: string | null;
+          scans_month: number;
+          preview_sample: string | null;
+          brands: {
+            id: string;
+            name: string;
+            logo_url: string | null;
+            since: string;
+            products: number;
+            scans: number;
+            share: number | null;
+          }[];
+        } | null;
+      };
       get_retailer_product_stats: {
         Args: Record<string, never>;
         Returns: {

@@ -24,7 +24,7 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 | R01 | Retail Portal v2 / 01 Login | `368:518` | `/auth/login` (same page as B01) | B | [x] |
 | R02 | Retail Portal v2 / 02 Dashboard | `359:204` | `/retailer/dashboard` | D1 | [x] |
 | R03 | Retail Portal v2 / 03 Products in the store | `368:558` | `/retailer/samples` | D2 | [x] |
-| R04 | Retail Portal v2 / 04 Store profile and payouts | `368:822` | `/retailer/profile` | later | [ ] |
+| R04 | Retail Portal v2 / 04 Store profile and payouts | `368:822` | `/retailer/profile` | D3 | [x] |
 
 Not in Figma v2, kept as they are (restyled to dark only): `/brand/onboarding`, `/brand/products/new`, `/brand/samples/new`, `/brand/samples/requests`, `/brand/samples/swaps`, `/brand/samples/transactions`, `/brand/partnerships`, `/retailer/onboarding`, `/retailer/samples/request`, `/retailer/samples/transactions`, `/retailer/brands`.
 
@@ -333,6 +333,13 @@ Today: Week/Month/Year tabs, `get_retailer_payouts` and `get_retailer_most_scann
 **Dropped:** "Request samples" button, tabs Sample requests / Swap requests, status pills, deposit "held" badges, last-scan date, Swap button and modal.
 
 ## R04 Store profile and payouts (`/retailer/profile`)
+
+**Done (17 Nov, D3).** Save logic unchanged (`retailer_profiles` + `retailer_payout_details`). Numbers from `get_retailer_profile_stats` (025), checked against manual SQL on QA Concept Store (earned 1.206 kr, 1 brand since Oct 2026, 100% of 2 scans this month).
+- Earned since joining: store cut on every credited purchase, all payout statuses (cancelled and returned left out, as in 013). Since = first accepted active partnership.
+- Brands in your store: active partners, products = distinct products with an active sample, share = the brand's scans in the store this month ÷ all scans in the store this month (scans of brands no longer partnered still count in the total, so shares can add up to less than 100%).
+- Preview in app opens `/p/{sample_id}` of the store's oldest active sample in a new tab (hidden without one). Account no. shows "•••• 1234" until focused, as on brand Account.
+- City, postal code, store type, description and logo aren't in Figma but are still saved, so they sit under "+ More details" (default).
+- Left out (decided 17 Nov): the Verified badge (no verification state).
 
 | Element | Mark | Source / note |
 |---|---|---|
