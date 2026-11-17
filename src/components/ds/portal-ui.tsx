@@ -70,7 +70,7 @@ export function PanelHeader({
 }) {
   return (
     <div className={cn('flex flex-wrap items-start justify-between gap-3', className)}>
-      <div className="min-w-0">
+      <div className="min-w-[12rem] flex-1">
         <h2 className="text-body-lg font-semibold text-flare">{title}</h2>
         {subtitle && <p className="mt-1 text-caption text-smoke">{subtitle}</p>}
       </div>

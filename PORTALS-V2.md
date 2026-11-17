@@ -20,13 +20,19 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 | B05 | Brand Portal v2 / 05 Stores and QR tags | `365:318` | `/brand/samples` (sub-tabs: requests, swaps, transactions, `/brand/partnerships`) | C4 | [x] |
 | B06 | Brand Portal v2 / 06 Orders | `365:645` | `/brand/orders` | C5 | [x] |
 | B07 | Brand Portal v2 / 07 Returns | `367:400` | `/brand/returns` | C6 | [x] |
-| B08 | Brand Portal v2 / 08 Account and payouts | `367:651` | `/brand/account` | later | [ ] |
+| B08 | Brand Portal v2 / 08 Account and payouts | `367:651` | `/brand/account` | C7 | [x] |
 | R01 | Retail Portal v2 / 01 Login | `368:518` | `/auth/login` (same page as B01) | B | [x] |
 | R02 | Retail Portal v2 / 02 Dashboard | `359:204` | `/retailer/dashboard` | B (shell), later | [ ] |
 | R03 | Retail Portal v2 / 03 Products in the store | `368:558` | `/retailer/samples` | later | [ ] |
 | R04 | Retail Portal v2 / 04 Store profile and payouts | `368:822` | `/retailer/profile` | later | [ ] |
 
 Not in Figma v2, kept as they are (restyled to dark only): `/brand/onboarding`, `/brand/products/new`, `/brand/samples/new`, `/brand/samples/requests`, `/brand/samples/swaps`, `/brand/samples/transactions`, `/brand/partnerships`, `/retailer/onboarding`, `/retailer/samples/request`, `/retailer/samples/transactions`, `/retailer/brands`.
+
+## Part C status (17 Nov 2026)
+
+Brand screens B02–B08 are rebuilt to v2 (C1–C7, one commit each). New read-only functions 017–022, applied to production 17 Nov. Every new number was checked against a manual SQL count on QA Atelier, and each screen was checked at 1440 and 768 px. Retail screens R02–R04 are next.
+
+Still MISSING on the brand screens (not built, need data or a decision): Export settlement / CSV export, webshop import (line, re-run, Edited tab, Source column), product SKU, Resend invite, friend's handle and Chain ID on orders, a return label for the customer, automatic store-cut reversal on returns, Verified badge, Brand agreement.
 
 ## Part B status (17 Nov 2026)
 
@@ -248,6 +254,12 @@ Today: `get_brand_dashboard` (009) with period Day/Week/Month/Year and product/s
 **Dropped:** "Mark received" and "Mark refunded" steps (needed for the flow; keep in the row actions), customer comment.
 
 ## B08 Account and payouts (`/brand/account`)
+
+**Done (17 Nov, C7).** Save logic unchanged (`brand_profiles` + `brand_payout_details`).
+- Brand card: name, webshop, return policy link, order emails (login email, read-only), plus About and Logo (kept: the consumer app uses them). Payouts: Reg. no., Account no. (shown as "•••• 1234" until focused), CVR.
+- How a sale is split (decided 17 Nov): what checkout does, Your share 85% / Store's cut 15%, no Flaym fee segment. Checked in the database: every store-credited attribution is 15% (20 of 20), friend sales have no store cut. `STORE_CUT_PERCENT = 15` in the page mirrors the fixed rate in `src/app/api/checkout/route.ts`; change both together. The old "minus Flaym's fee" line is gone (there is no fee).
+- Brand stories restyled to the v2 panel; upload checks, ordering and delete unchanged.
+- Left out (decided 17 Nov): Verified badge. Brand agreement card (MISSING: no agreement record or document).
 
 | Element | Mark | Source / note |
 |---|---|---|
