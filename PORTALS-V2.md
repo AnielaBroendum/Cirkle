@@ -19,7 +19,7 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 | B04 | Brand Portal v2 / 04 Edit product | `364:587` | `/brand/products/[id]/edit` (and `/brand/products/new`) | C3 | [x] |
 | B05 | Brand Portal v2 / 05 Stores and QR tags | `365:318` | `/brand/samples` (sub-tabs: requests, swaps, transactions, `/brand/partnerships`) | C4 | [x] |
 | B06 | Brand Portal v2 / 06 Orders | `365:645` | `/brand/orders` | C5 | [x] |
-| B07 | Brand Portal v2 / 07 Returns | `367:400` | `/brand/returns` | later | [ ] |
+| B07 | Brand Portal v2 / 07 Returns | `367:400` | `/brand/returns` | C6 | [x] |
 | B08 | Brand Portal v2 / 08 Account and payouts | `367:651` | `/brand/account` | later | [ ] |
 | R01 | Retail Portal v2 / 01 Login | `368:518` | `/auth/login` (same page as B01) | B | [x] |
 | R02 | Retail Portal v2 / 02 Dashboard | `359:204` | `/retailer/dashboard` | B (shell), later | [ ] |
@@ -222,6 +222,14 @@ Today: `get_brand_dashboard` (009) with period Day/Week/Month/Year and product/s
 **Dropped:** "In progress" tab, status history timeline, Confirm / Mark as packed / Mark as delivered / Cancel order buttons, Save tracking, the "Waiting" badge.
 
 ## B07 Returns (`/brand/returns`)
+
+**Done (17 Nov, C6).** Approve / Decline / Mark received / Mark refunded are unchanged (plain `returns` updates under RLS). Tiles from `get_brand_return_stats` (022), checked against manual SQL on QA Atelier.
+- Waiting for you: requests in `requested`; "Approve within 3 days" with the oldest one's deadline (`RETURN_APPROVAL_DAYS = 3` in the page, display only, nothing is approved automatically).
+- Return rate: requests made this month that weren't declined ÷ pieces sold this month (calendar months, Copenhagen), with last month for the hint.
+- Refunded this month: refunds marked this month (by `updated_at`, which the trigger sets on each status change; there is no `refunded_at`), price × quantity.
+- Top reason: all returns that weren't declined; Too big + Too small count together as Size.
+- Tabs Open / Refunded / All. Return policy ↗ opens `return_policy_url` (hidden when empty).
+- **Not in the app, so not built (told the user 17 Nov):** a return label for the customer, and an automatic reversal of the store's cut. The note says what does happen: the customer sends the piece back, the brand marks it received and refunded, and from approval on the item no longer counts towards the store's payout (013). The subtitle drops "Flaym refunds once you approve" for the same reason.
 
 | Element | Mark | Source / note |
 |---|---|---|

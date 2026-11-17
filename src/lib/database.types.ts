@@ -905,6 +905,19 @@ export type Database = {
         Args: { p_order: string };
         Returns: { store: string | null; store_traced: boolean; giver: string | null; buyer: string | null } | null;
       };
+      // 022: Returns tiles. Rates in percent, amounts in øre.
+      get_brand_return_stats: {
+        Args: { p_tz?: string };
+        Returns: {
+          waiting: number;
+          oldest_waiting_at: string | null;
+          rate: number | null;
+          prev_rate: number | null;
+          refunded_amount: number;
+          refunded_count: number;
+          top_reason: { reason: string; count: number; total: number } | null;
+        } | null;
+      };
       reorder_brand_stories: {
         Args: { p_ids: string[] };
         Returns: undefined;
