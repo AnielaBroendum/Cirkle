@@ -970,6 +970,22 @@ export type Database = {
           missing_tags: string[];
         } | null;
       };
+      get_retailer_product_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          product_id: string;
+          product_name: string;
+          brand_id: string;
+          brand_name: string;
+          image: string | null;
+          price_min: number;
+          price_max: number;
+          sample_ids: string[];
+          placed_at: string;
+          scans: number;
+          buys: number;
+        }[];
+      };
       get_retailer_portal_shell: {
         Args: { p_payout_day?: number };
         Returns: {

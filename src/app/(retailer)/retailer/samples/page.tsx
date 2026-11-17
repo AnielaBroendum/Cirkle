@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { QrCode, Plus, ArrowLeftRight, Truck, Package } from 'lucide-react';
+import { formatPriceRange } from '@/lib/pricing';
+import { QrCode, Plus, ArrowLeftRight, Truck, Package, Printer } from 'lucide-react';
 import {
-  Badge,
   Button,
   buttonClasses,
   Card,
@@ -17,26 +17,39 @@ import {
   Field,
   Input,
   Modal,
+  PageHeader,
+  Segmented,
   Select,
   Skeleton,
   StatusPill,
   Tabs,
+  cn,
+  portalPanel,
 } from '@/components/ds';
 import type { Database } from '@/lib/database.types';
 
-type Sample = Database['public']['Tables']['samples']['Row'];
-type Product = Database['public']['Tables']['products']['Row'];
-type BrandProfile = Database['public']['Tables']['brand_profiles']['Row'];
+/*
+ * Products in the store, Portals v2 (Figma "Retail Portal v2 / 03 Products in the store", 368:558).
+ * One card per product with an active sample here; scans and buys in this store, all time, from
+ * get_retailer_product_stats (024). Print tag re-prints the product's existing codes (/print/tags →
+ * /api/tag-prints), never a new one. Kept outside Figma: the Sample requests and Swap requests
+ * tabs ("Confirm received" and return tracking live there) and Swap on the card.
+ */
 
-type SampleWithDetails = Sample & {
-  product_name: string;
-  product_image: string | null;
-  product_sizes: string[];
-  product_colors: string[];
-  brand_name: string;
-  scan_count: number;
-  last_scanned: string | null;
-};
+type Product = Database['public']['Tables']['products']['Row'];
+type ProductStat = Database['public']['Functions']['get_retailer_product_stats']['Returns'][number];
+
+type Sort = 'scans' | 'buys' | 'name' | 'newest';
+const SORTS: { value: Sort; label: string }[] = [
+  { value: 'scans', label: 'Most scanned' },
+  { value: 'buys', label: 'Most bought' },
+  { value: 'name', label: 'Name' },
+  { value: 'newest', label: 'Newest' },
+];
+
+const count = (n: number) => n.toLocaleString('en-GB');
+
+type SwapTarget = { id: string; brand_id: string; product_name: string };
 
 type SwapRequestRow = {
   id: string;
@@ -83,16 +96,17 @@ const SWAP_STATUS_LABELS: Record<string, string> = {
 
 export default function RetailerSamplesPage() {
   const { user } = useAuth();
-  const [samples, setSamples] = useState<SampleWithDetails[]>([]);
+  const [products, setProducts] = useState<ProductStat[]>([]);
   const [swapRequests, setSwapRequests] = useState<SwapRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'samples' | 'swaps' | 'requests'>('samples');
   const [sampleRequests, setSampleRequests] = useState<SampleRequestRow[]>([]);
   const [brandFilter, setBrandFilter] = useState('all');
+  const [sort, setSort] = useState<Sort>('scans');
   const [retailerId, setRetailerId] = useState<string | null>(null);
 
   // Swap modal state
-  const [swapSample, setSwapSample] = useState<SampleWithDetails | null>(null);
+  const [swapSample, setSwapSample] = useState<SwapTarget | null>(null);
   const [swapProductId, setSwapProductId] = useState('');
   const [swapSize, setSwapSize] = useState('');
   const [swapColor, setSwapColor] = useState('');
@@ -117,50 +131,12 @@ export default function RetailerSamplesPage() {
         if (!rp) { setLoading(false); return; }
         setRetailerId(rp.id);
 
-        const [samplesData, swapsData] = await Promise.all([
-          supabase.from('samples').select('*').eq('retailer_id', rp.id).order('created_at', { ascending: false }),
+        const [statsRes, swapsData] = await Promise.all([
+          supabase.rpc('get_retailer_product_stats'),
           supabase.from('swap_requests').select('*').eq('retailer_id', rp.id).order('created_at', { ascending: false }),
         ]);
 
-        // Enrich samples
-        const typed = (samplesData.data ?? []) as Sample[];
-        if (typed.length > 0) {
-          const productIds = Array.from(new Set(typed.map((s) => s.product_id)));
-          const brandIds = Array.from(new Set(typed.map((s) => s.brand_id)));
-          const sampleIds = typed.map((s) => s.id);
-
-          const [productsRes, brandsRes, scansRes] = await Promise.all([
-            supabase.from('products').select('id, name, images, sizes, colors, deposit_amount_dkk').in('id', productIds),
-            supabase.from('brand_profiles').select('id, name').in('id', brandIds),
-            supabase.from('scans').select('sample_id, scanned_at').in('sample_id', sampleIds).order('scanned_at', { ascending: false }),
-          ]);
-
-          const productMap = new Map((productsRes.data ?? []).map((p: Record<string, unknown>) => [p.id as string, p]));
-          const brandMap = new Map<string, string>((brandsRes.data ?? []).map((b: { id: string; name: string }) => [b.id, b.name]));
-
-          const scanCounts = new Map<string, number>();
-          const lastScanned = new Map<string, string>();
-          for (const scan of (scansRes.data ?? []) as { sample_id: string | null; scanned_at: string }[]) {
-            if (scan.sample_id) {
-              scanCounts.set(scan.sample_id, (scanCounts.get(scan.sample_id) ?? 0) + 1);
-              if (!lastScanned.has(scan.sample_id)) lastScanned.set(scan.sample_id, scan.scanned_at);
-            }
-          }
-
-          setSamples(typed.map((s) => {
-            const product = productMap.get(s.product_id) as Record<string, unknown> | undefined;
-            return {
-              ...s,
-              product_name: (product?.name as string) ?? 'Unknown product',
-              product_image: (product?.images as string[])?.[0] ?? null,
-              product_sizes: (product?.sizes as string[]) ?? [],
-              product_colors: (product?.colors as string[]) ?? [],
-              brand_name: brandMap.get(s.brand_id) ?? 'Unknown brand',
-              scan_count: scanCounts.get(s.id) ?? 0,
-              last_scanned: lastScanned.get(s.id) ?? null,
-            };
-          }));
-        }
+        setProducts((statsRes.data ?? []) as ProductStat[]);
 
         // Enrich swap requests
         const swaps = (swapsData.data ?? []) as Record<string, unknown>[];
@@ -251,7 +227,7 @@ export default function RetailerSamplesPage() {
     })();
   }, [retailerId]);
 
-  async function openSwapModal(sample: SampleWithDetails) {
+  async function openSwapModal(sample: SwapTarget) {
     setSwapSample(sample);
     setSwapProductId('');
     setSwapSize('');
@@ -320,10 +296,24 @@ export default function RetailerSamplesPage() {
   const pendingSwaps = swapRequests.filter((s) => !['completed', 'cancelled'].includes(s.status));
   const openRequests = sampleRequests.filter((r) => !['received', 'rejected'].includes(r.status)).length;
 
-  // Brand filter (Figma 03 segmented control) — client-side only.
-  const brandCounts = samples.reduce<Map<string, number>>((m, s) => m.set(s.brand_name, (m.get(s.brand_name) ?? 0) + 1), new Map());
-  const visibleSamples = brandFilter === 'all' ? samples : samples.filter((s) => s.brand_name === brandFilter);
-  const printableSamples = samples.filter((s) => s.qr_code_url && s.status === 'active');
+  const brands = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of products) m.set(p.brand_name, (m.get(p.brand_name) ?? 0) + 1);
+    return Array.from(m, ([name, n]) => ({ name, n })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+  }, [products]);
+
+  const visible = useMemo(() => {
+    const rows = brandFilter === 'all' ? products : products.filter((p) => p.brand_name === brandFilter);
+    return [...rows].sort((a, b) => {
+      if (sort === 'buys') return b.buys - a.buys || b.scans - a.scans;
+      if (sort === 'name') return a.product_name.localeCompare(b.product_name);
+      if (sort === 'newest') return b.placed_at.localeCompare(a.placed_at);
+      return b.scans - a.scans || b.buys - a.buys;
+    });
+  }, [products, brandFilter, sort]);
+
+  const maxScans = Math.max(...products.map((p) => p.scans), 1);
+  const printableIds = products.flatMap((p) => p.sample_ids);
 
   // Reprints the existing codes on 50 × 70 mm tags (/print/tags logs each one;
   // the server only allows this store's own samples).
@@ -334,12 +324,12 @@ export default function RetailerSamplesPage() {
 
   if (loading) {
     return (
-      <div className="space-y-7">
+      <div className="space-y-6">
         <div className="space-y-2">
-          <Skeleton className="h-10 w-72" />
-          <Skeleton className="h-4 w-96 max-w-full" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-10 w-80 max-w-full" />
         </div>
-        <Skeleton className="h-8 w-80 max-w-full" />
+        <Skeleton className="h-10 w-96 max-w-full" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <CardSkeleton key={i} />
@@ -350,29 +340,23 @@ export default function RetailerSamplesPage() {
   }
 
   return (
-    <div className="space-y-7">
-      {/* Header (Figma 03) */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-brand text-heading-xl uppercase text-primary">Products in the store</h1>
-          <p className="mt-1 text-body text-slate">Placed here by the brands. Print a tag yourself if one is missing or worn: it keeps the same code.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/retailer/samples/request" className={buttonClasses({ variant: 'secondary' })}>
-            <Plus className="h-4 w-4" /> Request samples
-          </Link>
-          <Button variant="accent" onClick={() => printQrTags(printableSamples.map((s) => s.id))} disabled={printableSamples.length === 0}>
-            Print all QR tags
+    <div className="space-y-6">
+      <PageHeader
+        title="Products in the store"
+        subtitle="Placed here by the brands. Print a tag yourself if one is missing or worn: it keeps the same code."
+        actions={
+          <Button variant="flame" className="h-[43px]" onClick={() => printQrTags(printableIds)} disabled={printableIds.length === 0}>
+            <Printer className="h-4 w-4" /> Print all QR tags (PDF)
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <Tabs
         variant="underline"
         value={tab}
         onValueChange={(v) => setTab(v as 'samples' | 'swaps' | 'requests')}
         items={[
-          { value: 'samples', label: 'In the store', count: samples.filter((s) => s.status === 'active').length },
+          { value: 'samples', label: 'In the store', count: products.length },
           { value: 'requests', label: 'Sample requests', count: openRequests > 0 ? openRequests : undefined },
           { value: 'swaps', label: 'Swap requests', count: pendingSwaps.length > 0 ? pendingSwaps.length : undefined },
         ]}
@@ -380,89 +364,98 @@ export default function RetailerSamplesPage() {
 
       {tab === 'samples' && (
         <>
-          {samples.length === 0 ? (
+          {products.length === 0 ? (
             <EmptyState
               icon={<QrCode className="h-5 w-5" />}
               title="No products yet"
               description="Request samples from your brand partners. They arrive with a QR tag for your store."
               action={
-                <Link href="/retailer/samples/request" className={buttonClasses({ variant: 'accent' })}>
+                <Link href="/retailer/samples/request" className={buttonClasses({ variant: 'flame' })}>
                   <Plus className="h-4 w-4" /> Request samples
                 </Link>
               }
             />
           ) : (
             <>
-              {brandCounts.size > 1 && (
-                <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-                  <Tabs
-                    className="whitespace-nowrap"
-                    value={brandFilter}
-                    onValueChange={setBrandFilter}
-                    items={[
-                      { value: 'all', label: 'All brands', count: samples.length },
-                      ...Array.from(brandCounts, ([name, count]) => ({ value: name, label: name, count })),
-                    ]}
-                  />
-                </div>
-              )}
+              <div className="flex flex-col gap-2.5 md:flex-row md:items-center">
+                <Segmented
+                  label="Brand"
+                  value={brandFilter}
+                  onValueChange={setBrandFilter}
+                  items={[
+                    { value: 'all', label: `All brands ${count(products.length)}` },
+                    ...brands.map((b) => ({ value: b.name, label: `${b.name} ${count(b.n)}` })),
+                  ]}
+                  className="self-start border border-line-dark-subtle bg-obsidian"
+                />
+                <span className="hidden flex-1 md:block" />
+                <Select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="h-[38px] md:w-52">
+                  {SORTS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      Sort: {s.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {visibleSamples.map((sample) => (
-                  <Card key={sample.id} padding="none" className="flex flex-col p-4">
-                    <div className="relative aspect-[228/180] w-full overflow-hidden bg-flaym-gradient">
-                      {sample.product_image && (
-                        <Image src={sample.product_image} alt="" fill className="object-cover" sizes="(min-width: 1280px) 228px, (min-width: 640px) 50vw, 100vw" />
+                {visible.map((p) => (
+                  <article key={p.product_id} className={cn(portalPanel, 'flex flex-col p-3')}>
+                    <div className="relative aspect-[240/165] w-full overflow-hidden bg-flaym-gradient">
+                      {p.image && (
+                        <Image src={p.image} alt="" fill className="object-cover" sizes="(min-width: 1280px) 240px, (min-width: 640px) 50vw, 100vw" />
                       )}
+                      <span
+                        className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center bg-obsidian/80 text-flare"
+                        title={p.sample_ids.length === 1 ? '1 QR tag' : `${p.sample_ids.length} QR tags`}
+                      >
+                        <QrCode className="h-4 w-4" />
+                      </span>
                     </div>
 
-                    <div className="mt-3.5 flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-body text-primary">{sample.product_name}</p>
-                        <p className="mt-1 truncate text-caption text-slate">
-                          {[sample.brand_name, [sample.size, sample.color].filter(Boolean).join(' / ')].filter(Boolean).join(' · ')}
-                        </p>
-                      </div>
-                      {sample.qr_code_url ? (
-                        <a href={sample.qr_code_url} target="_blank" rel="noreferrer" aria-label="Open QR tag" className="shrink-0">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={sample.qr_code_url} alt="" width={44} height={44} className="h-11 w-11" />
-                        </a>
-                      ) : (
-                        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center border border-line text-slate">
-                          <QrCode className="h-5 w-5" />
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                      <StatusPill status={sample.status} />
-                      {sample.deposit_status === 'held' && sample.deposit_amount_dkk && (
-                        <Badge tone="warning">{formatDKK(sample.deposit_amount_dkk)} held</Badge>
-                      )}
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3">
-                      <p className="whitespace-nowrap text-caption text-primary">
-                        {sample.scan_count} scans
-                        {sample.last_scanned && <span className="text-slate"> · {formatDate(sample.last_scanned)}</span>}
+                    <div className="px-1 pt-3.5">
+                      <p className="truncate text-body font-semibold text-flare">{p.product_name}</p>
+                      <p className="mt-0.5 truncate text-caption text-smoke">
+                        {p.brand_name} · {formatPriceRange({ min: p.price_min, max: p.price_max })}
                       </p>
-                      {sample.status === 'active' && sample.qr_code_url && (
+                      <div className="mt-3 flex items-baseline justify-between gap-2 text-caption">
+                        <span className="font-medium tabular-nums text-flare">
+                          {count(p.scans)} {p.scans === 1 ? 'scan' : 'scans'}
+                        </span>
+                        <span className="tabular-nums text-ash">
+                          {count(p.buys)} {p.buys === 1 ? 'buy' : 'buys'}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 h-1 bg-surface-dark">
+                        <div
+                          className="h-1 bg-flaym-progress"
+                          style={{ width: `${p.scans > 0 ? Math.max(3, (p.scans / maxScans) * 100) : 0}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-3.5 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => printQrTags(p.sample_ids)}
+                        disabled={p.sample_ids.length === 0}
+                        className="h-9 flex-1 border border-line-dark-subtle text-caption font-medium text-flare transition-colors hover:border-flare/30 disabled:cursor-not-allowed disabled:text-smoke"
+                      >
+                        Print tag
+                      </button>
+                      {p.sample_ids[0] && (
                         <button
                           type="button"
-                          onClick={() => printQrTags([sample.id])}
-                          className="text-caption font-medium text-primary underline underline-offset-2 hover:text-accent"
+                          onClick={() => openSwapModal({ id: p.sample_ids[0], brand_id: p.brand_id, product_name: p.product_name })}
+                          aria-label={`Swap ${p.product_name}`}
+                          title="Swap for another product from the same brand"
+                          className="flex h-9 w-9 items-center justify-center border border-line-dark-subtle text-ash transition-colors hover:border-flare/30 hover:text-flare"
                         >
-                          Print tag
+                          <ArrowLeftRight className="h-4 w-4" />
                         </button>
                       )}
-                      {sample.status === 'active' && (
-                        <Button size="sm" variant="ghost" onClick={() => openSwapModal(sample)} leftIcon={<ArrowLeftRight className="h-3.5 w-3.5" />}>
-                          Swap
-                        </Button>
-                      )}
                     </div>
-                  </Card>
+                  </article>
                 ))}
               </div>
             </>
@@ -611,7 +604,6 @@ export default function RetailerSamplesPage() {
           <div className="space-y-4">
             <p className="text-body text-slate">
               Returning: <span className="text-primary">{swapSample.product_name}</span>
-              {swapSample.size && ` (${swapSample.size})`}
             </p>
 
             <Field label="Replacement product">

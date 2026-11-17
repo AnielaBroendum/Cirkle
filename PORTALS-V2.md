@@ -23,7 +23,7 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 | B08 | Brand Portal v2 / 08 Account and payouts | `367:651` | `/brand/account` | C7 | [x] |
 | R01 | Retail Portal v2 / 01 Login | `368:518` | `/auth/login` (same page as B01) | B | [x] |
 | R02 | Retail Portal v2 / 02 Dashboard | `359:204` | `/retailer/dashboard` | D1 | [x] |
-| R03 | Retail Portal v2 / 03 Products in the store | `368:558` | `/retailer/samples` | later | [ ] |
+| R03 | Retail Portal v2 / 03 Products in the store | `368:558` | `/retailer/samples` | D2 | [x] |
 | R04 | Retail Portal v2 / 04 Store profile and payouts | `368:822` | `/retailer/profile` | later | [ ] |
 
 Not in Figma v2, kept as they are (restyled to dark only): `/brand/onboarding`, `/brand/products/new`, `/brand/samples/new`, `/brand/samples/requests`, `/brand/samples/swaps`, `/brand/samples/transactions`, `/brand/partnerships`, `/retailer/onboarding`, `/retailer/samples/request`, `/retailer/samples/transactions`, `/retailer/brands`.
@@ -312,6 +312,13 @@ Today: Week/Month/Year tabs, `get_retailer_payouts` and `get_retailer_most_scann
 **Dropped:** "Active samples" tile, Recent scans, Active partnerships, Deposit capital (total and per brand).
 
 ## R03 Products in the store (`/retailer/samples`)
+
+**Done (17 Nov, D2).** Numbers from `get_retailer_product_stats` (024), checked against manual SQL on QA Concept Store (QA Wool Overshirt: 242 scans, 18 buys).
+- One card per product with an active sample in the store. Scans and buys are in this store, all time, from `events`, with the same rule as Most scanned (013): purchases on cancelled orders don't count; seeded purchase rows without an order do (12 of the 18 on QA), as on the brand screens.
+- Price shows "From …" when the variants differ (015). Brand chips (All brands + each brand, by product count), Sort: Most scanned (default), Most bought, Name, Newest (when placed).
+- Print tag re-prints every active tag of that product; Print all QR tags (PDF) every active tag in the store (browser print, as before). Not clicked during the check: it logs a print.
+- Kept outside Figma (default): the Sample requests and Swap requests tabs ("Confirm received" and return tracking are there) and a small Swap button on the card. "Request samples" shows on the empty state.
+- Dropped: status pills, deposit "held" badges, last-scan date, the QR image on the card (an icon instead).
 
 | Element | Mark | Source / note |
 |---|---|---|
