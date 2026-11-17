@@ -17,7 +17,7 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 | B02 | Brand Portal v2 / 02 Dashboard | `358:161` | `/brand/dashboard` | C1 | [x] |
 | B03 | Brand Portal v2 / 03 Product library | `364:238` | `/brand/products` | C2 | [x] |
 | B04 | Brand Portal v2 / 04 Edit product | `364:587` | `/brand/products/[id]/edit` (and `/brand/products/new`) | C3 | [x] |
-| B05 | Brand Portal v2 / 05 Stores and QR tags | `365:318` | `/brand/samples` (sub-tabs: requests, swaps, transactions, `/brand/partnerships`) | later | [ ] |
+| B05 | Brand Portal v2 / 05 Stores and QR tags | `365:318` | `/brand/samples` (sub-tabs: requests, swaps, transactions, `/brand/partnerships`) | C4 | [x] |
 | B06 | Brand Portal v2 / 06 Orders | `365:645` | `/brand/orders` | later | [ ] |
 | B07 | Brand Portal v2 / 07 Returns | `367:400` | `/brand/returns` | later | [ ] |
 | B08 | Brand Portal v2 / 08 Account and payouts | `367:651` | `/brand/account` | later | [ ] |
@@ -172,6 +172,12 @@ Today: `get_brand_dashboard` (009) with period Day/Week/Month/Year and product/s
 **Dropped:** Sample deposit field, stock per size × colour table (still needed for sold-out sizes; ask before removing).
 
 ## B05 Stores & QR tags (`/brand/samples`)
+
+**Done (17 Nov, C4).** Scan counts from `get_brand_store_scans` (020): all time, from events by the store on the tag, so they match Edit product → In stores. Checked against manual SQL.
+- Store cards (most scanned first; `?store=` still selects one), pending invitations with "Copy invite link" (Resend invite is MISSING), store requests with "Review".
+- Product list for the selected store: one row per product. Print tag and the bulk "Print N QR tags" re-print the existing code (oldest active sample, as `/api/tag-prints` resolves it). Products not in the store show "Not in store" and a "Place" link to Edit product; their scans are shown when the store scanned them before.
+- Kept outside Figma: the sub-tabs, and Download QR / Open scan page / Delete per tag (Delete is how a piece leaves a store).
+- Dropped: "Add sample" button (placing is on Edit product; `/brand/samples/new` still works), the QR image, deposit and swap badges, and the "Available stores" request form (it is on Partnerships).
 
 | Element | Mark | Source / note |
 |---|---|---|

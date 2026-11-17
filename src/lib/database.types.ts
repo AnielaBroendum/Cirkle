@@ -892,6 +892,14 @@ export type Database = {
         Args: { p_product?: string | null };
         Returns: { retailer_id: string; name: string; placed: boolean; scans: number }[];
       };
+      // 020: Stores & QR tags scan counts.
+      get_brand_store_scans: {
+        Args: Record<string, never>;
+        Returns: {
+          stores: { retailer_id: string; scans: number; products: number }[];
+          product_scans: { retailer_id: string; product_id: string; scans: number }[];
+        } | null;
+      };
       reorder_brand_stories: {
         Args: { p_ids: string[] };
         Returns: undefined;
