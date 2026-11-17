@@ -32,9 +32,18 @@ export function Modal({ open, onClose, title, footer, variant = 'dialog', classN
   if (!open || typeof document === 'undefined') return null;
 
   const sheet = variant === 'sheet';
+  // The modal renders into <body>, outside the page's theme. Inside a portal (Portals v2) it
+  // takes the portal's dark theme too; everywhere else nothing changes.
+  const portalDark = !!document.querySelector('.portal-dark');
 
   return createPortal(
-    <div className={cn('fixed inset-0 z-[90] flex justify-center', sheet ? 'items-end sm:items-center' : 'items-center p-4')}>
+    <div
+      className={cn(
+        'fixed inset-0 z-[90] flex justify-center',
+        sheet ? 'items-end sm:items-center' : 'items-center p-4',
+        portalDark && 'portal-dark'
+      )}
+    >
       <div className="absolute inset-0 bg-obsidian/60 animate-fade-in" onClick={onClose} aria-hidden />
       <div
         role="dialog"

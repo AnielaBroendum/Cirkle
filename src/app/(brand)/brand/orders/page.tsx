@@ -7,6 +7,7 @@ import { formatDKK } from '@/lib/utils';
 import { ShoppingBag, ChevronRight } from 'lucide-react';
 import { CARRIERS, waitingDays } from '@/lib/orders';
 import { refreshNavCounts } from '@/components/brand/nav-counts';
+import type { Database } from '@/lib/database.types';
 import {
   Badge,
   Button,
@@ -16,19 +17,31 @@ import {
   Input,
   ListSkeleton,
   Modal,
+  PageHeader,
+  Panel,
+  Segmented,
   Select,
   Skeleton,
   StatusPill,
-  Tabs,
-  THead,
-  TBody,
-  TH,
-  TD,
+  Thumb,
   cn,
+  portalPanel,
 } from '@/components/ds';
+
+/*
+ * Orders, Portals v2 (Figma "Brand Portal v2 / 06 Orders", 365:645).
+ * Shipping is unchanged: bulk "Mark as shipped" (/api/orders/ship), and per order carrier,
+ * tracking and status steps (/api/orders/[id]/status, /tracking). New: the chain block
+ * (get_brand_order_chain, 021). Tabs New / Shipped / Delivered / All: confirmed and packed
+ * orders sit under New, since they still need shipping. Left out: Export (no CSV) and the
+ * Chain ID (not stored).
+ */
+
+type Chain = NonNullable<Database['public']['Functions']['get_brand_order_chain']['Returns']>;
 
 type OrderItem = {
   id: string;
+  products: { images: string[] | null } | null;
   product_name: string;
   size: string | null;
   color: string | null;
@@ -94,11 +107,10 @@ const STEP_BEFORE_SHIPPING: Record<string, { status: string; label: string }> = 
 };
 const SHIPPABLE = ['pending', 'confirmed', 'packed'];
 
-type FilterStatus = 'all' | 'new' | 'in_progress' | 'shipped' | 'delivered';
+type FilterStatus = 'all' | 'new' | 'shipped' | 'delivered';
 
 const FILTER_STATUSES: Record<Exclude<FilterStatus, 'all'>, string[]> = {
-  new: ['pending'],
-  in_progress: ['confirmed', 'packed'],
+  new: ['pending', 'confirmed', 'packed'],
   shipped: ['shipped'],
   delivered: ['delivered'],
 };
@@ -115,7 +127,8 @@ export default function BrandOrdersPage() {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [bulkShipping, setBulkShipping] = useState(false);
   const [actionError, setActionError] = useState('');
-  const [filter, setFilter] = useState<FilterStatus>('all');
+  const [filter, setFilter] = useState<FilterStatus>('new');
+  const [chain, setChain] = useState<{ id: string; data: Chain | null } | null>(null);
   const [credits, setCredits] = useState<Map<string, Credit>>(new Map());
   // xl and up show the detail panel beside the table; smaller screens use a sheet.
   const [wide, setWide] = useState(false);
@@ -146,7 +159,7 @@ export default function BrandOrdersPage() {
         id, order_number, status, total_dkk,
         shipping_name, shipping_address, shipping_city, shipping_postal_code, shipping_country,
         carrier, tracking_number, tracking_url, shipped_at, created_at, consumer_user_id,
-        order_items (id, product_name, size, color, quantity, unit_price_dkk),
+        order_items (id, product_name, size, color, quantity, unit_price_dkk, products (images)),
         order_events (id, status, note, created_at),
         profiles!orders_consumer_user_id_fkey (name, email)
       `)
@@ -212,6 +225,20 @@ export default function BrandOrdersPage() {
     setTrackingUrlInput(o?.carrier === 'Other' ? o.tracking_url ?? '' : '');
     setActionError('');
   }, [expandedOrder]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The chain for the order being looked at.
+  useEffect(() => {
+    if (!expandedOrder) return;
+    let stale = false;
+    createClient()
+      .rpc('get_brand_order_chain', { p_order: expandedOrder })
+      .then(({ data }: { data: Chain | null }) => {
+        if (!stale) setChain({ id: expandedOrder, data: data ?? null });
+      });
+    return () => {
+      stale = true;
+    };
+  }, [expandedOrder]);
 
   async function afterChange() {
     await loadOrders();
@@ -302,18 +329,14 @@ export default function BrandOrdersPage() {
   );
 
   const header = (
-    <div>
-      <h1 className="font-brand text-heading-xl uppercase text-primary">Orders</h1>
-      <p className="mt-1 text-body text-slate">Paid to Flaym. You ship by hand and mark each step.</p>
-    </div>
+    <PageHeader title="Orders" subtitle="Paid to Flaym. You ship by hand and mark each step." />
   );
 
   if (loading) {
     return (
       <div className="space-y-6">
         {header}
-        <Skeleton className="h-9 w-full max-w-xl" />
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
           <ListSkeleton rows={5} />
           <Skeleton className="hidden h-96 w-full xl:block" />
         </div>
@@ -343,125 +366,126 @@ export default function BrandOrdersPage() {
   const selected = orders.find((o) => o.id === expandedOrder) ?? null;
   const select = (id: string) => setExpandedOrder(id === expandedOrder ? null : id);
   const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const itemCount = (o: Order) => o.order_items.reduce((n, i) => n + i.quantity, 0);
   const creditLabel = (orderId: string) => {
     const c = credits.get(orderId);
     if (c?.store) return c.store;
     if (c?.peer) return 'Passed on by a friend';
-    return '—';
+    return '–';
   };
+  const label = 'text-label uppercase text-smoke';
 
-  // Order detail: ship to, items, the chain, history and the next step
+  // Order detail: ship to, items, the chain, the next step and history
   const detail = (order: Order) => {
     const canShip = SHIPPABLE.includes(order.status);
     const stepBefore = STEP_BEFORE_SHIPPING[order.status];
     const isUpdating = updatingOrder === order.id;
-    const credit = credits.get(order.id);
+    const c = chain?.id === order.id ? chain.data : undefined;
+    const n = itemCount(order);
     return (
-      <div className="flex flex-col gap-5 font-brand">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-heading-lg">#{order.order_number}</p>
+      <div className="flex flex-col gap-4 font-brand">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-heading-lg font-semibold text-flare">#{order.order_number}</p>
+            <p className="mt-1 text-caption text-smoke">
+              {shortDate(order.created_at)} · {n} item{n !== 1 ? 's' : ''} · {formatDKK(order.total_dkk)}
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
             {waitingPill(order)}
           </div>
         </div>
 
-        <div>
-          <p className="mb-1 text-label uppercase text-slate">Ship to</p>
-          <p className="text-body-sm text-primary">{order.shipping_name}</p>
+        <div className="bg-canvas-dark px-3.5 py-3">
+          <p className={label}>Ship to</p>
+          <p className="mt-1.5 text-body-sm font-medium text-flare">{order.shipping_name}</p>
           {order.profiles?.name && order.profiles.name !== order.shipping_name && (
-            <p className="text-caption text-slate">Ordered by {order.profiles.name}</p>
+            <p className="text-caption text-smoke">Ordered by {order.profiles.name}</p>
           )}
-          <p className="mt-0.5 text-body-sm text-slate">
+          <p className="mt-0.5 text-body-sm text-ash">
             {order.shipping_address}, {order.shipping_postal_code} {order.shipping_city}, {order.shipping_country}
           </p>
         </div>
 
-        <ul className="divide-y divide-line border-y border-line">
+        <ul className="flex flex-col gap-2.5">
           {order.order_items.map((item) => (
-            <li key={item.id} className="flex items-start justify-between gap-3 py-3 text-body-sm">
-              <div className="min-w-0">
-                <p className="truncate text-primary">{item.product_name}</p>
-                <p className="text-caption text-slate">
-                  {[item.size && `Size ${item.size}`, item.color].filter(Boolean).join(' · ') || 'One size'} · ×{item.quantity}
+            <li key={item.id} className="flex items-center gap-3">
+              <Thumb src={item.products?.images?.[0]} size={36} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-body-sm font-medium text-flare">{item.product_name}</p>
+                <p className="text-caption text-smoke">
+                  {[item.size && `Size ${item.size}`, item.color].filter(Boolean).join(' · ') || 'One size'}
+                  {item.quantity > 1 ? ` · ×${item.quantity}` : ''} · {formatDKK(item.unit_price_dkk * item.quantity)}
                 </p>
               </div>
-              <span className="whitespace-nowrap tabular-nums text-primary">{formatDKK(item.unit_price_dkk * item.quantity)}</span>
             </li>
           ))}
-          <li className="flex justify-between py-3 text-body-sm">
-            <span className="text-label uppercase text-slate">Total</span>
-            <span className="font-medium tabular-nums text-primary">{formatDKK(order.total_dkk)}</span>
-          </li>
         </ul>
 
-        <div>
-          <p className="mb-1 text-label uppercase text-slate">The chain</p>
-          {credit?.store && <p className="text-body-sm text-primary">Store: {credit.store}</p>}
-          {credit?.peer && <p className="text-body-sm text-primary">Passed on by a friend</p>}
-          {!credit && <p className="text-caption text-slate">Bought without a scan</p>}
+        {/* The chain: scanned at → passed on by → bought by */}
+        <div className="border border-accent/30 bg-accent-tint p-3.5">
+          <p className="text-label uppercase text-accent-bright">The chain</p>
+          {c === undefined ? (
+            <p className="mt-2.5 text-caption text-smoke">Loading…</p>
+          ) : !c || (!c.store && !c.giver) ? (
+            <p className="mt-2.5 text-caption text-ash">Bought without a scan.</p>
+          ) : (
+            <>
+              <div className="mt-2.5 flex items-stretch gap-1.5">
+                {c.store && <ChainStep label="Store" value={c.store} />}
+                {c.store && (c.giver || c.buyer) && <ChainArrow />}
+                {c.giver && <ChainStep label="Passed on" value={c.giver} />}
+                {c.giver && c.buyer && <ChainArrow />}
+                {c.buyer && <ChainStep label="Bought" value={c.buyer} />}
+              </div>
+              {c.store_traced && (
+                <p className="mt-2.5 text-caption text-smoke">The store is where {c.giver ?? 'the friend'} bought it first.</p>
+              )}
+            </>
+          )}
         </div>
 
         {order.shipped_at && (
           <div>
-            <p className="mb-1 text-label uppercase text-slate">Shipped</p>
-            <p className="text-body-sm text-primary">
+            <p className={label}>Shipped</p>
+            <p className="mt-1 text-body-sm text-flare">
               {new Date(order.shipped_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
               {order.carrier ? ` · ${order.carrier}` : ''}
               {order.tracking_number ? ` · ${order.tracking_number}` : ''}
             </p>
             {order.tracking_url && (
-              <a href={order.tracking_url} target="_blank" rel="noreferrer" className="text-caption text-cinder underline">
+              <a href={order.tracking_url} target="_blank" rel="noreferrer" className="text-caption text-ash underline">
                 Open tracking page
               </a>
             )}
           </div>
         )}
 
-        <div>
-          <p className="mb-2 text-label uppercase text-slate">History</p>
-          <ol className="space-y-1.5">
-            {[...order.order_events]
-              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-              .map((event, i) => (
-                <li key={event.id} className="flex items-center gap-2.5 text-body-sm">
-                  <span className={cn('h-2 w-2 shrink-0', i === 0 ? 'bg-accent' : 'bg-line')} />
-                  <span className="text-primary">{STATUS_LABEL[event.status] === 'New' ? 'Placed' : STATUS_LABEL[event.status] ?? event.status}</span>
-                  <span className="text-caption text-slate">
-                    {new Date(event.created_at).toLocaleDateString('en-GB', {
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                </li>
-              ))}
-          </ol>
-        </div>
-
         {/* Next step: ship (with carrier and tracking), or deliver */}
         {(canShip || order.status === 'shipped') && (
-          <div className="space-y-3 border-t border-line pt-5">
-            <Field label="Carrier" htmlFor={`carrier-${order.id}`}>
-              <Select id={`carrier-${order.id}`} value={carrierInput} onChange={(e) => setCarrierInput(e.target.value)}>
-                <option value="">Choose carrier</option>
-                {CARRIERS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Tracking number (optional)" htmlFor={`tracking-${order.id}`}>
-              <Input
-                id={`tracking-${order.id}`}
-                type="text"
-                placeholder="e.g. 00370712345678901"
-                value={trackingInput}
-                onChange={(e) => setTrackingInput(e.target.value)}
-              />
-            </Field>
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
+              <Field label="Carrier" htmlFor={`carrier-${order.id}`}>
+                <Select id={`carrier-${order.id}`} value={carrierInput} onChange={(e) => setCarrierInput(e.target.value)}>
+                  <option value="">Choose carrier</option>
+                  {CARRIERS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Tracking (optional)" htmlFor={`tracking-${order.id}`}>
+                <Input
+                  id={`tracking-${order.id}`}
+                  type="text"
+                  placeholder="e.g. 00370…"
+                  value={trackingInput}
+                  onChange={(e) => setTrackingInput(e.target.value)}
+                />
+              </Field>
+            </div>
             {carrierInput === 'Other' && (
               <Field label="Tracking link (optional)" htmlFor={`tracking-url-${order.id}`}>
                 <Input
@@ -475,32 +499,53 @@ export default function BrandOrdersPage() {
             )}
             {actionError && <p className="text-caption text-accent-strong">{actionError}</p>}
             {canShip ? (
-              <Button fullWidth size="lg" onClick={() => updateStatus(order.id, 'shipped')} disabled={isUpdating} loading={isUpdating}>
+              <Button fullWidth size="lg" variant="flame" onClick={() => updateStatus(order.id, 'shipped')} disabled={isUpdating} loading={isUpdating}>
                 Mark as shipped
               </Button>
             ) : (
               <>
+                <Button fullWidth size="lg" variant="flame" onClick={() => updateStatus(order.id, 'delivered')} disabled={isUpdating} loading={isUpdating}>
+                  Mark as delivered
+                </Button>
                 <Button fullWidth variant="secondary" onClick={() => saveTracking(order.id)} disabled={isUpdating}>
                   Save tracking
                 </Button>
-                <Button fullWidth size="lg" onClick={() => updateStatus(order.id, 'delivered')} disabled={isUpdating} loading={isUpdating}>
-                  Mark as delivered
-                </Button>
               </>
             )}
-            {stepBefore && (
-              <Button fullWidth variant="secondary" onClick={() => updateStatus(order.id, stepBefore.status)} disabled={isUpdating}>
-                {stepBefore.label}
-              </Button>
+            <p className="text-caption text-smoke">The customer sees each step in the Flaym app.</p>
+            {(stepBefore || order.status === 'pending' || order.status === 'confirmed') && (
+              <div className="flex flex-wrap gap-2">
+                {stepBefore && (
+                  <Button size="sm" variant="secondary" onClick={() => updateStatus(order.id, stepBefore.status)} disabled={isUpdating}>
+                    {stepBefore.label}
+                  </Button>
+                )}
+                {(order.status === 'pending' || order.status === 'confirmed') && (
+                  <Button size="sm" variant="ghost" onClick={() => updateStatus(order.id, 'cancelled')} disabled={isUpdating}>
+                    Cancel order
+                  </Button>
+                )}
+              </div>
             )}
-            {(order.status === 'pending' || order.status === 'confirmed') && (
-              <Button fullWidth variant="ghost" onClick={() => updateStatus(order.id, 'cancelled')} disabled={isUpdating}>
-                Cancel order
-              </Button>
-            )}
-            <p className="text-caption text-slate">The customer sees each step in the Flaym app.</p>
           </div>
         )}
+
+        <details className="group border-t border-line-dark-subtle pt-3">
+          <summary className="cursor-pointer list-none text-label uppercase text-smoke hover:text-ash">History ▾</summary>
+          <ol className="mt-2.5 space-y-1.5">
+            {[...order.order_events]
+              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+              .map((event, i) => (
+                <li key={event.id} className="flex items-center gap-2.5 text-body-sm">
+                  <span className={cn('h-2 w-2 shrink-0', i === 0 ? 'bg-accent' : 'bg-surface-dark')} />
+                  <span className="text-flare">{STATUS_LABEL[event.status] === 'New' ? 'Placed' : STATUS_LABEL[event.status] ?? event.status}</span>
+                  <span className="text-caption text-smoke">
+                    {new Date(event.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </li>
+              ))}
+          </ol>
+        </details>
       </div>
     );
   };
@@ -509,151 +554,171 @@ export default function BrandOrdersPage() {
     <div className="space-y-6">
       {header}
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-      <Tabs
-        variant="underline"
-        items={[
-          { value: 'new', label: 'New', count: count('new') },
-          { value: 'in_progress', label: 'In progress', count: count('in_progress') },
-          { value: 'shipped', label: 'Shipped', count: count('shipped') },
-          { value: 'delivered', label: 'Delivered', count: count('delivered') },
-          { value: 'all', label: 'All', count: orders.length },
-        ]}
-        value={filter}
-        onValueChange={(v) => setFilter(v as FilterStatus)}
-        className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      />
-        <div className="flex items-center gap-3">
-          <span className="whitespace-nowrap text-caption text-slate">{checked.size} selected</span>
-          <Button size="sm" onClick={shipSelected} disabled={checked.size === 0 || bulkShipping} loading={bulkShipping}>
-            Mark selected as shipped
-          </Button>
-        </div>
-      </div>
-      {actionError && !selected && <p className="text-caption text-accent-strong">{actionError}</p>}
-
-      {filteredOrders.length === 0 ? (
-        <EmptyState
-          className="bg-surface"
-          icon={<ShoppingBag className="h-5 w-5" />}
-          title={orders.length === 0 ? 'No orders yet' : 'Nothing here'}
-          description={
-            orders.length === 0
-              ? 'Orders will appear here when customers purchase through QR scans'
-              : 'No orders with this status right now.'
-          }
-        />
-      ) : (
-        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-          {/* Mobile: list */}
-          <ul className="divide-y divide-line border border-line bg-surface md:hidden">
-            {filteredOrders.map((order) => (
-              <li key={order.id} className="flex items-center">
-                {SHIPPABLE.includes(order.status) && (
-                  <Checkbox
-                    aria-label={`Select order ${order.order_number}`}
-                    checked={checked.has(order.id)}
-                    onChange={() => toggle(order.id)}
-                    className="pl-4"
-                  />
-                )}
-                <button type="button" onClick={() => select(order.id)} className="flex min-w-0 flex-1 items-center gap-3 p-4 text-left">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-body-sm font-medium text-primary">#{order.order_number}</span>
-                      <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
-                      {waitingPill(order)}
-                    </div>
-                    <p className="mt-1 truncate text-caption text-slate">
-                      {shortDate(order.created_at)} · {order.order_items.length} item{order.order_items.length !== 1 ? 's' : ''} · {creditLabel(order.id)}
-                    </p>
-                  </div>
-                  <span className="whitespace-nowrap text-body-sm tabular-nums text-primary">{formatDKK(order.total_dkk)}</span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-slate" />
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          {/* Desktop: table */}
-          <div className="hidden overflow-x-auto border border-line bg-surface md:block">
-            <table className="w-full border-collapse font-brand text-body-sm text-primary">
-              <THead>
-                <tr>
-                  <TH className="w-10 pl-5 pr-0">
-                    <Checkbox
-                      aria-label="Select all orders that can be shipped"
-                      checked={allChecked}
-                      disabled={shippableShown.length === 0}
-                      onChange={toggleAll}
-                    />
-                  </TH>
-                  <TH className="px-3">Order</TH>
-                  <TH>Date</TH>
-                  <TH className="text-right">Items</TH>
-                  <TH>Credited store</TH>
-                  <TH className="text-right">Total</TH>
-                  <TH className="px-5">Status</TH>
-                </tr>
-              </THead>
-              <TBody>
-                {filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    onClick={() => select(order.id)}
-                    aria-selected={order.id === expandedOrder}
-                    className={cn('cursor-pointer transition-colors', order.id === expandedOrder ? 'bg-canvas-warm' : 'hover:bg-surface-muted/40')}
-                  >
-                    <TD className="pl-5 pr-0" onClick={(e) => e.stopPropagation()}>
-                      {SHIPPABLE.includes(order.status) && (
-                        <Checkbox
-                          aria-label={`Select order ${order.order_number}`}
-                          checked={checked.has(order.id)}
-                          onChange={() => toggle(order.id)}
-                        />
-                      )}
-                    </TD>
-                    <TD className="px-3">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); select(order.id); }} className="font-medium hover:underline">
-                        #{order.order_number}
-                      </button>
-                    </TD>
-                    <TD className="whitespace-nowrap">{shortDate(order.created_at)}</TD>
-                    <TD className="text-right tabular-nums">{order.order_items.reduce((n, i) => n + i.quantity, 0)}</TD>
-                    <TD className="max-w-[200px] truncate">{creditLabel(order.id)}</TD>
-                    <TD className="whitespace-nowrap text-right tabular-nums">{formatDKK(order.total_dkk)}</TD>
-                    <TD className="px-5">
-                      <div className="flex items-center gap-2">
-                        <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
-                        {waitingPill(order)}
-                      </div>
-                    </TD>
-                  </tr>
-                ))}
-              </TBody>
-            </table>
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <Panel className="flex min-w-0 flex-col gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <Segmented
+              label="Order status"
+              items={[
+                { value: 'new', label: `New ${count('new')}` },
+                { value: 'shipped', label: `Shipped ${count('shipped')}` },
+                { value: 'delivered', label: `Delivered ${count('delivered')}` },
+                { value: 'all', label: 'All' },
+              ]}
+              value={filter}
+              onValueChange={(v) => setFilter(v as FilterStatus)}
+              className="self-start"
+            />
+            <div className="flex items-center gap-3">
+              <span className="whitespace-nowrap text-caption text-smoke">{checked.size} selected</span>
+              <Button size="sm" variant="flame" onClick={shipSelected} disabled={checked.size === 0 || bulkShipping} loading={bulkShipping}>
+                Mark as shipped
+              </Button>
+            </div>
           </div>
+          {actionError && !selected && <p className="text-caption text-accent-strong">{actionError}</p>}
 
-          {/* Detail panel (desktop) */}
-          <aside className="sticky top-6 hidden border border-line bg-surface p-6 xl:block">
-            {selected ? (
-              detail(selected)
-            ) : (
-              <EmptyState
-                className="border-none py-16"
-                icon={<ShoppingBag className="h-5 w-5" />}
-                title="Select an order"
-                description="Pick an order to see where it goes and mark the next step."
-              />
-            )}
-          </aside>
-        </div>
-      )}
+          {filteredOrders.length === 0 ? (
+            <EmptyState
+              className="border-none py-12"
+              icon={<ShoppingBag className="h-5 w-5" />}
+              title={orders.length === 0 ? 'No orders yet' : 'Nothing here'}
+              description={orders.length === 0 ? 'Orders appear here when customers buy through a scan.' : 'No orders with this status right now.'}
+            />
+          ) : (
+            <>
+              {/* Phone: list */}
+              <ul className="divide-y divide-line-dark-subtle md:hidden">
+                {filteredOrders.map((order) => (
+                  <li key={order.id} className="flex items-center">
+                    {SHIPPABLE.includes(order.status) && (
+                      <Checkbox aria-label={`Select order ${order.order_number}`} checked={checked.has(order.id)} onChange={() => toggle(order.id)} />
+                    )}
+                    <button type="button" onClick={() => select(order.id)} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-3 text-left">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-body-sm font-semibold text-flare">#{order.order_number}</span>
+                          <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
+                          {waitingPill(order)}
+                        </div>
+                        <p className="mt-1 truncate text-caption text-smoke">
+                          {shortDate(order.created_at)} · {itemCount(order)} item{itemCount(order) !== 1 ? 's' : ''} · {creditLabel(order.id)}
+                        </p>
+                      </div>
+                      <span className="whitespace-nowrap text-body-sm tabular-nums text-flare">{formatDKK(order.total_dkk)}</span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-smoke" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
 
-      {/* Detail sheet (mobile and tablet) */}
+              {/* Tablet and up: table */}
+              <div className="-mx-1 hidden overflow-x-auto md:block">
+                <table className="w-full border-collapse font-brand text-body-sm">
+                  <thead>
+                    <tr className="border-b border-line-dark-subtle text-left text-label uppercase text-smoke">
+                      <th className="w-9 px-1 pb-2.5">
+                        <Checkbox
+                          aria-label="Select all orders that can be shipped"
+                          checked={allChecked}
+                          disabled={shippableShown.length === 0}
+                          onChange={toggleAll}
+                        />
+                      </th>
+                      <th className="px-2 pb-2.5 font-medium">Order</th>
+                      <th className="px-2 pb-2.5 font-medium">Date</th>
+                      <th className="px-2 pb-2.5 font-medium">Items</th>
+                      <th className="px-2 pb-2.5 font-medium">Credited store</th>
+                      <th className="px-2 pb-2.5 font-medium">Total</th>
+                      <th className="px-2 pb-2.5 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map((order) => {
+                      const on = order.id === expandedOrder;
+                      return (
+                        <tr
+                          key={order.id}
+                          onClick={() => select(order.id)}
+                          aria-selected={on}
+                          className={cn(
+                            'cursor-pointer border-b border-line-dark-subtle transition-colors last:border-b-0',
+                            on || checked.has(order.id) ? 'bg-accent-tint' : 'hover:bg-surface-dark/50'
+                          )}
+                        >
+                          <td className="px-1 py-3" onClick={(e) => e.stopPropagation()}>
+                            {SHIPPABLE.includes(order.status) && (
+                              <Checkbox aria-label={`Select order ${order.order_number}`} checked={checked.has(order.id)} onChange={() => toggle(order.id)} />
+                            )}
+                          </td>
+                          <td className="px-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                select(order.id);
+                              }}
+                              className="font-semibold text-flare hover:underline"
+                            >
+                              #{order.order_number}
+                            </button>
+                          </td>
+                          <td className="whitespace-nowrap px-2 text-ash">{shortDate(order.created_at)}</td>
+                          <td className="px-2 tabular-nums text-ash">{itemCount(order)}</td>
+                          <td className="max-w-[180px] truncate px-2 text-ash">{creditLabel(order.id)}</td>
+                          <td className="whitespace-nowrap px-2 tabular-nums text-ash">{formatDKK(order.total_dkk)}</td>
+                          <td className="px-2">
+                            <div className="flex items-center gap-2">
+                              <StatusPill status={order.status} label={STATUS_LABEL[order.status]} />
+                              {waitingPill(order)}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </Panel>
+
+        {/* Detail panel (wide screens) */}
+        <aside className={cn(portalPanel, 'sticky top-6 hidden p-6 xl:block')}>
+          {selected ? (
+            detail(selected)
+          ) : (
+            <EmptyState
+              className="border-none py-16"
+              icon={<ShoppingBag className="h-5 w-5" />}
+              title="Select an order"
+              description="Pick an order to see where it goes and mark the next step."
+            />
+          )}
+        </aside>
+      </div>
+
+      {/* Detail sheet (phone and tablet) */}
       <Modal open={!!selected && !wide} onClose={() => setExpandedOrder(null)} variant="sheet" className="sm:max-w-lg">
         {selected && detail(selected)}
       </Modal>
     </div>
+  );
+}
+
+function ChainStep({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 flex-1 bg-surface-dark px-2.5 py-2">
+      <p className="text-caption text-smoke">{label}</p>
+      <p className="truncate text-caption font-semibold text-flare">{value}</p>
+    </div>
+  );
+}
+
+function ChainArrow() {
+  return (
+    <span className="flex items-center text-caption text-accent-bright" aria-hidden>
+      →
+    </span>
   );
 }

@@ -900,6 +900,11 @@ export type Database = {
           product_scans: { retailer_id: string; product_id: string; scans: number }[];
         } | null;
       };
+      // 021: Orders → the chain (first names only).
+      get_brand_order_chain: {
+        Args: { p_order: string };
+        Returns: { store: string | null; store_traced: boolean; giver: string | null; buyer: string | null } | null;
+      };
       reorder_brand_stories: {
         Args: { p_ids: string[] };
         Returns: undefined;

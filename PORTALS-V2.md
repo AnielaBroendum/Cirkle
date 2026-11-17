@@ -18,7 +18,7 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 | B03 | Brand Portal v2 / 03 Product library | `364:238` | `/brand/products` | C2 | [x] |
 | B04 | Brand Portal v2 / 04 Edit product | `364:587` | `/brand/products/[id]/edit` (and `/brand/products/new`) | C3 | [x] |
 | B05 | Brand Portal v2 / 05 Stores and QR tags | `365:318` | `/brand/samples` (sub-tabs: requests, swaps, transactions, `/brand/partnerships`) | C4 | [x] |
-| B06 | Brand Portal v2 / 06 Orders | `365:645` | `/brand/orders` | later | [ ] |
+| B06 | Brand Portal v2 / 06 Orders | `365:645` | `/brand/orders` | C5 | [x] |
 | B07 | Brand Portal v2 / 07 Returns | `367:400` | `/brand/returns` | later | [ ] |
 | B08 | Brand Portal v2 / 08 Account and payouts | `367:651` | `/brand/account` | later | [ ] |
 | R01 | Retail Portal v2 / 01 Login | `368:518` | `/auth/login` (same page as B01) | B | [x] |
@@ -196,6 +196,13 @@ Today: `get_brand_dashboard` (009) with period Day/Week/Month/Year and product/s
 **Dropped:** "Add sample" button, the sub-tabs (Sample requests, Swaps, Deposits, Partnerships), deposit "held" badges, swap badges, QR image, Download QR, Open scan page, Delete sample, Available stores and commission inputs. The sub-pages stay reachable.
 
 ## B06 Orders (`/brand/orders`)
+
+**Done (17 Nov, C5).** Shipping works exactly as before: bulk "Mark as shipped" (`/api/orders/ship`), carrier + tracking + Mark as shipped / delivered (`/api/orders/[id]/status`, `/tracking`). Not clicked during the check (it ships real orders and sends emails).
+- Tabs New / Shipped / Delivered / All; New also holds confirmed and packed orders (they still need shipping), so nothing is hidden. Opens on New.
+- The chain (`get_brand_order_chain`, 021): Store → Passed on → Bought, first names only. For a sale passed on by a friend, the store is traced from the friend's own earlier purchase of the same product (read-only; "The store is where X bought it first"). Checked on QA order #11. A friend's handle (@ida.k) and the Chain ID are MISSING.
+- Kept outside Figma: Confirm / Mark as packed / Cancel order as small buttons, and History (collapsed).
+- `Modal` now takes the portal's dark theme when it opens inside a portal (it renders into `<body>`, outside `.portal-dark`). Nothing changes outside the portals.
+- Left out: Export (no CSV).
 
 | Element | Mark | Source / note |
 |---|---|---|
