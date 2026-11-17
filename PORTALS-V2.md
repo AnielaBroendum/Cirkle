@@ -2,7 +2,7 @@
 
 Old frames: Brand Portal (`3:3`), Retail Portal (`7:14`). New frame: "Portals v2 · Dynamic (draft)" (`358:151`). File `8eKYDZ98E49demFAx7Tjt7`, read 17 November 2026.
 
-The portals move from the light theme to the dark v2 theme of the consumer app, with a new sidebar and top bar. Several screens show new numbers. Only the Brand and Retail portals are in scope, plus the shared login page (restyled for every role, decided 17 Nov). Rules: "Portals v2 rules" in `CLAUDE.md`.
+The portals move from the light theme to the dark v2 theme of the consumer app, with a new sidebar and top bar. Several screens show new numbers. Only the Brand and Retail portals are in scope, plus the shared login page (restyled for every role, decided 17 Nov). The branch rules were removed from `CLAUDE.md` when the work was finished; the portal layout is documented there under "Portals".
 
 **Legend**
 - **EXISTS**: already in the app, only needs restyling.
@@ -28,6 +28,14 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 
 Not in Figma v2, kept as they are (restyled to dark only): `/brand/onboarding`, `/brand/products/new`, `/brand/samples/new`, `/brand/samples/requests`, `/brand/samples/swaps`, `/brand/samples/transactions`, `/brand/partnerships`, `/retailer/onboarding`, `/retailer/samples/request`, `/retailer/samples/transactions`, `/retailer/brands`.
 
+## Final check (17 Nov 2026)
+
+- All 12 screens done. The sub-pages outside Figma (requests, swaps, deposits, partnerships, Add sample, retail Brands / Request samples / Transactions, both onboardings) now use the dark tokens and `PageHeader` directly instead of light token names flipped by `portal-dark`; their cards use `Card tone="portal"`. `SidebarNav` was removed (`/ds-preview` shows `PortalSidebar`).
+- Type check, lint and `npm run build` pass.
+- End to end on the QA accounts: brand dashboard, edit product (saved, then reverted), print tag (logged), ship order #30 with GLS + tracking (status, `shipped_at`, timeline event written), approve return R-BF48 (#33); store dashboard, print tag (logged), store profile save (reverted).
+- RLS: the new functions 016–025 return nothing for another brand's or store's ids, and nothing to anonymous callers. Found a pre-existing hole outside this work: the 001 policy "Public can read by invitation token" lets anyone read every partnership row that has an `invitation_token` (commission rates and the token), and the 002 accept policy lets any store update any open invitation to point at itself. Not changed (RLS change, needs a decision).
+- Still MISSING (unchanged, need data or a decision): see Part C and the per-screen tables (Export settlement / CSV, webshop import, product SKU, Resend invite, friend's handle and Chain ID, return label, automatic store-cut reversal, Verified badge, Brand agreement, Keep me logged in, Forgot password, retail "+ Add products").
+
 ## Part D status (17 Nov 2026)
 
 Retail screens R02–R04 rebuilt to v2 (D1–D3, one commit each). New read-only functions 023–025, applied to production 17 Nov.
@@ -40,7 +48,7 @@ Still MISSING on the brand screens (not built, need data or a decision): Export 
 
 ## Part B status (17 Nov 2026)
 
-Done: the shell (sidebar, top bar, ⌘K search, bell, Next payout) on every brand and retail page, the dark theme for both portals, and the login page. Screen bodies B02–B08 and R02–R04 still have their old layout; they are dark (through `portal-dark`) but not yet rebuilt to v2.
+Done: the shell (sidebar, top bar, ⌘K search, bell, Next payout) on every brand and retail page, the dark theme for both portals, and the login page. (At the time, screen bodies B02–B08 and R02–R04 still had their old layout; they were rebuilt in Parts C and D.)
 
 - **Dark theme:** `portal-dark` on the portal root swaps the light tokens for dark ones (see "Portal dark theme" in `CLAUDE.md`). Nothing outside the portals changes; checked on `/`, `/auth/signup`.
 - **Shell data:** `get_brand_portal_shell` and `get_retailer_portal_shell` (migration 016, applied to production 17 Nov). Migration 015 records the variant price override already in production.

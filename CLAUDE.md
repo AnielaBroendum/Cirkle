@@ -83,7 +83,7 @@ The host is not hardcoded: `src/lib/base-url.ts` uses `NEXT_PUBLIC_QR_BASE_URL`,
 
 ## Database
 
-The schema is the migrations in `supabase/migrations` (001–022), applied in order. Every database change goes in a new numbered file there. Key tables:
+The schema is the migrations in `supabase/migrations` (001–025; there are two 002 and two 015 files), applied in order. Every database change goes in a new numbered file there. Key tables:
 
 - `users` — extended via Supabase Auth, adds role + profile fields
 - `brand_profiles` — brand-specific data (name, logo, description)
@@ -120,6 +120,8 @@ Dashboard RPCs (security definer, only return the caller's own rows):
 - `get_retailer_payouts`, `get_retailer_most_scanned` (013): the store's credited purchases with payout status, and scans/buys per product
 - `get_brand_portal_shell`, `get_retailer_portal_shell` (016): sidebar counts and the Next payout box
 - Brand portal v2 screens: `get_brand_overview` (017, dashboard: where things stand, saves by size vs. the range before, buy rate), `get_brand_product_stats` (018, product library), `get_product_store_scans` (019, Edit product → In stores), `get_brand_store_scans` (020, Stores & QR tags), `get_brand_order_chain` (021, the chain on an order, first names only), `get_brand_return_stats` (022, Returns tiles). Definitions are in each migration's header
+- Retail portal v2 screens: `get_retailer_overview` (023, dashboard tiles, weekly bars, earnings per week/month/year, earned this month, tags never printed), `get_retailer_product_stats` (024, Products in the store: scans and buys per product in this store), `get_retailer_profile_stats` (025, Store profile: earned since joining, brands with their share of this month's scans)
+- Functions that take an id (`get_product_store_scans`, `get_brand_overview` filters, `get_brand_order_chain`) still answer only for the caller's own brand: a foreign id returns nothing
 
 Storage buckets: `brand-assets` (logos, store photos, QR PNGs at `qr-codes/{sample_id}.png`, older product images; not in any migration), `product-images` (10 MB, JPEG/PNG/WebP) and `brand-stories` (50 MB, MP4/MOV/JPEG/PNG), both from 012.
 
@@ -138,6 +140,8 @@ Storage buckets: `brand-assets` (logos, store photos, QR PNGs at `qr-codes/{samp
 - `ORDER_WAITING_THRESHOLD_DAYS = 2` (`src/lib/orders.ts`): New orders older than this show "Waiting". `CARRIERS` and `VALID_TRANSITIONS` live there too
 - `STORY_RULES` and `PRODUCT_IMAGE_RULES` (`src/lib/media-rules.ts`): stories max 10, video MP4/MOV H.264 ≤ 50 MB and ≤ 20 s, image JPEG/PNG ≤ 10 MB shown 6 s, all 1080 × 1920 (9:16); product images max 8, JPEG/PNG/WebP ≤ 10 MB, at least 1200 × 1600. Checked in the browser before upload and again on the server from the stored bytes
 - `DELIVERY_FEE_ORE = 4900` (`src/components/consumer/basket-store.ts`): shown only, not charged (see Mock Checkout)
+- `RETURN_APPROVAL_DAYS = 3` (`src/app/(brand)/brand/returns/page.tsx`): the "Approve within" deadline on Returns. Display only, nothing is approved automatically
+- `STORE_CUT_PERCENT = 15` (`src/app/(brand)/brand/account/page.tsx`): the sale split shown on brand Account. Mirrors the fixed rate in `src/app/api/checkout/route.ts`; change both together
 
 ## File Structure
 
@@ -169,8 +173,8 @@ src/
     base-url.ts, email.ts, utils.ts
   components/
     ds/                     — Flaym design system components (see Conventions)
-    brand/                  — Brand-specific components
-    retailer/               — Retailer-specific components
+    brand/                  — Brand-specific components, plus portal-data.ts (⌘K search, bell) and nav-counts.tsx (sidebar data)
+    retailer/               — Retailer-specific components; portal-data.ts has the store's sidebar data, search and bell
     consumer/               — Consumer-specific components
     shared/                 — Shared components (product card, status timeline, etc.)
 ```
@@ -199,35 +203,35 @@ Work plan and screen checklist: `FIGMA-V2.md`.
 - Use the design tokens in `tailwind.config.ts` and the components in `src/components/ds` (below). No hard-coded colours.
 - Commit after each finished part.
 
-These rules were for the consumer redesign (merged into `main`). Portal work follows "Portals v2 rules" below.
-
-## Portals v2 rules
-
-Branch `figma-v2-portals`. Work plan, screen checklist and gap analysis: `PORTALS-V2.md`. Figma: "Portals v2 · Dynamic (draft)" (`358:151`).
-
-- UI changes are allowed in `src/app/(brand)`, the retailer routes (`src/app/(retailer)`), `src/components/brand`, the retailer components (`src/components/retailer`) and `src/components/ds`.
-- New READ-ONLY queries are allowed for numbers the new screens show. Do the calculations in the database (SQL view/function), as the October dashboard work did (`get_brand_dashboard`, migration 009), not in the browser.
-- No new tables or columns, no changes to existing data and no changes to auth, checkout, QR attribution, points or Resend emails without asking first.
-- Keep RLS: brands only see their own data, retailers only their own store's.
-- Use tokens and `src/components/ds` only. Commit after each finished part.
-
 ### Design system (Flaym)
 
 The UI follows the Flaym Figma file. Use only these tokens (defined in `tailwind.config.ts`) and the components in `src/components/ds/`. Tailwind's default palette (`gray-*`, `red-*`, etc.) is not part of the design.
 
-- **Colours** (Figma "Flaym / Colour" variables, by name): `flare` #FFF, `ash` #D5D1C8, `smoke` #ACA7A1, `char` #7B7673, `flaym` #FF5000, `obsidian` #2C2324, `cinder` #4A3E3F, `slate` #5E5856, `warning-text` #8A5200. Semantic aliases: `canvas` (white page), `canvas-dark` (consumer app page, #1A1415 near-black from Figma v2; consumer only), `canvas-warm` (off-white portal page), `surface`, `surface-muted`, `surface-dark` (card on a dark page), `primary` (Obsidian: text, primary buttons, nav), `on-primary`, `line` (Ash borders on light), `line-dark` (Cinder borders on dark), `line-dark-subtle` (white 6%: 1px card border on the consumer app, v2), `accent` (Flaym orange: CTAs, active states), `accent-subtle`, `accent-strong` (portal "New" pill), `accent-tint` (Flaym 12%: tinted pill on the consumer app with `text-accent`, v2), `accent-bright` (#FF6E2B: orange text on a `surface-dark` card, where Flaym is only 3.9:1; v2), `success`, `success-subtle`, `warning`, `warning-subtle`
-- **Text levels**: dark app `text-flare` / `text-ash` / `text-smoke`; light portals `text-primary` (Obsidian) / `text-cinder` / `text-slate`. **Char is only for lines, borders and disabled states, never text** (`border-char`). There is no `muted` token any more.
+- **Colours** (Figma "Flaym / Colour" variables, by name): `flare` #FFF, `ash` #D5D1C8, `smoke` #ACA7A1, `char` #7B7673, `flaym` #FF5000, `obsidian` #2C2324, `cinder` #4A3E3F, `slate` #5E5856, `warning-text` #8A5200. Semantic aliases: `canvas` (white page), `canvas-dark` (page background of the consumer app and both portals, #1A1415 near-black from Figma v2), `canvas-warm` (off-white portal page), `surface`, `surface-muted`, `surface-dark` (card on a dark page), `primary` (Obsidian: text, primary buttons, nav), `on-primary`, `line` (Ash borders on light), `line-dark` (Cinder borders on dark), `line-dark-subtle` (white 6%: 1px card border on the consumer app, v2), `accent` (Flaym orange: CTAs, active states), `accent-subtle`, `accent-strong` (portal "New" pill), `accent-tint` (Flaym 12%: tinted pill on the consumer app with `text-accent`, v2), `accent-bright` (#FF6E2B: orange text on a `surface-dark` card, where Flaym is only 3.9:1; v2), `success`, `success-subtle`, `warning`, `warning-subtle`
+- **Text levels**: dark pages (consumer app, portals) `text-flare` / `text-ash` / `text-smoke`; light pages (landing, signup, invite, error, 404, print sheet) `text-primary` (Obsidian) / `text-cinder` / `text-slate`. **Char is only for lines, borders and disabled states, never text** (`border-char`). There is no `muted` token any more.
 - **No danger colour and no shadows**: Figma has neither. Errors use the accent tones (`text-accent-strong`, or an accent icon on `bg-primary`). Don't add red or box shadows.
 - **Font**: `font-brand` (IBM Plex Mono 400/500/600) is the body default. Headings, labels and button labels are uppercase (`Button` does this itself).
 - **Type scale** (nothing under 12px): `text-display` 36, `text-heading-xl` 32, `text-heading-lg` 20, `text-title` 18, `text-body-lg` 15, `text-body` 14, `text-body-sm` 13, `text-caption` 12, `text-label` 12 (uppercase, 0.7px), `text-button` 14 (uppercase, 0.8px). New size tokens must also be added to the `font-size` group in `src/components/ds/cn.ts`, or `cn` drops them next to a text colour.
-- **Radius**: `rounded-control` (square, 0px) for buttons, inputs and cards; `rounded-pill` for pills, avatars and toggles. Figma v2 squares the consumer app's pills, tinted chips, check badge and toggle track (`Toggle tone="dark"`), so use `rounded-control` there; circles (avatars, toggle knob, swatches, radios, step dots, round back button) keep `rounded-pill`. The portals keep `rounded-pill` pills and toggles
+- **Radius**: `rounded-control` (square, 0px) for buttons, inputs and cards; `rounded-pill` for pills, avatars and toggles. Figma v2 squares the consumer app's pills, tinted chips, check badge and toggle track (`Toggle tone="dark"`), so use `rounded-control` there; circles (avatars, toggle knob, swatches, radios, step dots, round back button) keep `rounded-pill`. The portals keep `rounded-pill` status pills; their switch is `Toggle tone="portal"` (square track, round white knob)
 - **Gradients**: `bg-flaym-welcome` (Figma v2 welcome and auth panel), `bg-flaym-gradient` (image placeholders, portal onboarding panel), `bg-flaym-stories` (brand stories backdrop), `bg-flaym-scan` (consumer Scan screen), `bg-flame-gradient` (Figma v2 consumer CTAs and highlight tiles, `to bottom right`: #C74F00 → #D34200 → #D23C00, Figma's #FF8A3D → #FF5000 → #D23C00 darkened so white text passes AA). New gradients must also go in the `bg-image` group in `src/components/ds/cn.ts`
-- **Consumer app v2 surfaces**: CTAs use `Button variant="flame"` (or `buttonClasses({ variant: 'flame' })`); cards on the dark page use `Card tone="app"`; highlight tiles and banners use `Card tone="flame"`; `flameSurface` is the shared class string. Portals keep `primary` / `accent` buttons and `light` / `dark` cards. Contrast notes are in `FIGMA-V2.md`
+- **Consumer app v2 surfaces**: CTAs use `Button variant="flame"` (or `buttonClasses({ variant: 'flame' })`); cards on the dark page use `Card tone="app"`; highlight tiles and banners use `Card tone="flame"`; `flameSurface` is the shared class string. The portals use `flame` for the main action on a page and `secondary` or `ghost` for the rest; see "Portals" below for their panels. Contrast notes are in `FIGMA-V2.md`
 - **Page backgrounds per area**: consumer app `bg-canvas-dark`; brand and retailer portals `bg-canvas-dark` inside `PortalShell` (Portals v2); login (`/auth/login`, every role) the v2 split screen (`components/shared/login-shell.tsx`); landing, signup and invite `bg-flaym-welcome` with a `bg-canvas` form column (`auth-shell.tsx`); error and 404 `bg-canvas`
-- **Portal dark theme (`portal-dark`)**: the light semantic tokens (`canvas`, `canvas-warm`, `surface`, `surface-muted`, `primary`, `on-primary`, `line`, `slate`, `cinder`, `accent-subtle`/`-strong`, `success`, `warning` and their `-subtle`) are CSS variables (`THEMED` in `tailwind.config.ts`). Under an element with the `portal-dark` class they take dark values (e.g. `primary` becomes the light #F3EFE8 of the active nav item, `on-primary` Obsidian, `slate` Smoke), so ds components and old portal pages turn dark without edits. Outside it every value is unchanged. Where a colour must not flip, use the raw name (`text-flare`, `bg-obsidian`). New portal screens should use the dark tokens directly
+- **Portal dark theme (`portal-dark`)**: the light semantic tokens (`canvas`, `canvas-warm`, `surface`, `surface-muted`, `primary`, `on-primary`, `line`, `slate`, `cinder`, `accent-subtle`/`-strong`, `success`, `warning` and their `-subtle`) are CSS variables (`THEMED` in `tailwind.config.ts`). Under an element with the `portal-dark` class they take dark values (e.g. `primary` becomes the light #F3EFE8 of the active nav item, `on-primary` Obsidian, `slate` Smoke), so ds components (inputs, pills, tabs, skeletons) turn dark without edits. Outside it every value is unchanged. Portal pages themselves use the dark tokens directly (`text-flare` / `text-ash` / `text-smoke`, `bg-obsidian`, `border-line-dark-subtle`), not the light names
 - **Status-bar colour** (`theme-color`): consumer screens #1A1415 (`consumerViewport` in `components/consumer/viewport.ts`, exported by the `(consumer)`, `p/[sampleId]` and `d/[productId]` layouts, and `manifest.json`); everything else #2C2324 from the root layout. Metadata can't use Tailwind tokens, so keep these hex values in step with `canvas-dark` and `obsidian`
-- **Components** (import from `@/components/ds`): `Logo`, `Button` / `buttonClasses`, `Field`, `Input`, `Textarea`, `Select`, `Checkbox`, `Toggle`, `Card`, `CardHeader`, `Badge`, `StatusPill`, `Avatar`, `Modal` (sheet on mobile), `Tabs`, `TopBar`, `BottomNav`, `SidebarNav` (old portal nav, no longer used), portal shell (`PortalShell`, `PortalSidebar`, `PortalTopBar`, `NextPayoutCard`, `NotificationsMenu`, `CommandSearch`, `payoutPeriodInfo`), portal v2 screen pieces (`PageHeader`, `Panel`, `PanelHeader`, `Segmented`, `MetricTile`, `ScanBar`, `ArrowLink`, `Chip`, `Thumb`, `portalPanel` in `ds/portal-ui.tsx`; `Toggle tone="portal"`; `Modal` takes the dark theme when opened inside a portal), `EmptyState`, `StatTile`, skeletons (`Skeleton`, `KPISkeleton`, `ListSkeleton`, `CardSkeleton`), `Toast` / `ToastProvider` / `useToast` (mounted in the root layout), `List` / `ListRow`, `Table` (`THead`, `TBody`, `TR`, `TH`, `TD`), `ProductCard`, icons from Figma (`ScanIcon`, `FlaymsIcon`, `ProfileIcon`, `DashboardIcon`, `ProductsIcon`, `StoresQrIcon`, `OrdersIcon`, `ReturnsIcon`, `AccountIcon`, `StoreProfileIcon`, `LogOutIcon` in `ds/icons`), and `cn` for class merging. `/ds-preview` (development only) shows all of it.
+- **Components** (import from `@/components/ds`): `Logo`, `Button` / `buttonClasses`, `Field`, `Input`, `Textarea`, `Select`, `Checkbox`, `Toggle`, `Card` (tones `light`, `dark`, `portal`, `app`, `flame`), `CardHeader`, `Badge`, `StatusPill`, `Avatar`, `Modal` (sheet on mobile), `Tabs`, `TopBar`, `BottomNav`, portal shell (`PortalShell`, `PortalSidebar`, `PortalTopBar`, `NextPayoutCard`, `NotificationsMenu`, `CommandSearch`, `payoutPeriodInfo`), portal v2 screen pieces (`PageHeader`, `Panel`, `PanelHeader`, `Segmented`, `MetricTile`, `ScanBar`, `ArrowLink`, `Chip`, `Thumb`, `portalPanel` in `ds/portal-ui.tsx`; `Toggle tone="portal"`; `Modal` takes the dark theme when opened inside a portal), `EmptyState`, `StatTile`, skeletons (`Skeleton`, `KPISkeleton`, `ListSkeleton`, `CardSkeleton`), `Toast` / `ToastProvider` / `useToast` (mounted in the root layout), `List` / `ListRow`, `Table` (`THead`, `TBody`, `TR`, `TH`, `TD`), `ProductCard`, icons from Figma (`ScanIcon`, `FlaymsIcon`, `ProfileIcon`, `DashboardIcon`, `ProductsIcon`, `StoresQrIcon`, `OrdersIcon`, `ReturnsIcon`, `AccountIcon`, `StoreProfileIcon`, `LogOutIcon` in `ds/icons`), and `cn` for class merging. `/ds-preview` (development only) shows all of it.
 - Shared layout pieces that aren't generic live next to their area, e.g. `components/shared/auth-shell.tsx` (login, signup, invite) and `components/consumer/checkout-parts.tsx`.
+
+### Portals (Brand and Retail, Figma "Portals v2 · Dynamic", `358:151`)
+
+Screen-by-screen notes, decisions and what is still missing: `PORTALS-V2.md`.
+
+- **Shell**: `(brand)/layout.tsx` and `(retailer)/layout.tsx` wrap every page except onboarding in `PortalShell` (`ds/portal-shell.tsx`), which puts `portal-dark` on its root. It renders `PortalSidebar` (name tile, nav groups with counts, `NextPayoutCard`), `PortalTopBar` (⌘K search, date chip, optional action, `NotificationsMenu` bell, account chip) and `CommandSearch`. Below 1024px the sidebar becomes a drawer
+- **Shell data**: brand `useBrandPortalShell` (`components/brand/nav-counts.tsx`, refreshed by Realtime on orders/returns, on focus and by `refreshNavCounts()`), `searchBrandPortal` and `useBrandNotifications` (`components/brand/portal-data.ts`); store `useRetailerPortalShell`, `searchRetailerPortal`, `useRetailerNotifications` (`components/retailer/portal-data.ts`). The bell has no table: it lists recent rows from existing tables, and "read" is a timestamp in localStorage (`flaym:brand-notifications-seen`, `flaym:retail-notifications-seen`)
+- **Page pieces** (`ds/portal-ui.tsx`): every page starts with `PageHeader` (date or breadcrumb eyebrow, title, subtitle, actions); content sits in `Panel` / `PanelHeader` (or `Card tone="portal"`, same look, for cards with their own padding); `MetricTile` for number tiles (`flame` for the highlighted one), `Segmented` for period switches, `ScanBar`, `Chip`, `Thumb`, `ArrowLink`. Tables are plain `<table>` with `border-line-dark-subtle` rows
+- **Stores & QR tags** sub-pages (`/brand/samples`, `/requests`, `/swaps`, `/transactions`, `/brand/partnerships`) share `StoresPageHeader` / `StoresTabs` (`components/brand/stores-tabs.tsx`)
+- **Onboarding** (`/brand/onboarding`, `/retailer/onboarding`) sits outside the shell: `portal-dark` page with the `bg-flaym-gradient` panel
+- **Print sheet** (`/print/tags`) stays light on purpose (it is printed). It calls `window.print()` when the QR images load, and every load logs a `tag_prints` row
+- New portal numbers are read-only security definer SQL functions scoped to `auth.uid()` (see Dashboard RPCs), not sums in the browser
 
 ## Environment Variables
 
