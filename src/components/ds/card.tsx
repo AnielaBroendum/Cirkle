@@ -12,7 +12,7 @@ const PADDING = { none: '', sm: 'p-3', md: 'p-5', lg: 'p-7' };
 const TONES = {
   light: 'border-line bg-surface text-primary',
   dark: 'border-primary bg-primary text-on-primary',
-  app: 'border-line-dark-subtle bg-surface-dark text-on-primary',
+  app: 'border-line-dark-subtle bg-surface-dark text-flare',
   // bg-origin-border: paint the gradient under the transparent border, so it doesn't repeat at the edges.
   flame: `border-transparent bg-origin-border ${flameSurface}`,
 };

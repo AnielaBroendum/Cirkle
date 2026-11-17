@@ -86,10 +86,10 @@ type StatTileProps = {
 export function StatTile({ label, value, hint, delta, icon, tone = 'default', className }: StatTileProps) {
   const toneClasses = {
     default: 'border border-line bg-surface text-primary',
-    accent: 'bg-accent text-on-primary',
+    accent: 'bg-accent text-flare',
     dark: 'bg-primary text-on-primary',
   }[tone];
-  const sub = tone === 'default' ? 'text-slate' : 'text-on-primary/70';
+  const sub = tone === 'default' ? 'text-slate' : tone === 'accent' ? 'text-flare/70' : 'text-on-primary/70';
   return (
     <div className={cn('flex flex-col gap-2 p-5 font-brand', toneClasses, className)}>
       <div className="flex items-center justify-between gap-2">

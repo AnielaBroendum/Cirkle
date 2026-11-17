@@ -24,7 +24,7 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
-function isItemActive(pathname: string, item: NavItem) {
+export function isItemActive(pathname: string, item: NavItem) {
   return [item.href, ...(item.match ?? [])].some((href) => isActive(pathname, href));
 }
 

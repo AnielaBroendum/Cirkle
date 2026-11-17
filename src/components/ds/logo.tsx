@@ -17,7 +17,7 @@ export function Logo({ height = 24, framed = false, className }: LogoProps) {
   );
   if (!framed) return <span className={cn('inline-block', className)}>{img}</span>;
   return (
-    <span className={cn('inline-flex items-center justify-center bg-primary px-[18px] py-4', className)}>
+    <span className={cn('inline-flex items-center justify-center bg-obsidian px-[18px] py-4', className)}>
       {img}
     </span>
   );

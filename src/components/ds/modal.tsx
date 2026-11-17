@@ -35,7 +35,7 @@ export function Modal({ open, onClose, title, footer, variant = 'dialog', classN
 
   return createPortal(
     <div className={cn('fixed inset-0 z-[90] flex justify-center', sheet ? 'items-end sm:items-center' : 'items-center p-4')}>
-      <div className="absolute inset-0 bg-primary/60 animate-fade-in" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 bg-obsidian/60 animate-fade-in" onClick={onClose} aria-hidden />
       <div
         role="dialog"
         aria-modal="true"
