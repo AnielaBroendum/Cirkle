@@ -13,7 +13,7 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 
 | # | Figma screen | Node | Route | Part | Done |
 |---|---|---|---|---|---|
-| B01 | Brand Portal v2 / 01 Login | `368:480` | `/auth/login` (shared by every role) | B | [ ] |
+| B01 | Brand Portal v2 / 01 Login | `368:480` | `/auth/login` (shared by every role) | B | [x] |
 | B02 | Brand Portal v2 / 02 Dashboard | `358:161` | `/brand/dashboard` | B (shell), later | [ ] |
 | B03 | Brand Portal v2 / 03 Product library | `364:238` | `/brand/products` | later | [ ] |
 | B04 | Brand Portal v2 / 04 Edit product | `364:587` | `/brand/products/[id]/edit` (and `/brand/products/new`) | later | [ ] |
@@ -21,12 +21,26 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 | B06 | Brand Portal v2 / 06 Orders | `365:645` | `/brand/orders` | later | [ ] |
 | B07 | Brand Portal v2 / 07 Returns | `367:400` | `/brand/returns` | later | [ ] |
 | B08 | Brand Portal v2 / 08 Account and payouts | `367:651` | `/brand/account` | later | [ ] |
-| R01 | Retail Portal v2 / 01 Login | `368:518` | `/auth/login` (same page as B01) | B | [ ] |
+| R01 | Retail Portal v2 / 01 Login | `368:518` | `/auth/login` (same page as B01) | B | [x] |
 | R02 | Retail Portal v2 / 02 Dashboard | `359:204` | `/retailer/dashboard` | B (shell), later | [ ] |
 | R03 | Retail Portal v2 / 03 Products in the store | `368:558` | `/retailer/samples` | later | [ ] |
 | R04 | Retail Portal v2 / 04 Store profile and payouts | `368:822` | `/retailer/profile` | later | [ ] |
 
 Not in Figma v2, kept as they are (restyled to dark only): `/brand/onboarding`, `/brand/products/new`, `/brand/samples/new`, `/brand/samples/requests`, `/brand/samples/swaps`, `/brand/samples/transactions`, `/brand/partnerships`, `/retailer/onboarding`, `/retailer/samples/request`, `/retailer/samples/transactions`, `/retailer/brands`.
+
+## Part B status (17 Nov 2026)
+
+Done: the shell (sidebar, top bar, ⌘K search, bell, Next payout) on every brand and retail page, the dark theme for both portals, and the login page. Screen bodies B02–B08 and R02–R04 still have their old layout; they are dark (through `portal-dark`) but not yet rebuilt to v2.
+
+- **Dark theme:** `portal-dark` on the portal root swaps the light tokens for dark ones (see "Portal dark theme" in `CLAUDE.md`). Nothing outside the portals changes; checked on `/`, `/auth/signup`.
+- **Shell data:** `get_brand_portal_shell` and `get_retailer_portal_shell` (migration 016, applied to production 17 Nov). Migration 015 records the variant price override already in production.
+- **Shell items marked MISSING and what was done:**
+  - Search: searches the brand's products (name, category), partner stores (name, city) and orders (by number), or the store's products and brands. Results open the product, the store on Stores & tags (`?store=`), the order on Orders (`?order=`), Brands or Products.
+  - Bell: brand = new orders, return requests, store requests and invitations still waiting; store = brand invitations, sample requests on their way, swap updates. Latest 10. Unread = newer than when the bell was last closed, remembered per browser (localStorage). No table.
+  - Next payout (brand): estimate = sales via Flaym since the last payout day minus the store cut, without cancelled orders and returned items. Bar and "days left" come from `PAYOUT_DAY_OF_MONTH` (monthly), so they are shown. Labelled "estimate".
+  - Next payout (store): every credited cut not paid out yet; the bar is the Ready share; caption = amount still in the return period.
+- **Differences from Figma:** small meta text is Smoke, not Char (Char is never text); amounts use the app's "1.071 kr" format, rounded to whole kroner, not "DKK 1.071"; Stores & tags count = active partnerships; Retail nav keeps Transactions and Brands; the login has no "Keep me logged in" or "Forgot password", and its panel tag says "Flaym" because one page serves every role.
+- **Old light tokens:** `canvas-warm` and `cinder` are now only used by `/ds-preview` (and old portal pages, where they read dark). `canvas`, `surface`, `line`, `slate` and light `primary` text are still used by landing, signup, invite, error, 404, print and the root `<body>`. Nothing removed. `SidebarNav` is unused.
 
 ## Shell (sidebar + top bar, every portal screen)
 
