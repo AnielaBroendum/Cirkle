@@ -252,10 +252,12 @@ export default function BrandSamplesPage() {
   // Brand-initiated invitations have a token; retailer requests don't.
   const pending = partnerships.filter((p) => p.status === 'invited');
 
-  // Default to the first partner store
+  // Default to the store a search result links to (?store=<id>), else the first partner store
   useEffect(() => {
     if (selection || loading || storesLoading) return;
-    if (partnerStores[0]) setSelection({ kind: 'store', id: partnerStores[0].id });
+    const linked = new URLSearchParams(window.location.search).get('store');
+    if (linked && partnerStores.some((s) => s.id === linked)) setSelection({ kind: 'store', id: linked });
+    else if (partnerStores[0]) setSelection({ kind: 'store', id: partnerStores[0].id });
     else if (pending[0]) setSelection({ kind: 'pending', id: pending[0].id });
     else if (availableStores[0]) setSelection({ kind: 'available', id: availableStores[0].id });
   }, [selection, loading, storesLoading, partnerStores, pending, availableStores]);

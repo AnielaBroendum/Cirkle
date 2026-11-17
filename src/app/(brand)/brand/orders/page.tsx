@@ -192,6 +192,18 @@ export default function BrandOrdersPage() {
     loadOrders();
   }, [loadOrders]);
 
+  // Open the order a search result links to (/brand/orders?order=<id>), once.
+  const [linkedOrder, setLinkedOrder] = useState<string | null>(null);
+  useEffect(() => {
+    setLinkedOrder(new URLSearchParams(window.location.search).get('order'));
+  }, []);
+  useEffect(() => {
+    if (!linkedOrder || !orders.some((o) => o.id === linkedOrder)) return;
+    setFilter('all');
+    setExpandedOrder(linkedOrder);
+    setLinkedOrder(null);
+  }, [linkedOrder, orders]);
+
   // Fill the carrier and tracking fields from the order being looked at.
   useEffect(() => {
     const o = orders.find((x) => x.id === expandedOrder);

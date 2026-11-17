@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
+import { PAYOUT_DAY_OF_MONTH } from '@/lib/payouts';
+import type { Database } from '@/lib/database.types';
 
-// Sidebar counts for the brand portal (Figma: Orders 3, Returns 1).
-// Orders = not shipped yet; Returns = waiting for the brand to act
-// (get_brand_nav_counts, migration 010). Kept fresh without a reload by
-// Supabase Realtime, by pages calling refreshNavCounts() after an action,
-// and when the tab regains focus.
+// Sidebar data for the brand portal (Portals v2 shell): nav counts and the
+// Next payout box, from get_brand_portal_shell (migration 016).
+// Orders = not shipped yet; Returns = waiting for the brand to act (same rules
+// as get_brand_nav_counts, 010). Kept fresh without a reload by Supabase
+// Realtime, by pages calling refreshNavCounts() after an action, and when the
+// tab regains focus.
 
-export type NavCounts = { orders: number; returns: number };
+export type BrandPortalShell = NonNullable<Database['public']['Functions']['get_brand_portal_shell']['Returns']>;
 
 const REFRESH_EVENT = 'flaym:nav-counts';
 
@@ -17,8 +20,8 @@ export function refreshNavCounts() {
   window.dispatchEvent(new Event(REFRESH_EVENT));
 }
 
-export function useBrandNavCounts(enabled: boolean): NavCounts {
-  const [counts, setCounts] = useState<NavCounts>({ orders: 0, returns: 0 });
+export function useBrandPortalShell(enabled: boolean): BrandPortalShell | null {
+  const [shell, setShell] = useState<BrandPortalShell | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -27,8 +30,8 @@ export function useBrandNavCounts(enabled: boolean): NavCounts {
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const load = async () => {
-      const { data } = await supabase.rpc('get_brand_nav_counts');
-      if (alive && data) setCounts({ orders: Number(data.orders) || 0, returns: Number(data.returns) || 0 });
+      const { data } = await supabase.rpc('get_brand_portal_shell', { p_payout_day: PAYOUT_DAY_OF_MONTH });
+      if (alive && data) setShell(data as BrandPortalShell);
     };
     // Several row changes often arrive together (e.g. a bulk ship): load once.
     const soon = () => {
@@ -55,5 +58,5 @@ export function useBrandNavCounts(enabled: boolean): NavCounts {
     };
   }, [enabled]);
 
-  return counts;
+  return shell;
 }

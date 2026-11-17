@@ -15,6 +15,7 @@ export {
   PortalSidebar,
   PortalTopBar,
   NextPayoutCard,
+  payoutPeriodInfo,
   NotificationsMenu,
   CommandSearch,
   type PortalNavItem,

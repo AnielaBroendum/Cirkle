@@ -63,6 +63,11 @@ type PortalSidebarProps = {
 
 export function PortalSidebar({ name, portalLabel, homeHref, groups, payout, onNavigate, className }: PortalSidebarProps) {
   const pathname = usePathname() ?? '';
+  // The most specific match wins, so /retailer/samples/transactions doesn't also light up /retailer/samples.
+  const activeHref = groups
+    .flatMap((g) => g.items)
+    .filter((i): i is NavItem => !!i.href && isItemActive(pathname, i as NavItem))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   return (
     <div className={cn('flex h-full w-[248px] flex-col gap-4 font-brand', className)}>
@@ -99,7 +104,7 @@ export function PortalSidebar({ name, portalLabel, homeHref, groups, payout, onN
                   </button>
                 );
               }
-              const on = isItemActive(pathname, item);
+              const on = item.href === activeHref;
               return (
                 <Link
                   key={item.href}
@@ -149,6 +154,19 @@ export function NextPayoutCard({ date, amount, progress, caption }: NextPayout) 
       {caption && <p className="text-caption text-smoke">{caption}</p>}
     </section>
   );
+}
+
+/**
+ * Where today sits in a payout period. `periodStart` and `nextPayout` are
+ * YYYY-MM-DD dates (Europe/Copenhagen), as the portal shell functions return them.
+ */
+export function payoutPeriodInfo(periodStart: string, nextPayout: string) {
+  const day = (iso: string) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Copenhagen' }).format(new Date());
+  const total = Math.max(1, (day(nextPayout) - day(periodStart)) / 86400000);
+  const left = Math.max(0, Math.round((day(nextPayout) - day(today)) / 86400000));
+  const date = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(day(nextPayout));
+  return { date, daysLeft: left, progress: 1 - left / total };
 }
 
 /* ── Top bar ────────────────────────────────────────────────────────── */
@@ -388,7 +406,7 @@ export function CommandSearch({ open, onClose, placeholder, search }: CommandSea
   useEffect(() => {
     if (!open) return;
     const q = query.trim();
-    if (q.length < 2) {
+    if (q.length < 2 && !/^\d$/.test(q)) {
       setGroups([]);
       setLoading(false);
       return;
@@ -452,7 +470,7 @@ export function CommandSearch({ open, onClose, placeholder, search }: CommandSea
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto py-2">
-          {query.trim().length < 2 ? (
+          {query.trim().length < 2 && !/^\d$/.test(query.trim()) ? (
             <p className="px-4 py-3 text-body-sm text-smoke">Type at least 2 characters.</p>
           ) : !loading && flat.length === 0 ? (
             <p className="px-4 py-3 text-body-sm text-smoke">No results for “{query.trim()}”.</p>
