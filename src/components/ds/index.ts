@@ -9,7 +9,7 @@ export { Badge, StatusPill, statusTone, type BadgeTone } from './badge';
 export { Avatar } from './avatar';
 export { Modal } from './modal';
 export { Tabs, type TabItem } from './tabs';
-export { TopBar, BottomNav, SidebarNav, type NavItem } from './nav';
+export { TopBar, BottomNav, type NavItem } from './nav';
 export {
   PortalShell,
   PortalSidebar,

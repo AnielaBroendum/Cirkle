@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Tabs, cn } from '@/components/ds';
+import { PageHeader, Tabs, cn } from '@/components/ds';
 
 // Sub-navigation under "Stores & QR tags": the pages that used to be separate
 // sidebar items (samples, requests, swaps, deposits, partnerships).
@@ -41,14 +41,8 @@ export function StoresTabs({ className }: { className?: string }) {
 /** Page header shared by the Stores & QR tags sub-pages, with the sub-tabs below. */
 export function StoresPageHeader({ subtitle, action }: { subtitle: string; action?: React.ReactNode }) {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-brand text-heading-xl uppercase text-primary">Stores and QR tags</h1>
-          <p className="mt-1 text-body text-slate">{subtitle}</p>
-        </div>
-        {action}
-      </div>
+    <div className="space-y-5">
+      <PageHeader title="Stores & QR tags" subtitle={subtitle} actions={action} />
       <StoresTabs />
     </div>
   );

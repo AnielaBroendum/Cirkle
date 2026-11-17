@@ -157,7 +157,7 @@ export default function BrandSampleRequestsPage() {
 
       {requests.length === 0 ? (
         <EmptyState
-          className="bg-surface"
+          className="bg-obsidian"
           icon={<Inbox className="h-5 w-5" />}
           title="No sample requests yet"
           description="Requests from retailers will appear here"
@@ -165,20 +165,20 @@ export default function BrandSampleRequestsPage() {
       ) : (
         <div className="space-y-4">
           {requests.map((sr) => (
-            <Card key={sr.id} padding="none" className="space-y-4 rounded-none p-5 lg:p-6">
+            <Card tone="portal" key={sr.id} padding="none" className="space-y-4 rounded-none p-5 lg:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-brand text-body uppercase tracking-[0.3px] text-primary">{sr.retailer_name}</p>
-                  <p className="mt-0.5 text-caption text-slate">
+                  <p className="font-brand text-body uppercase tracking-[0.3px] text-flare">{sr.retailer_name}</p>
+                  <p className="mt-0.5 text-caption text-smoke">
                     {new Date(sr.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
-                  {sr.note && <p className="mt-2 text-body text-slate">Note: {sr.note}</p>}
+                  {sr.note && <p className="mt-2 text-body text-smoke">Note: {sr.note}</p>}
                 </div>
                 <StatusPill status={sr.status} />
               </div>
 
               <div className="-mx-1 overflow-x-auto">
-                <table className="w-full border-collapse font-brand text-body-sm text-primary">
+                <table className="w-full border-collapse font-brand text-body-sm text-flare">
                   <THead>
                     <tr>
                       <TH className="px-3 py-2 text-label font-medium">Product</TH>
@@ -191,15 +191,15 @@ export default function BrandSampleRequestsPage() {
                     {sr.items.map((item) => (
                       <TR key={item.id}>
                         <TD className="px-3 py-2.5">{item.product_name}</TD>
-                        <TD className="px-3 py-2.5 text-slate">{item.size}</TD>
-                        <TD className="px-3 py-2.5 text-slate">{item.color}</TD>
+                        <TD className="px-3 py-2.5 text-smoke">{item.size}</TD>
+                        <TD className="px-3 py-2.5 text-smoke">{item.color}</TD>
                         <TD className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">{formatDKK(item.deposit_amount_dkk)}</TD>
                       </TR>
                     ))}
                   </TBody>
                   <tfoot>
-                    <tr className="border-t border-line">
-                      <td colSpan={3} className="px-3 py-2.5 text-label uppercase text-slate">Total deposit</td>
+                    <tr className="border-t border-line-dark-subtle">
+                      <td colSpan={3} className="px-3 py-2.5 text-label uppercase text-smoke">Total deposit</td>
                       <td className="whitespace-nowrap px-3 py-2.5 text-right font-medium tabular-nums">{formatDKK(sr.total_deposit)}</td>
                     </tr>
                   </tfoot>
@@ -207,7 +207,7 @@ export default function BrandSampleRequestsPage() {
               </div>
 
               {sr.review_note && sr.status !== 'pending' && (
-                <p className="text-body text-slate">Review note: {sr.review_note}</p>
+                <p className="text-body text-smoke">Review note: {sr.review_note}</p>
               )}
 
               {/* Actions */}

@@ -257,8 +257,8 @@ export default function BrandPartnershipsPage() {
       <div className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">Available stores</h2>
-            <p className="mt-1 text-caption text-slate">Browse stores on Flaym and request a partnership directly.</p>
+            <h2 className="font-brand text-body uppercase tracking-[0.3px] text-flare">Available stores</h2>
+            <p className="mt-1 text-caption text-smoke">Browse stores on Flaym and request a partnership directly.</p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:w-[340px]">
             <Field label="Direct %" htmlFor="p-direct">
@@ -274,7 +274,7 @@ export default function BrandPartnershipsPage() {
         </div>
         {availableRetailers.length === 0 ? (
           <EmptyState
-            className="bg-surface py-10"
+            className="bg-obsidian py-10"
             icon={<Store className="h-5 w-5" />}
             title={partnerships.length > 0 ? 'All caught up' : 'No stores yet'}
             description={
@@ -286,19 +286,19 @@ export default function BrandPartnershipsPage() {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {availableRetailers.map((r) => (
-              <Card key={r.id} padding="none" className="flex flex-col rounded-none p-4">
+              <Card tone="portal" key={r.id} padding="none" className="flex flex-col rounded-none p-4">
                 <div className="flex items-center gap-3">
                   {r.logo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={r.logo_url} alt="" className="h-11 w-11 shrink-0 border border-line object-cover" />
+                    <img src={r.logo_url} alt="" className="h-11 w-11 shrink-0 border border-line-dark-subtle object-cover" />
                   ) : (
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-surface-muted text-heading-lg uppercase text-primary">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-surface-dark text-heading-lg uppercase text-flare">
                       {r.name.charAt(0)}
                     </span>
                   )}
                   <div className="min-w-0">
-                    <p className="truncate text-body text-primary">{r.name}</p>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-caption text-slate">
+                    <p className="truncate text-body text-flare">{r.name}</p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-caption text-smoke">
                       {r.store_type && <span>{r.store_type.charAt(0).toUpperCase() + r.store_type.slice(1).replace(/_/g, ' ')}</span>}
                       {r.city && (
                         <>
@@ -309,7 +309,7 @@ export default function BrandPartnershipsPage() {
                     </p>
                   </div>
                 </div>
-                {r.description && <p className="mt-3 line-clamp-2 flex-1 text-caption text-slate">{r.description}</p>}
+                {r.description && <p className="mt-3 line-clamp-2 flex-1 text-caption text-smoke">{r.description}</p>}
                 <Button
                   variant="secondary"
                   className="mt-4"
@@ -349,10 +349,10 @@ function Section({ title, note, children }: { title: string; note?: string; chil
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{title}</h2>
-        {note && <span className="text-caption text-slate">{note}</span>}
+        <h2 className="font-brand text-body uppercase tracking-[0.3px] text-flare">{title}</h2>
+        {note && <span className="text-caption text-smoke">{note}</span>}
       </div>
-      <div className="divide-y divide-line border border-line bg-surface">{children}</div>
+      <div className="divide-y divide-line-dark-subtle border border-line-dark-subtle bg-obsidian">{children}</div>
     </div>
   );
 }
@@ -374,10 +374,10 @@ function Row({
     <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <p className={muted ? 'truncate text-body text-slate' : 'truncate text-body text-primary'}>{title}</p>
+          <p className={muted ? 'truncate text-body text-smoke' : 'truncate text-body text-flare'}>{title}</p>
           {badge}
         </div>
-        <p className="mt-0.5 text-caption text-slate">{subtitle}</p>
+        <p className="mt-0.5 text-caption text-smoke">{subtitle}</p>
       </div>
       {trailing}
     </div>

@@ -5,7 +5,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
 import { Receipt } from 'lucide-react';
-import { Card, EmptyState, ListSkeleton, Skeleton, StatusPill } from '@/components/ds';
+import { Card, EmptyState, ListSkeleton, PageHeader, Skeleton, StatusPill } from '@/components/ds';
 
 type Transaction = {
   id: string;
@@ -96,10 +96,7 @@ export default function RetailerTransactionsPage() {
 
   return (
     <div className="space-y-7">
-      <div>
-        <h1 className="font-brand text-heading-xl uppercase text-primary">Transactions</h1>
-        <p className="mt-1 text-body text-slate">Deposits paid for samples in your store, and what came back.</p>
-      </div>
+      <PageHeader title="Transactions" subtitle="Deposits paid for samples in your store, and what came back." />
 
       {transactions.length === 0 ? (
         <EmptyState
@@ -108,26 +105,26 @@ export default function RetailerTransactionsPage() {
           description="Deposit payments and refunds will appear here."
         />
       ) : (
-        <Card padding="none">
+        <Card tone="portal" padding="none">
           {/* Column labels (sm and up) */}
-          <div className="hidden grid-cols-[80px_1fr_150px_120px] gap-4 border-b border-line px-6 py-3 text-label uppercase text-slate sm:grid">
+          <div className="hidden grid-cols-[80px_1fr_150px_120px] gap-4 border-b border-line-dark-subtle px-6 py-3 text-label uppercase text-smoke sm:grid">
             <span>Date</span>
             <span>Product</span>
             <span>Type</span>
             <span className="text-right">Amount</span>
           </div>
-          <ul className="divide-y divide-line">
+          <ul className="divide-y divide-line-dark-subtle">
             {transactions.map((t) => (
               <li
                 key={t.id}
                 className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1.5 px-4 py-3.5 sm:grid-cols-[80px_1fr_150px_120px] sm:px-6"
               >
-                <span className="order-3 text-caption text-slate sm:order-none">
+                <span className="order-3 text-caption text-smoke sm:order-none">
                   {new Date(t.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </span>
                 <div className="order-1 min-w-0 sm:order-none">
-                  <p className="truncate text-body text-primary">{t.product_name}</p>
-                  <p className="mt-0.5 truncate text-caption text-slate">
+                  <p className="truncate text-body text-flare">{t.product_name}</p>
+                  <p className="mt-0.5 truncate text-caption text-smoke">
                     {t.brand_name}
                     {t.note && ` · ${t.note}`}
                   </p>
@@ -137,7 +134,7 @@ export default function RetailerTransactionsPage() {
                 </span>
                 <p
                   className={`order-2 text-right text-body font-medium sm:order-none ${
-                    t.amount_dkk < 0 ? 'text-success' : t.amount_dkk > 0 ? 'text-primary' : 'text-slate'
+                    t.amount_dkk < 0 ? 'text-success' : t.amount_dkk > 0 ? 'text-flare' : 'text-smoke'
                   }`}
                 >
                   {t.amount_dkk > 0 ? '-' : '+'}{formatDKK(Math.abs(t.amount_dkk))}

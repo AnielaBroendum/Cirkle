@@ -425,7 +425,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
                               onChange={(e) => setVariantPrice(i, e.target.value)}
                               placeholder={priceKr || 'Base'}
                               aria-label={`Price ${v.size} ${v.color}, empty for base price`}
-                              className="h-8 w-24 rounded-control border border-line bg-canvas-dark px-2 text-right font-brand text-body-sm text-flare outline-none placeholder:text-smoke focus:border-primary"
+                              className="h-8 w-24 rounded-control border border-line-dark-subtle bg-canvas-dark px-2 text-right font-brand text-body-sm text-flare outline-none placeholder:text-smoke focus:border-ash"
                             />
                           </td>
                           <td className="px-3 py-2">
@@ -439,7 +439,7 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
                                 value={v.stock_count}
                                 onChange={(e) => setVariantStock(i, parseInt(e.target.value) || 0)}
                                 aria-label={`Stock ${v.size} ${v.color}`}
-                                className="h-8 w-16 rounded-control border border-line bg-canvas-dark text-center font-brand text-body-sm text-flare outline-none focus:border-primary"
+                                className="h-8 w-16 rounded-control border border-line-dark-subtle bg-canvas-dark text-center font-brand text-body-sm text-flare outline-none focus:border-ash"
                               />
                               <StockButton label={`Increase ${v.size} ${v.color}`} onClick={() => updateVariantStock(i, 1)}>
                                 <Plus className="h-3 w-3" />
@@ -560,8 +560,8 @@ export function ProductForm({ brandProfileId, product, existingVariants = [], ti
           </>
         }
       >
-        <p className="text-slate">
-          Are you sure you want to delete <span className="text-primary">{product?.name}</span>? This can&apos;t be undone.
+        <p className="text-smoke">
+          Are you sure you want to delete <span className="text-flare">{product?.name}</span>? This can&apos;t be undone.
         </p>
       </Modal>
     </form>
@@ -574,7 +574,7 @@ function StockButton({ label, onClick, children }: { label: string; onClick: () 
       type="button"
       onClick={onClick}
       aria-label={label}
-      className={cn('inline-flex h-8 w-8 items-center justify-center rounded-control border border-line text-ash transition-colors hover:border-primary hover:text-flare')}
+      className={cn('inline-flex h-8 w-8 items-center justify-center rounded-control border border-line-dark-subtle text-ash transition-colors hover:border-ash hover:text-flare')}
     >
       {children}
     </button>

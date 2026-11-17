@@ -89,16 +89,16 @@ export function ImageUpload({
     const thumbs = cover ? value.slice(1) : value;
     const thumbOffset = cover ? 1 : 0;
     const removeClasses =
-      'absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center bg-primary/70 text-on-primary transition-colors hover:bg-primary';
+      'absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center bg-obsidian/80 text-flare transition-colors hover:bg-obsidian';
 
     return (
       <div className="space-y-3 font-brand">
         {cover &&
           (coverUrl ? (
-            <div className="relative h-[120px] w-full overflow-hidden border border-line">
+            <div className="relative h-[120px] w-full overflow-hidden border border-line-dark-subtle">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={coverUrl} alt="" className="h-full w-full object-cover" />
-              <span className="absolute bottom-1.5 left-2 text-label uppercase text-on-primary [text-shadow:0_0_6px_rgb(0_0_0/0.5)]">
+              <span className="absolute bottom-1.5 left-2 text-label uppercase text-flare [text-shadow:0_0_6px_rgb(0_0_0/0.5)]">
                 Cover
               </span>
               <button type="button" onClick={() => removeImage(0)} aria-label="Remove cover image" className={removeClasses}>
@@ -112,7 +112,7 @@ export function ImageUpload({
               disabled={uploading}
               className="relative flex h-[120px] w-full items-end bg-flaym-gradient p-2 text-left disabled:opacity-60"
             >
-              <span className="inline-flex items-center gap-1.5 text-label uppercase text-on-primary">
+              <span className="inline-flex items-center gap-1.5 text-label uppercase text-flare">
                 {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                 {uploading ? 'Uploading…' : label}
               </span>
@@ -122,7 +122,7 @@ export function ImageUpload({
         {(thumbs.length > 0 || (canAdd && (!cover || coverUrl))) && (
           <div className="flex flex-wrap gap-3">
             {thumbs.map((url, i) => (
-              <div key={url} className="relative h-20 w-20 overflow-hidden border border-line">
+              <div key={url} className="relative h-20 w-20 overflow-hidden border border-line-dark-subtle">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={url} alt="" className="h-full w-full object-cover" />
                 <button type="button" onClick={() => removeImage(i + thumbOffset)} aria-label="Remove image" className={removeClasses}>
@@ -136,7 +136,7 @@ export function ImageUpload({
                 type="button"
                 onClick={() => inputRef.current?.click()}
                 disabled={uploading}
-                className="inline-flex h-20 min-w-20 flex-col items-center justify-center gap-1.5 border border-dashed border-line bg-surface px-3 text-caption text-primary transition-colors hover:border-primary disabled:opacity-60"
+                className="inline-flex h-20 min-w-20 flex-col items-center justify-center gap-1.5 border border-dashed border-char bg-obsidian px-3 text-caption text-flare transition-colors hover:border-ash disabled:opacity-60"
               >
                 {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 {uploading ? 'Uploading…' : label}
@@ -157,14 +157,14 @@ export function ImageUpload({
       {value.length > 0 && (
         <div className="flex flex-wrap gap-3">
           {value.map((url, i) => (
-            <div key={url} className="relative group w-24 h-24 overflow-hidden border border-line">
+            <div key={url} className="relative group w-24 h-24 overflow-hidden border border-line-dark-subtle">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={url} alt="" className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => removeImage(i)}
                 aria-label="Remove image"
-                className="absolute top-1 right-1 p-1 bg-primary/60 rounded-pill text-on-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1 right-1 p-1 bg-obsidian/80 rounded-pill text-flare opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -178,7 +178,7 @@ export function ImageUpload({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-line font-brand text-body text-slate hover:border-primary hover:text-primary transition disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 border border-dashed border-char font-brand text-body text-smoke hover:border-ash hover:text-flare transition disabled:opacity-50"
         >
           {uploading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

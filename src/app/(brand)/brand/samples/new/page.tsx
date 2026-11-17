@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
 import { QrCode, Package, Store } from 'lucide-react';
 import Link from 'next/link';
-import { Button, Card, EmptyState, Field, Select, Skeleton, buttonClasses } from '@/components/ds';
+import { Button, Card, EmptyState, Field, PageHeader, Select, Skeleton, buttonClasses } from '@/components/ds';
 import type { Database } from '@/lib/database.types';
 
 type Product = Database['public']['Tables']['products']['Row'];
@@ -119,16 +119,18 @@ export default function NewSamplePage() {
   }
 
   const header = (
-    <div>
-      <p className="text-body text-slate">
-        <Link href="/brand/samples" className="hover:text-primary">
-          Stores and QR tags
+    <PageHeader
+      eyebrow={
+        <span>
+        <Link href="/brand/samples" className="hover:text-flare">
+          Stores & QR tags
         </Link>{' '}
         / New sample
-      </p>
-      <h1 className="mt-1 font-brand text-heading-xl uppercase text-primary">Add sample</h1>
-      <p className="mt-1 text-body text-slate">Pick a product and a partner store. We generate the store&apos;s QR tag right away.</p>
-    </div>
+        </span>
+      }
+      title="Add sample"
+      subtitle="Pick a product and a partner store. We generate the store's QR tag right away."
+    />
   );
 
   if (pageLoading) {
@@ -146,7 +148,7 @@ export default function NewSamplePage() {
 
       {products.length === 0 ? (
         <EmptyState
-          className="bg-surface"
+          className="bg-obsidian"
           icon={<Package className="h-5 w-5" />}
           title="No products yet"
           description="You need to create a product first."
@@ -158,7 +160,7 @@ export default function NewSamplePage() {
         />
       ) : retailers.length === 0 ? (
         <EmptyState
-          className="bg-surface"
+          className="bg-obsidian"
           icon={<Store className="h-5 w-5" />}
           title="No partner stores yet"
           description="You have no active retail partnerships yet."
@@ -169,7 +171,7 @@ export default function NewSamplePage() {
           }
         />
       ) : (
-        <Card padding="none" className="space-y-5 rounded-none p-5 lg:p-6">
+        <Card tone="portal" padding="none" className="space-y-5 rounded-none p-5 lg:p-6">
           <Field label="Product *" htmlFor="sample-product">
             <Select id="sample-product" value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)}>
               <option value="">Select product</option>

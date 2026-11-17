@@ -82,7 +82,7 @@ export default function RetailerLayout({ children }: { children: React.ReactNode
   }
 
   if (pathname.startsWith('/retailer/onboarding')) {
-    return <div className="portal-dark min-h-screen bg-canvas-dark font-brand text-primary">{children}</div>;
+    return <div className="portal-dark min-h-screen bg-canvas-dark font-brand text-flare">{children}</div>;
   }
 
   const storeName = retailerProfile?.name || profile?.name || 'Store';

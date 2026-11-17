@@ -3,8 +3,8 @@ import { flameSurface } from './surfaces';
 
 type CardProps = React.HTMLAttributes<HTMLDivElement> & {
   padding?: 'none' | 'sm' | 'md' | 'lg';
-  /** light/dark: portals. app: card on the consumer app's dark page. flame: highlight tile or banner (Figma v2). */
-  tone?: 'light' | 'dark' | 'app' | 'flame';
+  /** light/dark: old portal tones. portal: panel on a Portals v2 page. app: card on the consumer app's dark page. flame: highlight tile or banner (Figma v2). */
+  tone?: 'light' | 'dark' | 'portal' | 'app' | 'flame';
 };
 
 const PADDING = { none: '', sm: 'p-3', md: 'p-5', lg: 'p-7' };
@@ -12,6 +12,7 @@ const PADDING = { none: '', sm: 'p-3', md: 'p-5', lg: 'p-7' };
 const TONES = {
   light: 'border-line bg-surface text-primary',
   dark: 'border-primary bg-primary text-on-primary',
+  portal: 'border-line-dark-subtle bg-obsidian text-flare',
   app: 'border-line-dark-subtle bg-surface-dark text-flare',
   // bg-origin-border: paint the gradient under the transparent border, so it doesn't repeat at the edges.
   flame: `border-transparent bg-origin-border ${flameSurface}`,

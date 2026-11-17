@@ -60,20 +60,20 @@ export default function BrandOnboardingPage() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface font-brand lg:flex-row">
+    <div className="flex min-h-screen flex-col bg-canvas-dark font-brand lg:flex-row">
       {/* Art panel (Figma Brand Portal 01) */}
       <div className="flex h-40 shrink-0 flex-col items-center justify-center gap-2 bg-flaym-gradient lg:sticky lg:top-0 lg:h-screen lg:w-1/2 lg:gap-5">
         <Logo height={40} className="lg:hidden" />
         <Logo height={106} className="hidden lg:inline-block" />
-        <p className="text-caption italic tracking-[4px] text-on-primary lg:text-body">FORWARD</p>
+        <p className="text-caption italic tracking-[4px] text-flare lg:text-body">FORWARD</p>
       </div>
 
       <div className="flex flex-1 justify-center px-4 py-10 sm:px-6 lg:items-center lg:px-12 lg:py-16">
         <div className="w-full max-w-[420px] space-y-7">
           <div>
-            <p className="text-label uppercase text-slate">Brand Portal</p>
-            <h1 className="mt-3 font-brand text-heading-xl uppercase text-primary">Set up your brand</h1>
-            <p className="mt-3 text-body text-slate">This is what people see when they scan your products in stores.</p>
+            <p className="text-label uppercase text-smoke">Brand Portal</p>
+            <h1 className="mt-3 font-brand text-heading-xl uppercase text-flare">Set up your brand</h1>
+            <p className="mt-3 text-body text-smoke">This is what people see when they scan your products in stores.</p>
           </div>
 
           <form

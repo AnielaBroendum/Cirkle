@@ -138,12 +138,12 @@ export function BrandStories({ brandId }: { brandId: string }) {
               <div className="mt-1.5 flex h-4 items-center justify-center">
                 <span className="flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
                   {i > 0 && (
-                    <button type="button" onClick={() => saveOrder(moveItem(stories, i, i - 1))} aria-label={`Move story ${i + 1} earlier`} className="text-slate hover:text-primary">
+                    <button type="button" onClick={() => saveOrder(moveItem(stories, i, i - 1))} aria-label={`Move story ${i + 1} earlier`} className="text-smoke hover:text-flare">
                       <ChevronLeft className="h-4 w-4" />
                     </button>
                   )}
                   {i < stories.length - 1 && (
-                    <button type="button" onClick={() => saveOrder(moveItem(stories, i, i + 1))} aria-label={`Move story ${i + 1} later`} className="text-slate hover:text-primary">
+                    <button type="button" onClick={() => saveOrder(moveItem(stories, i, i + 1))} aria-label={`Move story ${i + 1} later`} className="text-smoke hover:text-flare">
                       <ChevronRight className="h-4 w-4" />
                     </button>
                   )}

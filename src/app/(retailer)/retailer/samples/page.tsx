@@ -481,30 +481,30 @@ export default function RetailerSamplesPage() {
               {sampleRequests.map((r) => {
                 const deposit = r.items.reduce((sum, i) => sum + i.deposit_amount_dkk, 0);
                 return (
-                  <Card key={r.id} className="space-y-3">
+                  <Card tone="portal" key={r.id} className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-body text-primary">{r.brand_name}</p>
-                        <p className="mt-1 text-caption text-slate">
+                        <p className="text-body text-flare">{r.brand_name}</p>
+                        <p className="mt-1 text-caption text-smoke">
                           Sent {formatDate(r.created_at)} · {r.items.length} {r.items.length === 1 ? 'item' : 'items'} · {formatDKK(deposit)} deposit
                         </p>
                       </div>
                       <StatusPill status={r.status} label={REQUEST_STATUS_LABELS[r.status] ?? r.status} />
                     </div>
 
-                    <ul className="divide-y divide-line border-y border-line">
+                    <ul className="divide-y divide-line-dark-subtle border-y border-line-dark-subtle">
                       {r.items.map((i) => (
                         <li key={i.id} className="flex items-center justify-between gap-3 py-2.5">
-                          <p className="min-w-0 truncate text-body text-primary">
-                            {i.product_name} <span className="text-caption text-slate">· {i.size} / {i.color}</span>
+                          <p className="min-w-0 truncate text-body text-flare">
+                            {i.product_name} <span className="text-caption text-smoke">· {i.size} / {i.color}</span>
                           </p>
-                          <span className="shrink-0 text-caption text-slate">{formatDKK(i.deposit_amount_dkk)}</span>
+                          <span className="shrink-0 text-caption text-smoke">{formatDKK(i.deposit_amount_dkk)}</span>
                         </li>
                       ))}
                     </ul>
 
                     {(r.note || r.review_note) && (
-                      <div className="space-y-1 text-caption text-slate">
+                      <div className="space-y-1 text-caption text-smoke">
                         {r.note && <p>Your note: {r.note}</p>}
                         {r.review_note && <p>From {r.brand_name}: {r.review_note}</p>}
                       </div>
@@ -534,13 +534,13 @@ export default function RetailerSamplesPage() {
           ) : (
             <div className="space-y-3">
               {swapRequests.map((sw) => (
-                <Card key={sw.id} className="space-y-3">
+                <Card tone="portal" key={sw.id} className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-body text-primary">
-                        {sw.return_product_name} <span className="text-slate">→</span> {sw.new_product_name}
+                      <p className="text-body text-flare">
+                        {sw.return_product_name} <span className="text-smoke">→</span> {sw.new_product_name}
                       </p>
-                      <p className="mt-1 text-caption text-slate">
+                      <p className="mt-1 text-caption text-smoke">
                         {sw.new_size} / {sw.new_color}
                         {sw.reason && ` · ${sw.reason}`}
                       </p>
@@ -570,7 +570,7 @@ export default function RetailerSamplesPage() {
                   )}
 
                   {sw.return_tracking_number && (
-                    <p className="text-caption text-slate">Return tracking: {sw.return_tracking_number}</p>
+                    <p className="text-caption text-smoke">Return tracking: {sw.return_tracking_number}</p>
                   )}
                 </Card>
               ))}
@@ -602,8 +602,8 @@ export default function RetailerSamplesPage() {
       >
         {swapSample && (
           <div className="space-y-4">
-            <p className="text-body text-slate">
-              Returning: <span className="text-primary">{swapSample.product_name}</span>
+            <p className="text-body text-smoke">
+              Returning: <span className="text-flare">{swapSample.product_name}</span>
             </p>
 
             <Field label="Replacement product">

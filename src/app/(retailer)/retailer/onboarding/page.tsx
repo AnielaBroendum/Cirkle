@@ -84,21 +84,21 @@ export default function RetailerOnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface font-brand lg:flex-row">
+    <div className="flex min-h-screen flex-col bg-canvas-dark font-brand lg:flex-row">
       {/* Art panel (Figma Retail Portal 01) */}
       <div className="flex h-40 shrink-0 flex-col items-center justify-center gap-2 bg-flaym-gradient lg:sticky lg:top-0 lg:h-screen lg:w-1/2 lg:gap-5">
         <Logo height={40} className="lg:hidden" />
         <Logo height={106} className="hidden lg:inline-block" />
-        <p className="text-caption italic tracking-[4px] text-on-primary lg:text-body">FORWARD</p>
+        <p className="text-caption italic tracking-[4px] text-flare lg:text-body">FORWARD</p>
       </div>
 
       {/* Form */}
       <div className="flex flex-1 justify-center px-4 py-10 sm:px-8 lg:items-center lg:py-16">
         <form onSubmit={handleSubmit} className="w-full max-w-[440px] space-y-5">
           <div>
-            <p className="text-label uppercase text-slate">Retail Portal</p>
-            <h1 className="mt-4 font-brand text-display uppercase text-primary">Set up your store</h1>
-            <p className="mt-3 text-body leading-[1.6] text-slate">
+            <p className="text-label uppercase text-smoke">Retail Portal</p>
+            <h1 className="mt-4 font-brand text-display uppercase text-flare">Set up your store</h1>
+            <p className="mt-3 text-body leading-[1.6] text-smoke">
               This is what people see when they scan a product in your store.
             </p>
           </div>

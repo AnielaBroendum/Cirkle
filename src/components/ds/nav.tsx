@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, Menu, X } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { cn } from './cn';
 import { Logo } from './logo';
 
@@ -122,103 +121,3 @@ export function BottomNav({ items, fixed = true, className }: BottomNavProps) {
   );
 }
 
-/* ── SidebarNav (brand & retailer dashboards) ────────────────────────── */
-
-type SidebarNavProps = {
-  items: NavItem[];
-  homeHref: string;
-  /** Account block under the logo, e.g. brand / store name + role. */
-  account?: { name: React.ReactNode; role?: React.ReactNode };
-  /** Bottom slot, e.g. a sign-out button. Receives a close() for the mobile drawer. */
-  footer?: (close: () => void) => React.ReactNode;
-  /** Render in-flow instead of fixed (for previews). */
-  embedded?: boolean;
-  className?: string;
-};
-
-export function SidebarNav({ items, homeHref, account, footer, embedded = false, className }: SidebarNavProps) {
-  const pathname = usePathname() ?? '';
-  const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
-
-  return (
-    <>
-      {/* Mobile top bar */}
-      <header
-        className={cn(
-          'z-40 flex h-14 items-center justify-between bg-primary px-4 font-brand text-on-primary lg:hidden',
-          !embedded && 'sticky top-0'
-        )}
-      >
-        <button type="button" onClick={() => setOpen(true)} aria-label="Open menu" className="-ml-2 inline-flex h-10 w-10 items-center justify-center">
-          <Menu className="h-5 w-5" />
-        </button>
-        <Link href={homeHref} aria-label="Home">
-          <Logo height={20} />
-        </Link>
-        <span className="w-10" />
-      </header>
-
-      {open && <div className="fixed inset-0 z-50 bg-primary/60 lg:hidden" onClick={close} aria-hidden />}
-
-      <aside
-        className={cn(
-          'z-50 flex w-64 flex-col bg-primary font-brand text-on-primary transition-transform duration-200',
-          embedded
-            ? open
-              ? 'fixed left-0 top-0 h-full lg:relative'
-              : 'hidden h-full lg:relative lg:flex'
-            : cn('fixed left-0 top-0 h-full lg:translate-x-0', open ? 'translate-x-0' : '-translate-x-full'),
-          className
-        )}
-      >
-        <div className="flex h-16 items-center justify-between px-5">
-          <Link href={homeHref} aria-label="Home" onClick={close}>
-            <Logo height={22} />
-          </Link>
-          <button type="button" onClick={close} aria-label="Close menu" className="inline-flex h-9 w-9 items-center justify-center text-on-primary/60 lg:hidden">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {account && (
-          <div className="border-y border-on-primary/10 px-5 py-3.5">
-            <p className="truncate text-body">{account.name}</p>
-            {account.role && <p className="mt-0.5 text-label uppercase text-on-primary/50">{account.role}</p>}
-          </div>
-        )}
-
-        <nav className="flex-1 overflow-y-auto py-3">
-          {items.map((item) => {
-            const on = isItemActive(pathname, item);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={close}
-                aria-current={on ? 'page' : undefined}
-                className={cn(
-                  'flex items-center gap-3 border-l-2 px-5 py-2.5 text-body transition-colors',
-                  on ? 'border-accent bg-on-primary/5 text-on-primary' : 'border-transparent text-on-primary/60 hover:text-on-primary'
-                )}
-              >
-                <item.icon className={cn('h-[18px] w-[18px] shrink-0', on && 'text-accent')} />
-                {item.label}
-                {!!item.badge && (
-                  <span
-                    aria-label={`${item.badge} waiting`}
-                    className="ml-auto grid h-5 min-w-5 place-items-center rounded-pill bg-accent px-1.5 text-caption font-medium tabular-nums text-on-primary"
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {footer && <div className="border-t border-on-primary/10 p-3">{footer(close)}</div>}
-      </aside>
-    </>
-  );
-}

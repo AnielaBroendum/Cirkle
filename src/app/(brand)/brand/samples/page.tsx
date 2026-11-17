@@ -486,9 +486,9 @@ export default function BrandSamplesPage() {
           </>
         }
       >
-        <p className="text-slate">
+        <p className="text-smoke">
           Delete the QR code for{' '}
-          <span className="text-primary">&ldquo;{products.find((p) => p.id === confirmDelete?.product_id)?.name ?? 'sample'}&rdquo;</span>? Printed tags
+          <span className="text-flare">&ldquo;{products.find((p) => p.id === confirmDelete?.product_id)?.name ?? 'sample'}&rdquo;</span>? Printed tags
           stop working and the product leaves this store. This can&apos;t be undone.
         </p>
       </Modal>

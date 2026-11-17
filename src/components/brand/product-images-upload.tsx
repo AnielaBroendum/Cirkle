@@ -74,31 +74,31 @@ export function ProductImagesUpload({ brandId, value, onChange }: Props) {
             key={url}
             {...itemProps(i)}
             className={cn(
-              'group relative aspect-[3/4] cursor-grab overflow-hidden border bg-surface-muted active:cursor-grabbing',
+              'group relative aspect-[3/4] cursor-grab overflow-hidden border bg-surface-dark active:cursor-grabbing',
               i === 0 && 'col-span-2 row-span-2',
-              over === i ? 'border-accent' : 'border-line'
+              over === i ? 'border-accent' : 'border-line-dark-subtle'
             )}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} alt={i === 0 ? 'Main image' : `Image ${i + 1}`} className="pointer-events-none h-full w-full object-cover" />
-            {i === 0 && <span className="absolute bottom-1.5 left-2 text-label uppercase text-on-primary [text-shadow:0_0_6px_rgb(0_0_0/0.5)]">Main</span>}
+            {i === 0 && <span className="absolute bottom-1.5 left-2 text-label uppercase text-flare [text-shadow:0_0_6px_rgb(0_0_0/0.5)]">Main</span>}
             <button
               type="button"
               onClick={() => onChange(value.filter((_, j) => j !== i))}
               aria-label="Remove image"
-              className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center bg-primary/70 text-on-primary hover:bg-primary"
+              className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center bg-obsidian/80 text-flare hover:bg-obsidian"
             >
               <X className="h-3.5 w-3.5" />
             </button>
             {/* Move buttons for touch and keyboard */}
             <div className="absolute bottom-1.5 right-1.5 flex gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
               {i > 0 && (
-                <button type="button" onClick={() => move(i, i - 1)} aria-label="Move earlier" className="inline-flex h-6 w-6 items-center justify-center bg-primary/70 text-on-primary">
+                <button type="button" onClick={() => move(i, i - 1)} aria-label="Move earlier" className="inline-flex h-6 w-6 items-center justify-center bg-obsidian/80 text-flare">
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </button>
               )}
               {i < value.length - 1 && (
-                <button type="button" onClick={() => move(i, i + 1)} aria-label="Move later" className="inline-flex h-6 w-6 items-center justify-center bg-primary/70 text-on-primary">
+                <button type="button" onClick={() => move(i, i + 1)} aria-label="Move later" className="inline-flex h-6 w-6 items-center justify-center bg-obsidian/80 text-flare">
                   <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               )}
@@ -112,7 +112,7 @@ export function ProductImagesUpload({ brandId, value, onChange }: Props) {
             onClick={() => inputRef.current?.click()}
             disabled={uploading > 0}
             className={cn(
-              'flex aspect-[3/4] flex-col items-center justify-center gap-1.5 border border-dashed border-line bg-surface text-caption text-primary transition-colors hover:border-primary disabled:opacity-60',
+              'flex aspect-[3/4] flex-col items-center justify-center gap-1.5 border border-dashed border-char bg-obsidian text-caption text-flare transition-colors hover:border-ash disabled:opacity-60',
               value.length === 0 && 'col-span-2 row-span-2'
             )}
           >
@@ -122,7 +122,7 @@ export function ProductImagesUpload({ brandId, value, onChange }: Props) {
         )}
       </div>
 
-      <p className="mt-3 text-caption text-slate">
+      <p className="mt-3 text-caption text-smoke">
         JPG, PNG or WebP · min. 1200 × 1600 px (3:4, portrait) · max 10 MB per image · up to 8 images. The first image is the main
         image in the app. Drag to change the order.
       </p>
