@@ -197,6 +197,18 @@ Work plan and screen checklist: `FIGMA-V2.md`.
 - Use the design tokens in `tailwind.config.ts` and the components in `src/components/ds` (below). No hard-coded colours.
 - Commit after each finished part.
 
+These rules were for the consumer redesign (merged into `main`). Portal work follows "Portals v2 rules" below.
+
+## Portals v2 rules
+
+Branch `figma-v2-portals`. Work plan, screen checklist and gap analysis: `PORTALS-V2.md`. Figma: "Portals v2 · Dynamic (draft)" (`358:151`).
+
+- UI changes are allowed in `src/app/(brand)`, the retailer routes (`src/app/(retailer)`), `src/components/brand`, the retailer components (`src/components/retailer`) and `src/components/ds`.
+- New READ-ONLY queries are allowed for numbers the new screens show. Do the calculations in the database (SQL view/function), as the October dashboard work did (`get_brand_dashboard`, migration 009), not in the browser.
+- No new tables or columns, no changes to existing data and no changes to auth, checkout, QR attribution, points or Resend emails without asking first.
+- Keep RLS: brands only see their own data, retailers only their own store's.
+- Use tokens and `src/components/ds` only. Commit after each finished part.
+
 ### Design system (Flaym)
 
 The UI follows the Flaym Figma file. Use only these tokens (defined in `tailwind.config.ts`) and the components in `src/components/ds/`. Tailwind's default palette (`gray-*`, `red-*`, etc.) is not part of the design.
