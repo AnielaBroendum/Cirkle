@@ -22,15 +22,19 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 | B07 | Brand Portal v2 / 07 Returns | `367:400` | `/brand/returns` | C6 | [x] |
 | B08 | Brand Portal v2 / 08 Account and payouts | `367:651` | `/brand/account` | C7 | [x] |
 | R01 | Retail Portal v2 / 01 Login | `368:518` | `/auth/login` (same page as B01) | B | [x] |
-| R02 | Retail Portal v2 / 02 Dashboard | `359:204` | `/retailer/dashboard` | B (shell), later | [ ] |
+| R02 | Retail Portal v2 / 02 Dashboard | `359:204` | `/retailer/dashboard` | D1 | [x] |
 | R03 | Retail Portal v2 / 03 Products in the store | `368:558` | `/retailer/samples` | later | [ ] |
 | R04 | Retail Portal v2 / 04 Store profile and payouts | `368:822` | `/retailer/profile` | later | [ ] |
 
 Not in Figma v2, kept as they are (restyled to dark only): `/brand/onboarding`, `/brand/products/new`, `/brand/samples/new`, `/brand/samples/requests`, `/brand/samples/swaps`, `/brand/samples/transactions`, `/brand/partnerships`, `/retailer/onboarding`, `/retailer/samples/request`, `/retailer/samples/transactions`, `/retailer/brands`.
 
+## Part D status (17 Nov 2026)
+
+Retail screens R02–R04 rebuilt to v2 (D1–D3, one commit each). New read-only functions 023–025, applied to production 17 Nov.
+
 ## Part C status (17 Nov 2026)
 
-Brand screens B02–B08 are rebuilt to v2 (C1–C7, one commit each). New read-only functions 017–022, applied to production 17 Nov. Every new number was checked against a manual SQL count on QA Atelier, and each screen was checked at 1440 and 768 px. Retail screens R02–R04 are next.
+Brand screens B02–B08 are rebuilt to v2 (C1–C7, one commit each). New read-only functions 017–022, applied to production 17 Nov. Every new number was checked against a manual SQL count on QA Atelier, and each screen was checked at 1440 and 768 px. Retail screens: see Part D status.
 
 Still MISSING on the brand screens (not built, need data or a decision): Export settlement / CSV export, webshop import (line, re-run, Edited tab, Source column), product SKU, Resend invite, friend's handle and Chain ID on orders, a return label for the customer, automatic store-cut reversal on returns, Verified badge, Brand agreement.
 
@@ -278,6 +282,14 @@ Today: `get_brand_dashboard` (009) with period Day/Week/Month/Year and product/s
 ## R02 Retail dashboard (`/retailer/dashboard`)
 
 Today: Week/Month/Year tabs, `get_retailer_payouts` and `get_retailer_most_scanned` (013).
+
+**Done (17 Nov, D1).** Numbers from `get_retailer_overview` (023), checked against manual SQL counts on QA Concept Store (scans 2 / 58 last month, saves 0 / 12, purchases credited 1 / 7, earned 82 kr all in the return period, earnings per month and per week, 0 missing tags).
+- Tiles: this month so far vs. last month (calendar months, Copenhagen); the 7 bars are the last 7 weeks, this week in orange. Purchases credited = credited purchases (one per order) from the same rows as `get_retailer_payouts` (013), so cancelled orders and returned items don't count.
+- Earned this month: store cut on purchases credited this month, split Ready to pay out / In return period by the 013 status. Paid out = latest `paid_out_at`, next = next payout date. The sidebar's Next payout is still every unpaid cut, so the two can differ.
+- Earnings per Week / Month / Year: last 7 weeks, last 7 months or last 3 years, store cut by order date.
+- Latest credited: 5 newest, "All" shows the rest in place (up to 50). The date note is a tooltip. Most scanned: top 3 this month (013).
+- Print missing tags (decided 17 Nov): active tags in the store never printed (no `tag_prints` row), re-printed through `/print/tags`. Disabled when there are none.
+- Left out: "+ Add products" (MISSING).
 
 | Element | Mark | Source / note |
 |---|---|---|

@@ -941,6 +941,35 @@ export type Database = {
           payout_amount: number;
         } | null;
       };
+      get_retailer_overview: {
+        Args: { p_tz?: string; p_payout_day?: number };
+        Returns: {
+          scans: { month: number; prev_month: number; weeks: number[] };
+          saves: { month: number; prev_month: number; weeks: number[] };
+          purchases: { month: number; prev_month: number; weeks: number[] };
+          earned_month: number;
+          earned_ready: number;
+          earned_return_period: number;
+          earned_paid_out: number;
+          last_paid_out_at: string | null;
+          next_payout: string;
+          earnings_week: { start: string; amount: number }[];
+          earnings_month: { start: string; amount: number }[];
+          earnings_year: { start: string; amount: number }[];
+          latest: {
+            id: string;
+            product_name: string | null;
+            brand_name: string;
+            amount: number;
+            payout_status: 'return_period' | 'ready' | 'paid_out';
+            ordered_at: string;
+            return_period_ends_at: string | null;
+            paid_out_at: string | null;
+            image: string | null;
+          }[];
+          missing_tags: string[];
+        } | null;
+      };
       get_retailer_portal_shell: {
         Args: { p_payout_day?: number };
         Returns: {

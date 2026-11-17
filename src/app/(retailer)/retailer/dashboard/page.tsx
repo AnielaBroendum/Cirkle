@@ -1,550 +1,338 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Printer } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { formatDKK, formatCommission } from '@/lib/utils';
-import { nextPayoutDate, PAYOUT_STATUSES, PAYOUT_STATUS_LABEL, type PayoutStatus } from '@/lib/payouts';
-import { ScanLine, Handshake, Coins, Wallet, BarChart3 } from 'lucide-react';
-import {
-  Avatar,
-  Badge,
-  Card,
-  EmptyState,
-  KPISkeleton,
-  ListSkeleton,
-  Skeleton,
-  StatTile,
-  StatusPill,
-  Tabs,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from '@/components/ds';
+import { formatDKK } from '@/lib/utils';
+import { PAYOUT_DAY_OF_MONTH, PAYOUT_STATUS_LABEL } from '@/lib/payouts';
 import type { Database } from '@/lib/database.types';
+import {
+  ArrowLink,
+  Button,
+  KPISkeleton,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Segmented,
+  Skeleton,
+  StatusPill,
+  Thumb,
+  cn,
+} from '@/components/ds';
 
-type Sample = Database['public']['Tables']['samples']['Row'];
-type Scan = Database['public']['Tables']['scans']['Row'];
-type Product = Database['public']['Tables']['products']['Row'];
-type Partnership = Database['public']['Tables']['brand_retailer_partnerships']['Row'];
-type BrandProfile = Database['public']['Tables']['brand_profiles']['Row'];
+/*
+ * Retail dashboard, Portals v2 (Figma "Retail Portal v2 / 02 Dashboard", 359:204).
+ * Numbers: get_retailer_overview (023) for the tiles, Earned this month, Earnings per month,
+ * Latest credited and the tags never printed; get_retailer_most_scanned (013) for Most scanned.
+ * Months are calendar months in Copenhagen; % change compares this month so far with last month.
+ * "+ Add products" is left out (MISSING): stores don't add products, brands place them.
+ */
 
-type KPIs = {
-  scansThisWeek: number;
-  salesAttributed: number;
-  commissionThisMonth: number;
-  activeSamples: number;
-};
-
-type ScanFeedItem = {
-  id: string;
-  product_name: string;
-  scanned_at: string;
-};
-
-type PartnershipItem = {
-  id: string;
-  brand_name: string;
-  brand_logo: string | null;
-  commission_direct: number;
-  status: string;
-};
-
-type Payout = Database['public']['Functions']['get_retailer_payouts']['Returns'][number];
+type Overview = NonNullable<Database['public']['Functions']['get_retailer_overview']['Returns']>;
 type MostScanned = Database['public']['Functions']['get_retailer_most_scanned']['Returns'][number];
 
-/** How many credited purchases the list shows; the totals cover all of them. */
-const LATEST_PAYOUTS = 8;
+type Bucket = 'week' | 'month' | 'year';
+const LATEST_ROWS = 5;
+const MOST_SCANNED_ROWS = 3;
 
-type Period = 'week' | 'month' | 'year';
+const count = (n: number) => n.toLocaleString('en-GB');
+/** Whole kroner, e.g. "4.180 kr". */
+const kr = (ore: number) => formatDKK(Math.round(ore / 100) * 100);
+const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/Copenhagen' });
 
-const PERIOD_LABEL: Record<Period, string> = { week: 'this week', month: 'this month', year: 'this year' };
+/** Short amount for chart labels: 4.180 kr → "4.2k", 640 kr → "640". */
+function compactKr(ore: number) {
+  const k = ore / 100;
+  if (k >= 1000) return `${(k / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })}k`;
+  return Math.round(k).toLocaleString('en-GB');
+}
 
-// Week = last 7 days, Month = this calendar month, Year = this calendar year.
-function periodStart(period: Period, now: Date): string {
-  if (period === 'week') return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  return new Date(now.getFullYear(), 0, 1).toISOString();
+function greeting(now: Date) {
+  const h = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Europe/Copenhagen' }).format(now));
+  return h < 5 ? 'Good evening' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+}
+
+function change(now: number, prev: number): string | null {
+  if (prev === 0) return null;
+  const pct = Math.round(((now - prev) / prev) * 100);
+  return `${pct > 0 ? '+' : ''}${pct}%`;
+}
+
+function bucketLabel(bucket: Bucket, start: string) {
+  const d = new Date(`${start}T12:00:00`);
+  if (bucket === 'year') return String(d.getFullYear());
+  if (bucket === 'month') return d.toLocaleDateString('en-GB', { month: 'short' });
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function payoutNote(p: Overview['latest'][number], nextPayout: string) {
+  if (p.payout_status === 'paid_out' && p.paid_out_at) return `Paid out ${shortDate(p.paid_out_at)}`;
+  if (p.payout_status === 'ready') return `Payout ${shortDate(nextPayout)}`;
+  if (p.return_period_ends_at) return `Return period ends ${shortDate(p.return_period_ends_at)}`;
+  return 'Not delivered yet';
 }
 
 export default function RetailerDashboardPage() {
   const { user } = useAuth();
-  const [kpis, setKpis] = useState<KPIs>({
-    scansThisWeek: 0,
-    salesAttributed: 0,
-    commissionThisMonth: 0,
-    activeSamples: 0,
-  });
-  const [recentScans, setRecentScans] = useState<ScanFeedItem[]>([]);
-  const [partnerships, setPartnerships] = useState<PartnershipItem[]>([]);
-  const [payouts, setPayouts] = useState<Payout[]>([]);
-  const [mostScanned, setMostScanned] = useState<MostScanned[]>([]);
-  const [depositTotal, setDepositTotal] = useState(0);
-  const [depositByBrand, setDepositByBrand] = useState<{ brand_name: string; total: number }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<Period>('month');
-  const [refreshing, setRefreshing] = useState(false);
   const [storeName, setStoreName] = useState('');
+  const [data, setData] = useState<Overview | null>(null);
+  const [mostScanned, setMostScanned] = useState<MostScanned[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [bucket, setBucket] = useState<Bucket>('month');
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
-    // Ignore responses from a previous period if the toggle changes mid-load.
-    let cancelled = false;
-    setRefreshing(true);
-
-    supabase
-      .from('retailer_profiles')
-      .select('id, name')
-      .eq('user_id', user.id)
-      .single()
-      .then(async ({ data: rp }: { data: { id: string; name: string } | null }) => {
-        if (cancelled) return;
-        if (!rp) {
-          setLoading(false);
-          setRefreshing(false);
-          return;
-        }
-
-        const retailer = rp as { id: string; name: string };
-        setStoreName(retailer.name);
-        const retailerId = retailer.id;
-
-        const now = new Date();
-        const since = periodStart(period, now);
-
-        const [
-          samplesRes,
-          scansWeekRes,
-          recentScansRes,
-          payoutsRes,
-          mostScannedRes,
-          partnershipsRes,
-        ] = await Promise.all([
-          // Active samples count
-          supabase
-            .from('samples')
-            .select('id', { count: 'exact', head: true })
-            .eq('retailer_id', retailerId)
-            .eq('status', 'active'),
-          // Scans in the selected period, from the same events as Most scanned
-          supabase
-            .from('events')
-            .select('id', { count: 'exact', head: true })
-            .eq('retailer_id', retailerId)
-            .eq('type', 'scan')
-            .gte('occurred_at', since),
-          // Recent scans for feed
-          supabase
-            .from('scans')
-            .select('id, product_id, scanned_at')
-            .eq('source_retailer_id', retailerId)
-            .order('scanned_at', { ascending: false })
-            .limit(10),
-          // Every credited purchase with its payout status (returns and cancellations left out)
-          supabase.rpc('get_retailer_payouts'),
-          // Scans and purchases per product in the selected period
-          supabase.rpc('get_retailer_most_scanned', { p_start: since, p_end: now.toISOString() }),
-          // Active partnerships
-          supabase
-            .from('brand_retailer_partnerships')
-            .select('id, brand_id, commission_direct, status')
-            .eq('retailer_id', retailerId)
-            .eq('status', 'active'),
-        ]);
-
-        if (cancelled) return;
-
-        const payoutRows = (payoutsRes.data ?? []) as Payout[];
-        const credited = payoutRows.filter((p) => p.ordered_at >= since);
-        setPayouts(payoutRows);
-        setMostScanned((mostScannedRes.data ?? []) as MostScanned[]);
-
-        setKpis({
-          scansThisWeek: scansWeekRes.count ?? 0,
-          salesAttributed: credited.length,
-          commissionThisMonth: credited.reduce((sum, p) => sum + p.amount_dkk, 0),
-          activeSamples: samplesRes.count ?? 0,
-        });
-
-        // Enrich recent scans with product names
-        const scansData = (recentScansRes.data ?? []) as Pick<Scan, 'id' | 'product_id' | 'scanned_at'>[];
-        if (scansData.length > 0) {
-          const productIds = Array.from(new Set(scansData.map((s) => s.product_id)));
-          const { data: products } = await supabase
-            .from('products')
-            .select('id, name')
-            .in('id', productIds);
-
-          const productMap = new Map(
-            ((products ?? []) as Pick<Product, 'id' | 'name'>[]).map((p) => [p.id, p.name])
-          );
-
-          setRecentScans(
-            scansData.map((s) => ({
-              id: s.id,
-              product_name: productMap.get(s.product_id) ?? 'Unknown product',
-              scanned_at: s.scanned_at,
-            }))
-          );
-        }
-
-        // Enrich partnerships with brand names
-        const partnershipData = (partnershipsRes.data ?? []) as Pick<
-          Partnership,
-          'id' | 'brand_id' | 'commission_direct' | 'status'
-        >[];
-        if (partnershipData.length > 0) {
-          const brandIds = partnershipData.map((p) => p.brand_id);
-          const { data: brands } = await supabase
-            .from('brand_profiles')
-            .select('id, name, logo_url')
-            .in('id', brandIds);
-
-          const brandMap = new Map(
-            ((brands ?? []) as Pick<BrandProfile, 'id' | 'name' | 'logo_url'>[]).map((b) => [
-              b.id,
-              b,
-            ])
-          );
-
-          setPartnerships(
-            partnershipData.map((p) => {
-              const brand = brandMap.get(p.brand_id);
-              return {
-                id: p.id,
-                brand_name: brand?.name ?? 'Unknown brand',
-                brand_logo: brand?.logo_url ?? null,
-                commission_direct: p.commission_direct,
-                status: p.status,
-              };
-            })
-          );
-        }
-
-        // Deposit data
-        const { data: heldSamples } = await supabase
-          .from('samples')
-          .select('deposit_amount_dkk, brand_id')
-          .eq('retailer_id', retailerId)
-          .eq('deposit_status', 'held');
-
-        if (heldSamples?.length) {
-          const total = heldSamples.reduce((sum: number, s: { deposit_amount_dkk: number | null }) => sum + (s.deposit_amount_dkk ?? 0), 0);
-          setDepositTotal(total);
-
-          const byBrand = new Map<string, number>();
-          for (const s of heldSamples as { deposit_amount_dkk: number | null; brand_id: string }[]) {
-            byBrand.set(s.brand_id, (byBrand.get(s.brand_id) ?? 0) + (s.deposit_amount_dkk ?? 0));
-          }
-
-          const brandIdsForDeposits = Array.from(byBrand.keys());
-          const { data: depositBrands } = await supabase.from('brand_profiles').select('id, name').in('id', brandIdsForDeposits);
-          const depositBrandMap = new Map((depositBrands ?? []).map((b: { id: string; name: string }) => [b.id, b.name]));
-
-          setDepositByBrand(
-            Array.from(byBrand.entries()).map(([bid, t]) => ({
-              brand_name: (depositBrandMap.get(bid) as string | undefined) ?? 'Unknown',
-              total: t,
-            })).sort((a, b) => b.total - a.total)
-          );
-        }
-
-        if (cancelled) return;
-        setLoading(false);
-        setRefreshing(false);
-      });
-
+    let alive = true;
+    (async () => {
+      const now = new Date();
+      const monthStart = new Date(
+        new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', timeZone: 'Europe/Copenhagen' }).format(now) + '-01T00:00:00'
+      );
+      const [rp, overview, most] = await Promise.all([
+        supabase.from('retailer_profiles').select('name').eq('user_id', user.id).maybeSingle(),
+        supabase.rpc('get_retailer_overview', { p_payout_day: PAYOUT_DAY_OF_MONTH }),
+        supabase.rpc('get_retailer_most_scanned', {
+          p_start: monthStart.toISOString(),
+          p_end: now.toISOString(),
+          p_limit: MOST_SCANNED_ROWS,
+        }),
+      ]);
+      if (!alive) return;
+      setStoreName((rp.data as { name: string } | null)?.name ?? '');
+      setData((overview.data as Overview | null) ?? null);
+      setMostScanned((most.data ?? []) as MostScanned[]);
+      setLoading(false);
+    })();
     return () => {
-      cancelled = true;
+      alive = false;
     };
-  }, [user, period]);
-
-  function timeAgo(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  }
+  }, [user]);
 
   if (loading) {
     return (
-      <div className="space-y-7">
+      <div className="space-y-6">
         <div className="space-y-2">
-          <Skeleton className="h-10 w-56" />
-          <Skeleton className="h-4 w-80" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-10 w-80 max-w-full" />
         </div>
         <KPISkeleton />
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-          <ListSkeleton rows={4} />
-          <ListSkeleton rows={4} />
-        </div>
+        <Skeleton className="h-[420px]" />
       </div>
     );
   }
 
+  if (!data) {
+    return <PageHeader title="Dashboard" subtitle="Your store profile could not be loaded." />;
+  }
+
+  const missing = data.missing_tags;
+  const earnings = bucket === 'week' ? data.earnings_week : bucket === 'year' ? data.earnings_year : data.earnings_month;
+  const maxEarned = Math.max(...earnings.map((e) => e.amount), 1);
+  const latest = showAll ? data.latest : data.latest.slice(0, LATEST_ROWS);
+  const maxScans = Math.max(...mostScanned.map((m) => m.scans), 1);
+
+  function printMissing() {
+    if (missing.length) window.open(`/print/tags?portal=retail&ids=${missing.join(',')}`, '_blank');
+  }
+
   return (
-    <div className="space-y-7">
-      {/* Header (Figma 02) */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-brand text-heading-xl uppercase text-primary">Dashboard</h1>
-          <p className="mt-1 text-body text-slate">
-            Activity and earnings from products in {storeName || 'your store'}
-          </p>
-        </div>
-        <Tabs
-          className="self-start sm:self-auto"
-          value={period}
-          onValueChange={(v) => setPeriod(v as Period)}
-          items={[
-            { value: 'week', label: 'Week' },
-            { value: 'month', label: 'Month' },
-            { value: 'year', label: 'Year' },
-          ]}
-        />
-      </div>
-
-      {/* KPI tiles: Figma's "Saves" slot shows Active samples, which the page already loads */}
-      <div
-        aria-busy={refreshing || undefined}
-        className={`grid grid-cols-2 gap-3 transition-opacity lg:grid-cols-4 lg:gap-4 ${refreshing ? 'opacity-60' : ''}`}
-      >
-        <StatTile label="Scans in store" value={kpis.scansThisWeek} hint={capitalize(PERIOD_LABEL[period])} />
-        <StatTile label="Active samples" value={kpis.activeSamples} hint="In your store now" />
-        <StatTile label="Purchases credited" value={kpis.salesAttributed} hint={capitalize(PERIOD_LABEL[period])} />
-        <StatTile
-          tone="dark"
-          label={`Earned ${PERIOD_LABEL[period]}`}
-          value={<span className="text-accent">{formatDKK(kpis.commissionThisMonth)}</span>}
-          hint={`Paid out ${shortDate(nextPayoutDate().toISOString())}`}
-        />
-      </div>
-
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="space-y-4">
-          {/* Most scanned in your store (Figma 02) */}
-          <Card
-            padding="none"
-            aria-busy={refreshing || undefined}
-            className={`p-5 transition-opacity lg:p-6 ${refreshing ? 'opacity-60' : ''}`}
+    <div className="space-y-6">
+      <PageHeader
+        title={`${greeting(new Date())}${storeName ? `, ${storeName}` : ''}`}
+        subtitle={`${count(data.scans.month)} ${data.scans.month === 1 ? 'scan' : 'scans'} in your store this month and ${count(
+          data.purchases.month
+        )} ${data.purchases.month === 1 ? 'purchase' : 'purchases'} credited to you.`}
+        actions={
+          <Button
+            variant="secondary"
+            onClick={printMissing}
+            disabled={missing.length === 0}
+            title={missing.length === 0 ? 'Every tag in your store has been printed' : undefined}
+            className="h-[43px] border-line-dark-subtle bg-obsidian text-flare hover:border-flare/30"
           >
-            <SectionTitle title="Most scanned in your store" />
-            <p className="-mt-2 mb-3 text-caption text-slate">See what catches people&apos;s eye on the rail</p>
-            {mostScanned.length === 0 ? (
-              <EmptyState
-                className="border-none py-8"
-                icon={<BarChart3 className="h-5 w-5" />}
-                title={`No scans ${PERIOD_LABEL[period]}`}
-                description="Products show up here once people scan their QR tags in your store."
-              />
-            ) : (
-              <MostScannedTable rows={mostScanned} />
-            )}
-          </Card>
+            <Printer className="h-4 w-4" /> Print missing tags{missing.length > 0 ? ` (${missing.length})` : ''}
+          </Button>
+        }
+      />
 
-          {/* Recent scans */}
-          <Card padding="none" className="p-5 lg:p-6">
-            <SectionTitle title="Recent scans" />
-            {recentScans.length === 0 ? (
-              <EmptyState
-                className="border-none py-8"
-                icon={<ScanLine className="h-5 w-5" />}
-                title="No scans yet"
-                description="Place samples in visible spots to attract scans."
-              />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_370px]">
+        {/* Left: tiles + earnings */}
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <TrendTile label="Scans in store" stat={data.scans} />
+            <TrendTile label="Saves" stat={data.saves} />
+            <TrendTile label="Purchases credited" stat={data.purchases} />
+          </div>
+
+          <Panel className="flex flex-1 flex-col gap-5" aria-labelledby="earnings-title">
+            <PanelHeader
+              title={<span id="earnings-title">Earnings per {bucket}</span>}
+              subtitle="Your cut of every sale your store sparked"
+              action={
+                <Segmented
+                  label="Earnings range"
+                  value={bucket}
+                  onValueChange={(v) => setBucket(v as Bucket)}
+                  items={[
+                    { value: 'week', label: 'Week' },
+                    { value: 'month', label: 'Month' },
+                    { value: 'year', label: 'Year' },
+                  ]}
+                />
+              }
+            />
+            <div className="flex min-h-[240px] flex-1 items-end gap-2 sm:gap-3" role="img" aria-label={`Earnings per ${bucket}`}>
+              {earnings.map((e, i) => {
+                const last = i === earnings.length - 1;
+                // Bars use up to 85% of the height so the label above the tallest one fits.
+                const h = e.amount > 0 ? Math.max(2, (e.amount / maxEarned) * 85) : 0;
+                return (
+                  <div key={e.start} className="flex h-full min-w-0 flex-1 flex-col items-center gap-2">
+                    <div className="relative w-full flex-1">
+                      {e.amount > 0 && (
+                        <span
+                          className="absolute inset-x-0 text-center text-caption font-medium tabular-nums text-flare"
+                          style={{ bottom: `calc(${h}% + 6px)` }}
+                        >
+                          {compactKr(e.amount)}
+                        </span>
+                      )}
+                      <div
+                        className={cn('absolute inset-x-0 bottom-0', last ? 'bg-flame-gradient' : 'bg-surface-dark')}
+                        style={{ height: e.amount > 0 ? `${h}%` : 1 }}
+                      />
+                    </div>
+                    <span className="truncate text-caption text-smoke">{bucketLabel(bucket, e.start)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Panel>
+        </div>
+
+        {/* Right: earned this month, latest credited, most scanned */}
+        <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:flex xl:flex-col">
+          <section className="flex flex-col gap-3.5 bg-flame-gradient p-[22px] font-brand text-flare" aria-labelledby="earned-title">
+            <div className="flex items-center">
+              <h2 id="earned-title" className="flex-1 text-body-sm font-medium">
+                Earned this month
+              </h2>
+              <ArrowLink href="/retailer/profile" label="Open store profile" className="bg-flare/20 text-flare hover:text-flare" />
+            </div>
+            <p className="text-display font-medium tabular-nums tracking-[-0.76px]">{kr(data.earned_month)}</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="bg-flare/20 px-3.5 py-3">
+                <p className="text-caption">Ready to pay out</p>
+                <p className="mt-0.5 text-body-lg font-semibold tabular-nums">{kr(data.earned_ready)}</p>
+              </div>
+              <div className="bg-flare/20 px-3.5 py-3">
+                <p className="text-caption">In return period</p>
+                <p className="mt-0.5 text-body-lg font-semibold tabular-nums">{kr(data.earned_return_period)}</p>
+              </div>
+            </div>
+            <p className="self-start whitespace-pre bg-obsidian px-3 py-[7px] text-caption font-medium text-flare">
+              {`●  ${data.last_paid_out_at ? `Paid out ${shortDate(data.last_paid_out_at)} · ` : ''}next ${shortDate(data.next_payout)}`}
+            </p>
+          </section>
+
+          <Panel className="flex flex-col gap-4" aria-labelledby="latest-title">
+            <PanelHeader
+              title={<span id="latest-title">Latest credited</span>}
+              subtitle="Purchases your store sparked"
+              action={
+                data.latest.length > LATEST_ROWS && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAll((v) => !v)}
+                    className="text-caption font-medium text-accent-bright hover:text-flare"
+                  >
+                    {showAll ? 'Less' : 'All'}
+                  </button>
+                )
+              }
+            />
+            {latest.length === 0 ? (
+              <p className="text-caption text-smoke">When someone buys after scanning a product in your store, your cut shows up here.</p>
             ) : (
-              <ul className="divide-y divide-line">
-                {recentScans.map((scan) => (
-                  <li key={scan.id} className="flex items-center gap-3 py-3">
-                    <span className="h-2 w-2 shrink-0 border-[1.5px] border-accent" aria-hidden />
-                    <p className="min-w-0 flex-1 truncate text-body-sm text-primary">{scan.product_name}</p>
-                    <span className="whitespace-nowrap text-caption text-slate">{timeAgo(scan.scanned_at)}</span>
+              <ul className="flex flex-col gap-3">
+                {latest.map((p) => (
+                  <li key={p.id} className="flex items-center gap-3">
+                    <Thumb src={p.image} size={32} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-body-sm font-medium text-flare">{p.product_name ?? 'Unknown product'}</p>
+                      <p className="truncate text-caption text-smoke" title={payoutNote(p, data.next_payout)}>
+                        {p.brand_name} · {kr(p.amount)}
+                      </p>
+                    </div>
+                    <StatusPill status={p.payout_status} label={PAYOUT_STATUS_LABEL[p.payout_status]} />
                   </li>
                 ))}
               </ul>
             )}
-          </Card>
+
+            <p className="pt-1 text-label uppercase text-smoke">Most scanned in your store</p>
+            {mostScanned.length === 0 ? (
+              <p className="text-caption text-smoke">No scans this month yet.</p>
+            ) : (
+              <ul className="flex flex-col gap-3.5">
+                {mostScanned.map((m) => (
+                  <li key={m.product_id}>
+                    <div className="flex items-baseline gap-3">
+                      <p className="min-w-0 flex-1 truncate text-caption text-ash">
+                        {m.product_name} · {m.brand_name}
+                      </p>
+                      <span className="whitespace-nowrap text-caption font-medium tabular-nums text-flare">
+                        {count(m.scans)} {m.scans === 1 ? 'scan' : 'scans'}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 bg-surface-dark">
+                      <div className="h-1.5 bg-flaym-progress" style={{ width: `${Math.max(3, (m.scans / maxScans) * 100)}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-caption text-smoke">This month</p>
+          </Panel>
         </div>
-
-        {/* Latest credited purchases with payout status (Figma 02) */}
-        <Card padding="none" className="p-5 lg:p-6">
-          <SectionTitle title="Latest credited purchases" />
-          {payouts.length === 0 ? (
-            <EmptyState
-              className="border-none py-8"
-              icon={<Coins className="h-5 w-5" />}
-              title="Nothing credited yet"
-              description="When someone buys after scanning a product in your store, your cut shows up here."
-            />
-          ) : (
-            <>
-              <PayoutTotals payouts={payouts} />
-              <div className="-mx-1 overflow-x-auto">
-                <table className="w-full border-collapse font-brand text-body text-primary">
-                  <THead>
-                    <tr>
-                      <TH className="px-3 py-2 text-label font-medium">Product</TH>
-                      <TH className="px-3 py-2 text-label font-medium">Status</TH>
-                      <TH className="px-3 py-2 text-right text-label font-medium">Your cut</TH>
-                    </tr>
-                  </THead>
-                  <TBody>
-                    {payouts.slice(0, LATEST_PAYOUTS).map((p) => (
-                      <TR key={p.id}>
-                        <TD className="w-full max-w-0 px-3 text-body-sm">
-                          <p className="truncate">{p.product_name ?? 'Unknown product'}</p>
-                          <p className="mt-0.5 text-caption text-slate">{payoutDateNote(p)}</p>
-                        </TD>
-                        <TD className="px-3">
-                          <StatusPill status={p.payout_status} label={PAYOUT_STATUS_LABEL[p.payout_status]} />
-                        </TD>
-                        <TD className="whitespace-nowrap px-3 text-right text-body-sm">{formatDKK(p.amount_dkk)}</TD>
-                      </TR>
-                    ))}
-                  </TBody>
-                </table>
-              </div>
-            </>
-          )}
-          <p className="mt-4 text-caption text-slate">
-            Return period: your cut is paid out once the brand&apos;s return period has ended. Ready: paid out on the
-            next payout date, {shortDate(nextPayoutDate().toISOString())}.
-          </p>
-        </Card>
       </div>
+    </div>
+  );
+}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Active partnerships */}
-        <Card padding="none" className="p-5 lg:p-6">
-          <SectionTitle title="Active partnerships" />
-          {partnerships.length === 0 ? (
-            <EmptyState
-              className="border-none py-8"
-              icon={<Handshake className="h-5 w-5" />}
-              title="No active partnerships"
-              description="Accept brand invitations to get started."
-            />
-          ) : (
-            <ul className="divide-y divide-line">
-              {partnerships.map((p) => (
-                <li key={p.id} className="flex items-center gap-3 py-3">
-                  <Avatar src={p.brand_logo} name={p.brand_name} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-body text-primary">{p.brand_name}</p>
-                    <p className="text-caption text-slate">{formatCommission(p.commission_direct)} commission</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        {/* Deposit capital */}
-        {depositTotal > 0 && (
-          <Card padding="none" className="p-5 lg:p-6">
-            <SectionTitle title="Deposit capital" aside={`${formatDKK(depositTotal)} held`} />
-            <ul className="divide-y divide-line">
-              {depositByBrand.map((b) => (
-                <li key={b.brand_name} className="flex items-center gap-3 py-3">
-                  <Wallet className="h-4 w-4 shrink-0 text-slate" />
-                  <p className="min-w-0 flex-1 truncate text-body text-primary">{b.brand_name}</p>
-                  <span className="text-body font-medium text-primary">{formatDKK(b.total)}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
+/** Tile with this month's count, % vs last month and 7 weekly bars (this week in flame). */
+function TrendTile({ label, stat }: { label: string; stat: { month: number; prev_month: number; weeks: number[] } }) {
+  const pct = change(stat.month, stat.prev_month);
+  const max = Math.max(...stat.weeks, 1);
+  const down = pct?.startsWith('-');
+  return (
+    <div className="flex min-w-0 flex-col gap-3 border border-line-dark-subtle bg-obsidian p-5 font-brand">
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-caption text-smoke">{label}</p>
+        {pct && (
+          <span
+            className={cn('px-1.5 py-0.5 text-caption font-medium', down ? 'bg-accent-tint text-accent-bright' : 'bg-success-subtle text-success')}
+            title="This month so far vs. last month"
+          >
+            {pct}
+          </span>
         )}
       </div>
-    </div>
-  );
-}
-
-function shortDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
-function payoutDateNote(p: Payout): string {
-  if (p.payout_status === 'paid_out' && p.paid_out_at) return `Paid out ${shortDate(p.paid_out_at)}`;
-  if (p.payout_status === 'ready') return `Payout on ${shortDate(nextPayoutDate().toISOString())}`;
-  if (p.return_period_ends_at) return `Return period ends ${shortDate(p.return_period_ends_at)}`;
-  return `Bought ${shortDate(p.ordered_at)} · not delivered yet`;
-}
-
-// Totals per payout status over every credited purchase.
-function PayoutTotals({ payouts }: { payouts: Payout[] }) {
-  const totals = PAYOUT_STATUSES.map((status) => {
-    const rows = payouts.filter((p) => p.payout_status === status);
-    return { status, count: rows.length, amount: rows.reduce((sum, p) => sum + p.amount_dkk, 0) };
-  });
-  return (
-    <dl className="mb-4 grid grid-cols-3 gap-px border border-line bg-line">
-      {totals.map((t: { status: PayoutStatus; count: number; amount: number }) => (
-        <div key={t.status} className="bg-surface px-3 py-2.5">
-          <dt className="text-label uppercase text-slate">{PAYOUT_STATUS_LABEL[t.status]}</dt>
-          <dd className="mt-1 text-body font-medium text-primary">{formatDKK(t.amount)}</dd>
-          <dd className="text-caption text-slate">
-            {t.count} {t.count === 1 ? 'purchase' : 'purchases'}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-// Figma "Most scanned": product, brand, a bar scaled to the top row, scans and buys.
-function MostScannedTable({ rows }: { rows: MostScanned[] }) {
-  const max = Math.max(...rows.map((r) => r.scans), 1);
-  return (
-    <div className="-mx-1 overflow-x-auto">
-      <table className="w-full border-collapse font-brand text-body text-primary">
-        <THead>
-          <tr>
-            <TH className="px-3 py-2 text-label font-medium">Product</TH>
-            <TH className="hidden px-3 py-2 text-label font-medium sm:table-cell">Brand</TH>
-            <TH className="px-3 py-2 text-right text-label font-medium" colSpan={2}>
-              Scans
-            </TH>
-            <TH className="px-3 py-2 text-right text-label font-medium">Buys</TH>
-          </tr>
-        </THead>
-        <TBody>
-          {rows.map((r) => (
-            <TR key={r.product_id}>
-              <TD className="max-w-[10rem] px-3 text-body-sm">
-                <p className="truncate">{r.product_name}</p>
-                <p className="truncate text-caption text-slate sm:hidden">{r.brand_name}</p>
-              </TD>
-              <TD className="hidden whitespace-nowrap px-3 text-body-sm text-slate sm:table-cell">{r.brand_name}</TD>
-              <TD className="w-full px-3" aria-hidden>
-                <div className="h-1.5 bg-accent" style={{ width: `${(r.scans / max) * 100}%` }} />
-              </TD>
-              <TD className="whitespace-nowrap px-3 text-right text-body-sm">{r.scans}</TD>
-              <TD className="whitespace-nowrap px-3 text-right text-body-sm">{r.buys}</TD>
-            </TR>
-          ))}
-        </TBody>
-      </table>
-    </div>
-  );
-}
-
-function capitalize(text: string) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-// Figma card title: 14px uppercase, with an optional muted note on the right.
-function SectionTitle({ title, aside }: { title: string; aside?: string }) {
-  return (
-    <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{title}</h2>
-      {aside && <span className="whitespace-nowrap text-caption text-slate">{aside}</span>}
+      <p className="text-heading-xl font-medium tabular-nums text-flare">{count(stat.month)}</p>
+      <div className="flex h-9 items-end gap-1.5" aria-label="Last 7 weeks" role="img">
+        {stat.weeks.map((w, i) => (
+          <div
+            key={i}
+            className={cn('flex-1', i === stat.weeks.length - 1 ? 'bg-accent' : 'bg-surface-dark')}
+            style={{ height: `${Math.max(6, (w / max) * 100)}%` }}
+            title={`${w}`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
