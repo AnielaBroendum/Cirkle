@@ -15,7 +15,7 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 |---|---|---|---|---|---|
 | B01 | Brand Portal v2 / 01 Login | `368:480` | `/auth/login` (shared by every role) | B | [x] |
 | B02 | Brand Portal v2 / 02 Dashboard | `358:161` | `/brand/dashboard` | C1 | [x] |
-| B03 | Brand Portal v2 / 03 Product library | `364:238` | `/brand/products` | later | [ ] |
+| B03 | Brand Portal v2 / 03 Product library | `364:238` | `/brand/products` | C2 | [x] |
 | B04 | Brand Portal v2 / 04 Edit product | `364:587` | `/brand/products/[id]/edit` (and `/brand/products/new`) | later | [ ] |
 | B05 | Brand Portal v2 / 05 Stores and QR tags | `365:318` | `/brand/samples` (sub-tabs: requests, swaps, transactions, `/brand/partnerships`) | later | [ ] |
 | B06 | Brand Portal v2 / 06 Orders | `365:645` | `/brand/orders` | later | [ ] |
@@ -122,6 +122,13 @@ Today: `get_brand_dashboard` (009) with period Day/Week/Month/Year and product/s
 - Size-filter note on the funnel.
 
 ## B03 Product library (`/brand/products`)
+
+**Done (17 Nov, C2).** Numbers from `get_brand_product_stats` (018), checked against manual SQL on QA Atelier.
+- Tiles: Products (placed in stores = products with an active sample), Scans this month with % vs. last month (calendar months, Copenhagen), Most scanned this month (scans · sold).
+- Tabs All / In stores. Category filter (distinct `products.category`). Sort: Most scanned (default), Newest, Name, Price.
+- The Scans column is **all time** (this month is nearly empty on most brands; the tile shows this month). In stores = dots + count of stores with an active sample.
+- Search box dropped (⌘K searches products). Active switch and Delete moved to Edit product; inactive products get an "Inactive" tag. Deposit column dropped (still on Edit product).
+- Left out, decided 17 Nov: import line, Re-run import, SKU, Edited tab, Source column (no data for any of them).
 
 | Element | Mark | Source / note |
 |---|---|---|

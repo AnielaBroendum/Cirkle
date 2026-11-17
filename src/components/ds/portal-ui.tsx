@@ -153,7 +153,7 @@ export function ScanBar({ value, max, className }: { value: number | null; max: 
   const pct = value && max > 0 ? Math.max(3, (value / max) * 100) : 0;
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <div className="h-1.5 w-[70px] shrink-0 bg-surface-dark">
+      <div className="h-1.5 w-[90px] shrink-0 bg-surface-dark">
         <div className="h-1.5 bg-flaym-progress" style={{ width: `${pct}%` }} />
       </div>
       <span className="text-caption font-medium tabular-nums text-flare">{value === null ? '–' : value.toLocaleString('en-GB')}</span>

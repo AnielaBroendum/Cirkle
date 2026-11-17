@@ -878,6 +878,15 @@ export type Database = {
           buy_rate: number | null;
         } | null;
       };
+      // 018: Product library tiles and Scans column.
+      get_brand_product_stats: {
+        Args: { p_tz?: string };
+        Returns: {
+          scans_month: number;
+          scans_prev_month: number;
+          products: { id: string; scans_month: number; scans_total: number; sold_month: number; stores: number }[];
+        } | null;
+      };
       reorder_brand_stories: {
         Args: { p_ids: string[] };
         Returns: undefined;
