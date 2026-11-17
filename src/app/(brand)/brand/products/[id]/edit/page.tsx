@@ -20,7 +20,6 @@ export default function EditProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stores, setStores] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -38,23 +37,6 @@ export default function EditProductPage() {
     });
   }, [user, id]);
 
-  // "In stores": stores holding an active sample of this product
-  useEffect(() => {
-    if (!id) return;
-    const supabase = createClient();
-    supabase
-      .from('samples')
-      .select('retailer_id')
-      .eq('product_id', id)
-      .eq('status', 'active')
-      .then(async ({ data }: { data: { retailer_id: string }[] | null }) => {
-        const retailerIds = Array.from(new Set((data ?? []).map((s) => s.retailer_id)));
-        if (!retailerIds.length) return;
-        const { data: retailers } = await supabase.from('retailer_profiles').select('name').in('id', retailerIds);
-        setStores(((retailers ?? []) as { name: string }[]).map((r) => r.name).sort());
-      });
-  }, [id]);
-
   if (loading || !brandProfileId) {
     return (
       <div className="space-y-6">
@@ -62,7 +44,7 @@ export default function EditProductPage() {
           <Skeleton className="h-4 w-40" />
           <Skeleton className="mt-2 h-10 w-64" />
         </div>
-        <div className="grid gap-4 lg:grid-cols-[617fr_455fr] lg:gap-5">
+        <div className="grid gap-4 lg:grid-cols-[606fr_334fr]">
           <Skeleton className="h-[480px] w-full" />
           <Skeleton className="h-[320px] w-full" />
         </div>
@@ -92,7 +74,6 @@ export default function EditProductPage() {
       product={product}
       existingVariants={variants}
       title="Edit product"
-      stores={stores}
     />
   );
 }

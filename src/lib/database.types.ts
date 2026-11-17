@@ -887,6 +887,11 @@ export type Database = {
           products: { id: string; scans_month: number; scans_total: number; sold_month: number; stores: number }[];
         } | null;
       };
+      // 019: Edit product → In stores.
+      get_product_store_scans: {
+        Args: { p_product?: string | null };
+        Returns: { retailer_id: string; name: string; placed: boolean; scans: number }[];
+      };
       reorder_brand_stories: {
         Args: { p_ids: string[] };
         Returns: undefined;

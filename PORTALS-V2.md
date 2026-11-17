@@ -16,7 +16,7 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 | B01 | Brand Portal v2 / 01 Login | `368:480` | `/auth/login` (shared by every role) | B | [x] |
 | B02 | Brand Portal v2 / 02 Dashboard | `358:161` | `/brand/dashboard` | C1 | [x] |
 | B03 | Brand Portal v2 / 03 Product library | `364:238` | `/brand/products` | C2 | [x] |
-| B04 | Brand Portal v2 / 04 Edit product | `364:587` | `/brand/products/[id]/edit` (and `/brand/products/new`) | later | [ ] |
+| B04 | Brand Portal v2 / 04 Edit product | `364:587` | `/brand/products/[id]/edit` (and `/brand/products/new`) | C3 | [x] |
 | B05 | Brand Portal v2 / 05 Stores and QR tags | `365:318` | `/brand/samples` (sub-tabs: requests, swaps, transactions, `/brand/partnerships`) | later | [ ] |
 | B06 | Brand Portal v2 / 06 Orders | `365:645` | `/brand/orders` | later | [ ] |
 | B07 | Brand Portal v2 / 07 Returns | `367:400` | `/brand/returns` | later | [ ] |
@@ -150,6 +150,12 @@ Today: `get_brand_dashboard` (009) with period Day/Week/Month/Year and product/s
 **Dropped:** search box, Deposit column, Active toggle, Edit/Delete actions (row click opens edit), Inactive tab.
 
 ## B04 Edit product (`/brand/products/[id]/edit`)
+
+**Done (17 Nov, C3).** Same form for Add product. Save logic, variant stock and prices, and the image checks are unchanged.
+- In stores (`get_product_store_scans`, 019): every store with an active partnership, scans of this product there (all time). Decided 17 Nov: switching a store **on** places the product there when you save, through the existing `POST /api/samples` (new active sample + QR tag); a store that already has it shows on and can't be switched off here (remove it on Stores & tags, so tags are never deleted by accident). No deposit transaction is written, same as the existing "Add sample" flow.
+- Kept outside Figma: Stock and prices card, Sample deposit, and a Visibility card with the Active switch and Delete (moved from the product library).
+- Left out: SKU and the "kept when the webshop is imported" line (no import).
+- `Toggle` got a `portal` tone (square track, white knob); `light` and `dark` are unchanged.
 
 | Element | Mark | Source / note |
 |---|---|---|
