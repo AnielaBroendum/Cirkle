@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { fileReader } from '@/lib/media-probe';
 import { STORY_ACCEPT, STORY_RULES, checkStory, fileType } from '@/lib/media-rules';
-import { Button, Card, cn } from '@/components/ds';
+import { Panel, PanelHeader, cn } from '@/components/ds';
 import { moveItem, useDragOrder } from './use-drag-order';
 
 // Figma "Brand Portal / 08 Account" → Brand stories. Up to 10, shown on all
@@ -100,52 +100,50 @@ export function BrandStories({ brandId }: { brandId: string }) {
   const canAdd = stories.length < STORY_RULES.maxStories;
 
   return (
-    <Card padding="none" className="rounded-none p-5 lg:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">
-            Brand stories <span className="ml-1.5 text-caption normal-case text-slate">{stories.length} / 10</span>
-          </h2>
-          <p className="mt-1 text-caption text-slate">Shown on all your products in the app. Up to 10 stories. Drag to change the order.</p>
-        </div>
-        <Button type="button" onClick={() => inputRef.current?.click()} disabled={!canAdd || uploading} loading={uploading} leftIcon={<Plus className="h-4 w-4" />}>
-          Upload story
-        </Button>
-      </div>
+    <Panel>
+      <PanelHeader
+        title="Brand stories"
+        subtitle="Shown on all your products. Drag to reorder."
+        action={
+          <span className="text-caption tabular-nums text-smoke">
+            {stories.length} / {STORY_RULES.maxStories}
+          </span>
+        }
+      />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <ol className="flex flex-wrap gap-4">
+      <div className="mt-5 grid gap-5">
+        <ol className="flex flex-wrap gap-3">
           {stories.map((s, i) => (
             <li key={s.id} {...itemProps(i)} className="group cursor-grab active:cursor-grabbing">
-              <div className={cn('relative h-40 w-[90px] overflow-hidden border bg-flaym-gradient', over === i ? 'border-accent' : 'border-line')}>
+              <div className={cn('relative h-[118px] w-[66px] overflow-hidden border bg-flaym-stories', over === i ? 'border-accent' : 'border-line-dark-subtle')}>
                 {s.kind === 'video' ? (
                   <video src={`${s.url}#t=0.1`} muted playsInline preload="metadata" className="pointer-events-none h-full w-full object-cover" />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={s.url} alt="" className="pointer-events-none h-full w-full object-cover" />
                 )}
-                <span className="absolute bottom-1.5 left-1.5 bg-primary/70 px-1.5 py-0.5 text-caption tabular-nums text-on-primary">
+                <span className="absolute left-1.5 top-1.5 bg-obsidian px-1.5 py-0.5 text-caption tabular-nums text-flare">{i + 1}</span>
+                <span className="absolute bottom-1.5 left-1.5 bg-obsidian/80 px-1.5 py-0.5 text-caption tabular-nums text-flare">
                   {s.kind === 'video' ? `0:${String(Math.round(s.duration_seconds ?? 0)).padStart(2, '0')}` : `${STORY_RULES.image.showSeconds} s`}
                 </span>
                 <button
                   type="button"
                   onClick={() => remove(s.id)}
                   aria-label={`Remove story ${i + 1}`}
-                  className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center bg-primary/70 text-on-primary hover:bg-primary"
+                  className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center bg-obsidian/80 text-flare hover:bg-obsidian"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <div className="mt-1.5 flex items-center justify-between">
-                <span className="text-caption text-slate">{i + 1}</span>
+              <div className="mt-1.5 flex h-4 items-center justify-center">
                 <span className="flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
                   {i > 0 && (
-                    <button type="button" onClick={() => saveOrder(moveItem(stories, i, i - 1))} aria-label={`Move story ${i + 1} earlier`} className="text-slate hover:text-primary">
+                    <button type="button" onClick={() => saveOrder(moveItem(stories, i, i - 1))} aria-label={`Move story ${i + 1} earlier`} className="text-smoke hover:text-flare">
                       <ChevronLeft className="h-4 w-4" />
                     </button>
                   )}
                   {i < stories.length - 1 && (
-                    <button type="button" onClick={() => saveOrder(moveItem(stories, i, i + 1))} aria-label={`Move story ${i + 1} later`} className="text-slate hover:text-primary">
+                    <button type="button" onClick={() => saveOrder(moveItem(stories, i, i + 1))} aria-label={`Move story ${i + 1} later`} className="text-smoke hover:text-flare">
                       <ChevronRight className="h-4 w-4" />
                     </button>
                   )}
@@ -159,7 +157,7 @@ export function BrandStories({ brandId }: { brandId: string }) {
                 type="button"
                 onClick={() => inputRef.current?.click()}
                 disabled={uploading}
-                className="flex h-40 w-[90px] flex-col items-center justify-center gap-1 border border-dashed border-line text-caption text-primary hover:border-primary disabled:opacity-60"
+                className="flex h-[118px] w-[66px] flex-col items-center justify-center gap-1 border border-line-dark-subtle bg-canvas-dark text-caption text-flare hover:border-flare/30 disabled:opacity-60"
               >
                 {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : '+ Upload'}
               </button>
@@ -167,8 +165,8 @@ export function BrandStories({ brandId }: { brandId: string }) {
           )}
         </ol>
 
-        <div className="self-start bg-surface-muted p-4 text-caption text-cinder">
-          <p className="mb-2 text-label uppercase text-slate">File requirements</p>
+        <div className="bg-canvas-dark p-4 text-caption text-ash">
+          <p className="mb-2 text-label uppercase text-smoke">File requirements</p>
           <ul className="space-y-1.5">
             <li>Video: MP4 or MOV (H.264), max 20 seconds, max 50 MB</li>
             <li>Image: JPG or PNG, max 10 MB, shown for 6 seconds</li>
@@ -189,6 +187,6 @@ export function BrandStories({ brandId }: { brandId: string }) {
       )}
 
       <input ref={inputRef} type="file" accept={STORY_ACCEPT} multiple onChange={(e) => upload(e.target.files)} className="hidden" />
-    </Card>
+    </Panel>
   );
 }

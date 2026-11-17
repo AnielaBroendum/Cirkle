@@ -1,15 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Check, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
+import { formatDKK } from '@/lib/utils';
 import { ImageUpload } from '@/components/brand/image-upload';
-import { Store } from 'lucide-react';
 import type { Database } from '@/lib/database.types';
-import { Button, Card, EmptyState, Field, Input, Select, Skeleton, Textarea } from '@/components/ds';
+import { Button, Field, Input, PageHeader, Panel, PanelHeader, Select, Skeleton, Textarea, Thumb } from '@/components/ds';
+
+/*
+ * Store profile, Portals v2 (Figma "Retail Portal v2 / 04 Store profile", 368:822).
+ * Save logic unchanged: retailer_profiles + retailer_payout_details. Numbers from
+ * get_retailer_profile_stats (025): earned since joining, brands and their share of this
+ * month's scans in the store. City, postal code, store type, description and logo aren't in
+ * Figma but are still saved, so they sit under "More details". Left out: the Verified badge
+ * (no verification state).
+ */
 
 type RetailerProfile = Database['public']['Tables']['retailer_profiles']['Row'];
 type PayoutDetails = Database['public']['Tables']['retailer_payout_details']['Row'];
+type Stats = NonNullable<Database['public']['Functions']['get_retailer_profile_stats']['Returns']>;
 
 // Same options as onboarding.
 const STORE_TYPES = [
@@ -22,7 +33,9 @@ const STORE_TYPES = [
   { value: 'other', label: 'Other' },
 ];
 
-type BrandInStore = { id: string; name: string; products: number; since: string };
+/** Whole kroner, e.g. "16.680 kr". */
+const kr = (ore: number) => formatDKK(Math.round(ore / 100) * 100);
+const monthYear = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
 
 export default function RetailerProfilePage() {
   const { user } = useAuth();
@@ -45,8 +58,9 @@ export default function RetailerProfilePage() {
   const [regNo, setRegNo] = useState('');
   const [accountNo, setAccountNo] = useState('');
   const [cvr, setCvr] = useState('');
+  const [editingAccount, setEditingAccount] = useState(false);
 
-  const [brands, setBrands] = useState<BrandInStore[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -71,14 +85,9 @@ export default function RetailerProfilePage() {
       setLogo(rp.logo_url ? [rp.logo_url] : []);
       setPhotos(rp.store_photos ?? []);
 
-      const [payoutRes, partnershipRes, samplesRes] = await Promise.all([
+      const [payoutRes, statsRes] = await Promise.all([
         supabase.from('retailer_payout_details').select('*').eq('retailer_id', rp.id).maybeSingle(),
-        supabase
-          .from('brand_retailer_partnerships')
-          .select('brand_id, accepted_at, created_at')
-          .eq('retailer_id', rp.id)
-          .eq('status', 'active'),
-        supabase.from('samples').select('brand_id').eq('retailer_id', rp.id).eq('status', 'active'),
+        supabase.rpc('get_retailer_profile_stats'),
       ]);
 
       const payout = payoutRes.data as PayoutDetails | null;
@@ -87,27 +96,7 @@ export default function RetailerProfilePage() {
         setAccountNo(payout.account_no ?? '');
         setCvr(payout.cvr ?? '');
       }
-
-      const partnerships = (partnershipRes.data ?? []) as { brand_id: string; accepted_at: string | null; created_at: string }[];
-      if (partnerships.length > 0) {
-        const productCounts = new Map<string, number>();
-        for (const s of (samplesRes.data ?? []) as { brand_id: string }[]) {
-          productCounts.set(s.brand_id, (productCounts.get(s.brand_id) ?? 0) + 1);
-        }
-        const { data: brandRows } = await supabase
-          .from('brand_profiles')
-          .select('id, name')
-          .in('id', partnerships.map((p) => p.brand_id));
-        const names = new Map(((brandRows ?? []) as { id: string; name: string }[]).map((b) => [b.id, b.name]));
-        setBrands(
-          partnerships.map((p) => ({
-            id: p.brand_id,
-            name: names.get(p.brand_id) ?? 'Unknown brand',
-            products: productCounts.get(p.brand_id) ?? 0,
-            since: p.accepted_at ?? p.created_at,
-          }))
-        );
-      }
+      setStats((statsRes.data as Stats | null) ?? null);
 
       setLoading(false);
     })();
@@ -154,149 +143,193 @@ export default function RetailerProfilePage() {
     }
     setSaved(true);
   }
-
   if (loading) {
     return (
-      <div className="space-y-7">
+      <div className="space-y-6">
         <div className="space-y-2">
+          <Skeleton className="h-4 w-40" />
           <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-4 w-80 max-w-full" />
         </div>
-        <div className="grid gap-4 lg:grid-cols-[561fr_511fr]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
           <Skeleton className="h-[504px]" />
           <div className="space-y-4">
+            <Skeleton className="h-[134px]" />
             <Skeleton className="h-[268px]" />
-            <Skeleton className="h-[212px]" />
           </div>
         </div>
       </div>
     );
   }
 
+  // "•••• 7719" until the field is focused.
+  const maskedAccount = accountNo.length > 4 ? `•••• ${accountNo.slice(-4)}` : accountNo;
+  const brandCount = stats?.brand_count ?? 0;
+
   return (
-    <form onSubmit={handleSave} className="space-y-7">
-      {/* Header (Figma 04) */}
-      <div className="flex items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="font-brand text-heading-xl uppercase text-primary">Store profile</h1>
-          <p className="mt-1 text-body text-slate">Shown to people who scan in your store</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-3">
-          {saved && <span className="text-caption text-success">Saved</span>}
-          <Button type="submit" loading={saving} disabled={saving || !storeName.trim()}>
-            Save
-          </Button>
-        </div>
-      </div>
-
-      {error && <p className="border border-accent bg-accent-subtle px-4 py-3 text-body text-accent-strong">{error}</p>}
-
-      <div className="grid items-start gap-4 lg:grid-cols-[561fr_511fr]">
-        {/* Store */}
-        <Card padding="none" className="space-y-4 p-5 lg:p-6">
-          <SectionTitle>Store</SectionTitle>
-          <Field label="Store name *" htmlFor="store-name">
-            <Input id="store-name" required value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="My Store" />
-          </Field>
-          <Field label="Address" htmlFor="address">
-            <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main Street" />
-          </Field>
-          <div className="grid grid-cols-[2fr_1fr] gap-3">
-            <Field label="City" htmlFor="city">
-              <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Copenhagen" />
-            </Field>
-            <Field label="Postal code" htmlFor="postal">
-              <Input id="postal" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="2100" />
-            </Field>
+    <form onSubmit={handleSave} className="space-y-6">
+      <PageHeader
+        title="Store profile"
+        subtitle="Shown to people who scan in your store."
+        actions={
+          <div className="flex items-center gap-3">
+            {saved && (
+              <span role="status" className="inline-flex items-center gap-1.5 text-caption text-success">
+                <Check className="h-3.5 w-3.5" /> Saved
+              </span>
+            )}
+            <Button type="submit" variant="flame" loading={saving} disabled={saving || !storeName.trim()} className="h-[43px]">
+              {saving ? 'Saving…' : 'Save changes'}
+            </Button>
           </div>
-          <Field label="Opening hours" htmlFor="hours">
-            <Textarea
-              id="hours"
-              rows={2}
-              className="min-h-[72px]"
-              value={openingHours}
-              onChange={(e) => setOpeningHours(e.target.value)}
-              placeholder="Mon–Fri 11–18 · Sat 10–16"
-            />
-          </Field>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Store type" htmlFor="store-type">
-              <Select id="store-type" value={storeType} onChange={(e) => setStoreType(e.target.value)}>
-                <option value="">Select type</option>
-                {STORE_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-          <Field label="Description" htmlFor="description">
-            <Textarea
-              id="description"
-              rows={3}
-              value={storeDescription}
-              onChange={(e) => setStoreDescription(e.target.value)}
-              placeholder="Tell us about your store"
-            />
-          </Field>
-          <Field label="Cover image" hint="The first photo is your cover. Up to 5.">
-            <ImageUpload bucket="brand-assets" folder="retailer-photos" value={photos} onChange={setPhotos} max={5} label="Upload" appearance="flaym" cover />
-          </Field>
-          <Field label="Logo">
-            <ImageUpload bucket="brand-assets" folder="retailer-logos" value={logo} onChange={setLogo} max={1} label="Upload logo" appearance="flaym" />
-          </Field>
-        </Card>
+        }
+      />
 
-        <div className="space-y-4">
+      {error && (
+        <p role="alert" className="border border-accent bg-accent-subtle px-4 py-3 text-body text-accent-strong">
+          {error}
+        </p>
+      )}
+
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* Store */}
+          <Panel className="flex flex-col gap-5">
+            <PanelHeader
+              title="Store"
+              subtitle="Name, address and opening hours"
+              action={
+                stats?.preview_sample && (
+                  <a
+                    href={`/p/${stats.preview_sample}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-9 items-center gap-2 border border-line-dark-subtle px-3.5 text-caption font-medium text-flare transition-colors hover:border-flare/30"
+                  >
+                    Preview in app <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )
+              }
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Store name *" htmlFor="store-name">
+                <Input id="store-name" required value={storeName} onChange={(e) => setStoreName(e.target.value)} placeholder="My Store" />
+              </Field>
+              <Field label="Opening hours" htmlFor="hours">
+                <Input id="hours" value={openingHours} onChange={(e) => setOpeningHours(e.target.value)} placeholder="Mon–Fri 11–18 · Sat 10–16" />
+              </Field>
+              <Field label="Address" htmlFor="address" className="sm:col-span-2">
+                <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Jægersborggade 21" />
+              </Field>
+              <Field label="Cover image" hint="The first photo is your cover. Up to 5." className="sm:col-span-2">
+                <ImageUpload bucket="brand-assets" folder="retailer-photos" value={photos} onChange={setPhotos} max={5} label="Upload new" appearance="flaym" cover />
+              </Field>
+            </div>
+
+            <details className="group border-t border-line-dark-subtle pt-4">
+              <summary className="cursor-pointer list-none text-caption font-medium text-ash hover:text-flare">
+                <span className="group-open:hidden">+ More details</span>
+                <span className="hidden group-open:inline">− Fewer details</span>
+                <span className="ml-2 text-smoke">City, postal code, store type, description, logo</span>
+              </summary>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Field label="City" htmlFor="city">
+                  <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Copenhagen" />
+                </Field>
+                <Field label="Postal code" htmlFor="postal">
+                  <Input id="postal" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="2200" />
+                </Field>
+                <Field label="Store type" htmlFor="store-type">
+                  <Select id="store-type" value={storeType} onChange={(e) => setStoreType(e.target.value)}>
+                    <option value="">Select type</option>
+                    {STORE_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Description" htmlFor="description" className="sm:col-span-2">
+                  <Textarea id="description" rows={3} value={storeDescription} onChange={(e) => setStoreDescription(e.target.value)} placeholder="Tell us about your store" />
+                </Field>
+                <Field label="Logo">
+                  <ImageUpload bucket="brand-assets" folder="retailer-logos" value={logo} onChange={setLogo} max={1} label="Upload logo" appearance="flaym" />
+                </Field>
+              </div>
+            </details>
+          </Panel>
+
           {/* Payouts */}
-          <Card padding="none" className="space-y-4 p-5 lg:p-6">
-            <SectionTitle>Payouts</SectionTitle>
-            <div className="grid grid-cols-[1fr_2fr] gap-3">
+          <Panel className="flex flex-col gap-5">
+            <PanelHeader title="Payouts" subtitle="Your cut, paid monthly after settlement with each brand" />
+            <div className="grid gap-4 sm:grid-cols-3">
               <Field label="Reg. no." htmlFor="reg-no">
                 <Input id="reg-no" inputMode="numeric" autoComplete="off" value={regNo} onChange={(e) => setRegNo(e.target.value)} />
               </Field>
               <Field label="Account no." htmlFor="account-no">
-                <Input id="account-no" inputMode="numeric" autoComplete="off" value={accountNo} onChange={(e) => setAccountNo(e.target.value)} />
+                <Input
+                  id="account-no"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={editingAccount ? accountNo : maskedAccount}
+                  onFocus={() => setEditingAccount(true)}
+                  onBlur={() => setEditingAccount(false)}
+                  onChange={(e) => editingAccount && setAccountNo(e.target.value)}
+                />
+              </Field>
+              <Field label="CVR" htmlFor="cvr">
+                <Input id="cvr" inputMode="numeric" autoComplete="off" value={cvr} onChange={(e) => setCvr(e.target.value)} />
               </Field>
             </div>
-            <Field label="CVR" htmlFor="cvr">
-              <Input id="cvr" inputMode="numeric" autoComplete="off" value={cvr} onChange={(e) => setCvr(e.target.value)} />
-            </Field>
-            <p className="text-caption text-slate">Flaym pays your cut monthly, after settlement with each brand. Only you can see these details.</p>
-          </Card>
+            <p className="text-caption text-smoke">Only you can see these details.</p>
+          </Panel>
+        </div>
+
+        <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:flex xl:flex-col">
+          {/* Earned since joining */}
+          <section className="flex flex-col gap-2 bg-flame-gradient p-[22px] font-brand text-flare" aria-labelledby="earned-title">
+            <h2 id="earned-title" className="text-body-sm font-medium">
+              Earned since joining
+            </h2>
+            <p className="text-display font-medium tabular-nums tracking-[-0.76px]">{kr(stats?.earned_total ?? 0)}</p>
+            <p className="text-caption">
+              From {brandCount} {brandCount === 1 ? 'brand' : 'brands'}
+              {stats?.since ? ` · since ${monthYear(stats.since)}` : ''}
+            </p>
+          </section>
 
           {/* Brands in your store */}
-          <Card padding="none" className="p-5 lg:p-6">
-            <SectionTitle>Brands in your store</SectionTitle>
-            {brands.length === 0 ? (
-              <EmptyState
-                className="mt-3 border-none py-6"
-                icon={<Store className="h-5 w-5" />}
-                title="No brands yet"
-                description="Brands you partner with show up here."
-              />
+          <Panel className="flex flex-col gap-4">
+            <PanelHeader title="Brands in your store" subtitle="Placed by the brands themselves" />
+            {!stats || stats.brands.length === 0 ? (
+              <p className="text-caption text-smoke">Brands you partner with show up here.</p>
             ) : (
-              <ul className="mt-3 space-y-3">
-                {brands.map((b) => (
+              <ul className="flex flex-col gap-4">
+                {stats.brands.map((b) => (
                   <li key={b.id}>
-                    <p className="text-body text-primary">{b.name}</p>
-                    <p className="mt-0.5 text-caption text-slate">
-                      {b.products} {b.products === 1 ? 'product' : 'products'} · since{' '}
-                      {new Date(b.since).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <Thumb src={b.logo_url} size={36} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-body-sm font-semibold text-flare">{b.name}</p>
+                        <p className="truncate text-caption text-smoke">
+                          {b.products} {b.products === 1 ? 'product' : 'products'} · since {monthYear(b.since)}
+                        </p>
+                      </div>
+                      <span className="text-caption font-medium tabular-nums text-flare">{b.share === null ? '–' : `${b.share}%`}</span>
+                    </div>
+                    <div className="mt-2 h-1 bg-surface-dark">
+                      <div className="h-1 bg-flaym-progress" style={{ width: `${b.share ?? 0}%` }} />
+                    </div>
                   </li>
                 ))}
               </ul>
             )}
-          </Card>
+            <p className="text-caption text-smoke">
+              Share of scans in your store this month
+              {stats ? ` (${stats.scans_month.toLocaleString('en-GB')} ${stats.scans_month === 1 ? 'scan' : 'scans'})` : ''}
+            </p>
+          </Panel>
         </div>
       </div>
     </form>
   );
-}
-
-// Figma card title: 14px uppercase.
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{children}</h2>;
 }

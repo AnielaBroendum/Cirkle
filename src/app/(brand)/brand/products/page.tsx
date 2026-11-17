@@ -2,150 +2,144 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { Package } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { formatDKK } from '@/lib/utils';
 import { formatPriceRange, priceRange, type VariantPrice } from '@/lib/pricing';
-import { Plus, Package, Pencil, Trash2, Search } from 'lucide-react';
-import {
-  Button,
-  EmptyState,
-  Input,
-  ListSkeleton,
-  Modal,
-  Skeleton,
-  Table,
-  Tabs,
-  Toggle,
-  THead,
-  TBody,
-  TR,
-  TH,
-  TD,
-  buttonClasses,
-} from '@/components/ds';
 import type { Database } from '@/lib/database.types';
+import {
+  Chip,
+  EmptyState,
+  ListSkeleton,
+  MetricTile,
+  PageHeader,
+  Panel,
+  ScanBar,
+  Segmented,
+  Select,
+  Skeleton,
+  Thumb,
+  buttonClasses,
+  cn,
+} from '@/components/ds';
+
+/*
+ * Product library, Portals v2 (Figma "Brand Portal v2 / 03 Product library", 364:238).
+ * Numbers from get_brand_product_stats (018). Row click opens Edit product, where the
+ * Active switch and Delete now live. Left out (no data): webshop import line and re-run,
+ * SKU, the Edited tab and the Source column.
+ */
 
 type Product = Database['public']['Tables']['products']['Row'] & { product_variants?: VariantPrice[] };
+type Stats = NonNullable<Database['public']['Functions']['get_brand_product_stats']['Returns']>;
+type ProductStats = Stats['products'][number];
 
-type Filter = 'all' | 'in_stores' | 'inactive';
+type Tab = 'all' | 'in_stores';
+type Sort = 'scans' | 'name' | 'price' | 'newest';
+const SORTS: { value: Sort; label: string }[] = [
+  { value: 'scans', label: 'Most scanned' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'name', label: 'Name' },
+  { value: 'price', label: 'Price' },
+];
 
 // "XS–XL" like Figma; one size stays as is.
 function sizeRange(sizes: string[] | null) {
-  if (!sizes?.length) return '—';
+  if (!sizes?.length) return '–';
   if (sizes.length === 1) return sizes[0];
   return `${sizes[0]}–${sizes[sizes.length - 1]}`;
 }
 
+const count = (n: number) => n.toLocaleString('en-GB');
+const EMPTY: ProductStats = { id: '', scans_month: 0, scans_total: 0, sold_month: 0, stores: 0 };
+
 export default function BrandProductsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
-  const [brandProfileId, setBrandProfileId] = useState<string | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  // Number of stores holding an active sample of each product
-  const [storeCounts, setStoreCounts] = useState<Map<string, number>>(new Map());
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
-  const [confirmDelete, setConfirmDelete] = useState<Product | null>(null);
+  const [tab, setTab] = useState<Tab>('all');
+  const [category, setCategory] = useState('');
+  const [sort, setSort] = useState<Sort>('scans');
 
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
-
-    supabase
-      .from('brand_profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }: { data: { id: string } | null }) => {
-        if (!data) return;
-        setBrandProfileId(data.id);
-        return supabase
+    (async () => {
+      const { data: bp } = await supabase.from('brand_profiles').select('id').eq('user_id', user.id).single();
+      if (!bp) return setLoading(false);
+      const [productsRes, statsRes] = await Promise.all([
+        supabase
           .from('products')
           .select('*, product_variants(size, color, price_dkk)')
-          .eq('brand_id', data.id)
-          .order('created_at', { ascending: false });
-      })
-      .then((res: { data: Product[] | null } | undefined) => {
-        if (res?.data) setProducts(res.data);
-        setLoading(false);
-      });
+          .eq('brand_id', bp.id)
+          .order('created_at', { ascending: false }),
+        supabase.rpc('get_brand_product_stats', { p_tz: 'Europe/Copenhagen' }),
+      ]);
+      setProducts((productsRes.data ?? []) as Product[]);
+      setStats((statsRes.data as Stats | null) ?? null);
+      setLoading(false);
+    })();
   }, [user]);
 
-  // "In stores" column: active samples per product, counted by store
-  useEffect(() => {
-    if (!brandProfileId) return;
-    const supabase = createClient();
-    supabase
-      .from('samples')
-      .select('product_id, retailer_id')
-      .eq('brand_id', brandProfileId)
-      .eq('status', 'active')
-      .then(({ data }: { data: { product_id: string; retailer_id: string }[] | null }) => {
-        const stores = new Map<string, Set<string>>();
-        for (const s of data ?? []) {
-          if (!stores.has(s.product_id)) stores.set(s.product_id, new Set());
-          stores.get(s.product_id)!.add(s.retailer_id);
-        }
-        setStoreCounts(new Map(Array.from(stores.entries()).map(([id, set]) => [id, set.size])));
-      });
-  }, [brandProfileId]);
+  const byId = useMemo(() => new Map((stats?.products ?? []).map((s) => [s.id, s])), [stats]);
+  const statOf = (p: Product) => byId.get(p.id) ?? EMPTY;
 
-  async function toggleActive(product: Product) {
-    const supabase = createClient();
-    const newActive = !product.is_active;
-    await supabase.from('products').update({ is_active: newActive }).eq('id', product.id);
-    setProducts((prev) =>
-      prev.map((p) => (p.id === product.id ? { ...p, is_active: newActive } : p))
-    );
-  }
+  const categories = useMemo(
+    () => Array.from(new Set(products.map((p) => p.category?.trim()).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b)),
+    [products]
+  );
 
-  async function deleteProduct(id: string) {
-    const supabase = createClient();
-    await supabase.from('products').delete().eq('id', id);
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-  }
-
-  const inStores = (p: Product) => storeCounts.get(p.id) ?? 0;
-
-  const counts = {
-    all: products.length,
-    in_stores: products.filter((p) => inStores(p) > 0).length,
-    inactive: products.filter((p) => !p.is_active).length,
-  };
+  const inStoresCount = products.filter((p) => statOf(p).stores > 0).length;
+  const maxScans = Math.max(1, ...products.map((p) => statOf(p).scans_total));
 
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return products.filter((p) => {
-      if (filter === 'in_stores' && !(storeCounts.get(p.id) ?? 0)) return false;
-      if (filter === 'inactive' && p.is_active) return false;
-      if (!q) return true;
-      return [p.name, p.category, ...(p.colors ?? [])].some((v) => v?.toLowerCase().includes(q));
+    const rows = products.filter((p) => (tab === 'all' || (byId.get(p.id)?.stores ?? 0) > 0) && (!category || p.category?.trim() === category));
+    const scans = (p: Product) => byId.get(p.id)?.scans_total ?? 0;
+    return [...rows].sort((a, b) => {
+      if (sort === 'scans') return scans(b) - scans(a) || a.name.localeCompare(b.name);
+      if (sort === 'name') return a.name.localeCompare(b.name);
+      if (sort === 'price') return b.price_dkk - a.price_dkk;
+      return b.created_at.localeCompare(a.created_at);
     });
-  }, [products, storeCounts, query, filter]);
+  }, [products, byId, tab, category, sort]);
+
+  // Most scanned this month (ties: most sold).
+  const top = useMemo(() => {
+    const ranked = (stats?.products ?? []).filter((s) => s.scans_month > 0).sort((a, b) => b.scans_month - a.scans_month || b.sold_month - a.sold_month);
+    if (!ranked.length) return null;
+    const product = products.find((p) => p.id === ranked[0].id);
+    return product ? { product, stat: ranked[0] } : null;
+  }, [stats, products]);
+
+  const scansDelta = (() => {
+    if (!stats || stats.scans_prev_month === 0) return stats ? `${count(stats.scans_prev_month)} last month` : '';
+    const pct = Math.round(((stats.scans_month - stats.scans_prev_month) / stats.scans_prev_month) * 100);
+    return `${pct >= 0 ? '+' : ''}${pct}% vs. last month`;
+  })();
 
   const header = (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="font-brand text-heading-xl uppercase text-primary">Product library</h1>
-        <p className="mt-1 text-body text-slate">
-          {loading ? 'Loading products…' : `${products.length} product${products.length !== 1 ? 's' : ''} · shown on the product page when a tag is scanned`}
-        </p>
-      </div>
-      <Link href="/brand/products/new" className={buttonClasses({ className: 'self-start sm:self-auto' })}>
-        <Plus className="h-4 w-4" /> Add product
-      </Link>
-    </div>
+    <PageHeader
+      title="Product library"
+      subtitle="Shown on the product page when a tag is scanned."
+      actions={
+        <Link href="/brand/products/new" className={buttonClasses({ variant: 'flame', className: 'h-[43px]' })}>
+          + Add product
+        </Link>
+      }
+    />
   );
 
   if (loading) {
     return (
       <div className="space-y-6">
         {header}
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Skeleton className="h-11 w-full sm:w-[360px]" />
-          <Skeleton className="h-[33px] w-64" />
+        <div className="grid gap-4 md:grid-cols-3">
+          <Skeleton className="h-[115px]" />
+          <Skeleton className="h-[115px]" />
+          <Skeleton className="h-[115px]" />
         </div>
         <ListSkeleton rows={5} />
       </div>
@@ -156,210 +150,134 @@ export default function BrandProductsPage() {
     <div className="space-y-6">
       {header}
 
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricTile label="Products" value={count(products.length)} hint={`${count(inStoresCount)} placed in stores`} />
+        <MetricTile label="Scans this month" value={count(stats?.scans_month ?? 0)} hint={scansDelta} />
+        <MetricTile
+          label="Most scanned"
+          value={top ? top.product.name : '–'}
+          hint={top ? `${count(top.stat.scans_month)} scans · ${count(top.stat.sold_month)} sold this month` : 'No scans yet this month'}
+        />
+      </div>
+
       {products.length === 0 ? (
         <EmptyState
-          className="bg-surface"
           icon={<Package className="h-5 w-5" />}
           title="No products yet"
-          description="Add your first product to start creating samples and QR codes"
+          description="Add your first product to start placing it in stores."
           action={
-            <Link href="/brand/products/new" className={buttonClasses()}>
-              <Plus className="h-4 w-4" /> Add first product
+            <Link href="/brand/products/new" className={buttonClasses({ variant: 'flame' })}>
+              + Add first product
             </Link>
           }
         />
       ) : (
-        <>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative w-full sm:w-[360px]">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate" />
-              <Input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search products"
-                aria-label="Search products"
-                className="pl-10"
-              />
-            </div>
-            <Tabs
+        <Panel className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2.5 md:flex-row md:items-center">
+            <Segmented
+              label="Products shown"
               items={[
-                { value: 'all', label: 'All', count: counts.all },
-                { value: 'in_stores', label: 'In stores', count: counts.in_stores },
-                { value: 'inactive', label: 'Inactive', count: counts.inactive },
+                { value: 'all', label: `All ${count(products.length)}` },
+                { value: 'in_stores', label: `In stores ${count(inStoresCount)}` },
               ]}
-              value={filter}
-              onValueChange={(v) => setFilter(v as Filter)}
-              className="self-start"
+              value={tab}
+              onValueChange={(v) => setTab(v as Tab)}
+              className="self-start border border-line-dark-subtle bg-obsidian"
             />
+            <span className="hidden flex-1 md:block" />
+            <div className="flex gap-2.5">
+              <Select aria-label="Category" value={category} onChange={(e) => setCategory(e.target.value)} className="h-[38px] min-w-0 flex-1 md:w-44 md:flex-none">
+                <option value="">All categories</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+              <Select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="h-[38px] min-w-0 flex-1 md:w-52 md:flex-none">
+                {SORTS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    Sort: {s.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
 
           {visible.length === 0 ? (
-            <EmptyState
-              className="bg-surface"
-              icon={<Search className="h-5 w-5" />}
-              title="No matching products"
-              description="Try another search or filter."
-              action={
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setQuery('');
-                    setFilter('all');
-                  }}
-                >
-                  Clear filters
-                </Button>
-              }
-            />
+            <p className="py-10 text-center text-caption text-smoke">No products match.</p>
           ) : (
-            <>
-              {/* Mobile: cards */}
-              <ul className="divide-y divide-line border border-line bg-surface md:hidden">
-                {visible.map((product) => (
-                  <li key={product.id} className="flex gap-3 p-4">
-                    <Thumb product={product} />
-                    <div className="min-w-0 flex-1">
-                      <Link href={`/brand/products/${product.id}/edit`} className="block truncate text-body text-primary">
-                        {product.name}
-                      </Link>
-                      <p className="mt-0.5 truncate text-caption text-slate">
-                        {[product.category, sizeRange(product.sizes), formatPriceRange(priceRange(product.price_dkk, product.product_variants ?? []))].filter(Boolean).join(' · ')}
-                      </p>
-                      <p className="mt-0.5 text-caption text-slate">In {inStores(product)} store{inStores(product) !== 1 ? 's' : ''}</p>
-                      <div className="mt-3 flex items-center justify-between gap-2">
-                        <Toggle
-                          checked={product.is_active}
-                          onCheckedChange={() => toggleActive(product)}
-                          label={<span className="text-caption text-slate">{product.is_active ? 'Active' : 'Inactive'}</span>}
-                          aria-label={`${product.name} active`}
-                        />
-                        <RowActions product={product} onDelete={() => setConfirmDelete(product)} />
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Desktop: table */}
-              <div className="hidden md:block">
-                <Table className="text-body-sm">
-                  <THead>
-                    <tr>
-                      <TH className="px-5">Product</TH>
-                      <TH>Category</TH>
-                      <TH>Sizes</TH>
-                      <TH className="text-right">Price</TH>
-                      <TH className="text-right">Deposit</TH>
-                      <TH className="text-right">In stores</TH>
-                      <TH>Active</TH>
-                      <TH className="px-5 text-right">
-                        <span className="sr-only">Actions</span>
-                      </TH>
-                    </tr>
-                  </THead>
-                  <TBody>
-                    {visible.map((product) => (
-                      <TR key={product.id}>
-                        <TD className="px-5">
+            <div className="-mx-1 overflow-x-auto">
+              <table className="w-full min-w-[600px] border-collapse font-brand text-body-sm">
+                <thead>
+                  <tr className="border-b border-line-dark-subtle text-left text-label uppercase text-smoke">
+                    <th className="px-1 pb-2.5 font-medium">Product</th>
+                    <th className="hidden px-2 pb-2.5 font-medium lg:table-cell">Category</th>
+                    <th className="px-2 pb-2.5 font-medium">Sizes</th>
+                    <th className="px-2 pb-2.5 font-medium">Price</th>
+                    <th className="px-2 pb-2.5 font-medium">In stores</th>
+                    <th className="px-2 pb-2.5 font-medium" title="All time">
+                      Scans
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((p) => {
+                    const s = statOf(p);
+                    const href = `/brand/products/${p.id}/edit`;
+                    return (
+                      <tr
+                        key={p.id}
+                        onClick={() => router.push(href)}
+                        className="cursor-pointer border-b border-line-dark-subtle transition-colors last:border-b-0 hover:bg-surface-dark/50"
+                      >
+                        <td className="px-1 py-3">
                           <div className="flex items-center gap-3">
-                            <Thumb product={product} />
+                            <Thumb src={p.images?.[0]} size={36} />
                             <div className="min-w-0">
-                              <Link href={`/brand/products/${product.id}/edit`} className="block truncate hover:underline">
-                                {product.name}
+                              <Link href={href} onClick={(e) => e.stopPropagation()} className="block truncate font-medium text-flare hover:underline">
+                                {p.name}
                               </Link>
-                              {product.colors?.length ? (
-                                <p className="mt-0.5 truncate text-caption text-slate">{product.colors.join(' · ')}</p>
-                              ) : null}
+                              <p className="mt-0.5 flex items-center gap-2 truncate text-caption text-smoke">
+                                {p.colors?.length ? p.colors.join(' · ') : null}
+                                {!p.is_active && <Chip className="px-1.5 py-0">Inactive</Chip>}
+                              </p>
                             </div>
                           </div>
-                        </TD>
-                        <TD>{product.category || <span className="text-slate">—</span>}</TD>
-                        <TD className="whitespace-nowrap">{sizeRange(product.sizes)}</TD>
-                        <TD className="whitespace-nowrap text-right tabular-nums">{formatPriceRange(priceRange(product.price_dkk, product.product_variants ?? []))}</TD>
-                        <TD className="whitespace-nowrap text-right tabular-nums text-slate">
-                          {product.deposit_amount_dkk ? formatDKK(product.deposit_amount_dkk) : '—'}
-                        </TD>
-                        <TD className="text-right tabular-nums">{inStores(product)}</TD>
-                        <TD>
-                          <Toggle
-                            checked={product.is_active}
-                            onCheckedChange={() => toggleActive(product)}
-                            aria-label={`${product.name} active`}
-                          />
-                        </TD>
-                        <TD className="px-5">
-                          <RowActions product={product} onDelete={() => setConfirmDelete(product)} />
-                        </TD>
-                      </TR>
-                    ))}
-                  </TBody>
-                </Table>
-              </div>
-            </>
+                        </td>
+                        <td className="hidden px-2 text-ash lg:table-cell">{p.category || <span className="text-smoke">–</span>}</td>
+                        <td className="whitespace-nowrap px-2 text-ash">{sizeRange(p.sizes)}</td>
+                        <td className="whitespace-nowrap px-2 tabular-nums text-ash">
+                          {formatPriceRange(priceRange(p.price_dkk, p.product_variants ?? []))}
+                        </td>
+                        <td className="px-2">
+                          <StoreDots n={s.stores} />
+                        </td>
+                        <td className="px-2">
+                          <ScanBar value={s.scans_total} max={maxScans} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
-        </>
+          <p className="text-caption text-smoke">Scans are all time. Click a product to edit it, place it in stores, switch it off or delete it.</p>
+        </Panel>
       )}
-
-      <Modal
-        open={!!confirmDelete}
-        onClose={() => setConfirmDelete(null)}
-        title="Delete product"
-        footer={
-          <>
-            <Button variant="secondary" fullWidth onClick={() => setConfirmDelete(null)}>
-              Cancel
-            </Button>
-            <Button
-              fullWidth
-              onClick={() => {
-                if (confirmDelete) deleteProduct(confirmDelete.id);
-                setConfirmDelete(null);
-              }}
-            >
-              Delete
-            </Button>
-          </>
-        }
-      >
-        <p className="text-slate">
-          Are you sure you want to delete <span className="text-primary">{confirmDelete?.name}</span>? This can&apos;t be undone.
-        </p>
-      </Modal>
     </div>
   );
 }
 
-function Thumb({ product }: { product: Product }) {
-  return product.images?.[0] ? (
-    <div className="relative h-10 w-[34px] shrink-0 overflow-hidden bg-surface-muted">
-      <Image src={product.images[0]} alt={product.name} fill className="object-cover" sizes="34px" />
-    </div>
-  ) : (
-    <div className="flex h-10 w-[34px] shrink-0 items-center justify-center bg-surface-muted">
-      <Package className="h-4 w-4 text-slate" />
-    </div>
-  );
-}
-
-function RowActions({ product, onDelete }: { product: Product; onDelete: () => void }) {
+/** Up to three dots filled for the stores holding the product, then the count. */
+function StoreDots({ n }: { n: number }) {
   return (
-    <div className="flex items-center justify-end gap-1">
-      <Link
-        href={`/brand/products/${product.id}/edit`}
-        aria-label={`Edit ${product.name}`}
-        className="inline-flex h-9 w-9 items-center justify-center text-slate transition-colors hover:bg-surface-muted hover:text-primary"
-      >
-        <Pencil className="h-4 w-4" />
-      </Link>
-      <button
-        type="button"
-        onClick={onDelete}
-        aria-label={`Delete ${product.name}`}
-        className="inline-flex h-9 w-9 items-center justify-center text-slate transition-colors hover:bg-surface-muted hover:text-primary"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
+    <span className="flex items-center gap-1" aria-label={`In ${n} store${n === 1 ? '' : 's'}`}>
+      {[0, 1, 2].map((i) => (
+        <span key={i} className={cn('h-2.5 w-2.5 rounded-pill', i < n ? 'bg-accent' : 'bg-surface-dark')} aria-hidden />
+      ))}
+      <span className="ml-0.5 text-caption tabular-nums text-ash">{n}</span>
+    </span>
   );
 }

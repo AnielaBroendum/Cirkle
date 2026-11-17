@@ -3,22 +3,32 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-// Transactions and Brands have no Figma icon (the Retail Portal nav only has Dashboard, Products, Store profile).
+// Transactions and Brands have no Figma icon (the Retail Portal v2 nav only has Dashboard, Products, Store profile).
 import { Receipt, Store } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Database } from '@/lib/database.types';
-import { DashboardIcon, Logo, LogOutIcon, ProductsIcon, SidebarNav, StoreProfileIcon, type NavItem } from '@/components/ds';
+import { formatDKK } from '@/lib/utils';
+import {
+  searchRetailerPortal,
+  useRetailerNotifications,
+  useRetailerPortalShell,
+} from '@/components/retailer/portal-data';
+import {
+  DashboardIcon,
+  Logo,
+  LogOutIcon,
+  NotificationsMenu,
+  PortalShell,
+  ProductsIcon,
+  StoreProfileIcon,
+  payoutPeriodInfo,
+  type PortalNavGroup,
+} from '@/components/ds';
 
 type RetailerProfile = Database['public']['Tables']['retailer_profiles']['Row'];
 
-// Figma "Retail Portal" nav. Products = the samples placed in the store.
-const NAV_ITEMS: NavItem[] = [
-  { href: '/retailer/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { href: '/retailer/samples', label: 'Products', icon: ProductsIcon },
-  { href: '/retailer/samples/transactions', label: 'Transactions', icon: Receipt },
-  { href: '/retailer/brands', label: 'Brands', icon: Store },
-  { href: '/retailer/profile', label: 'Store profile', icon: StoreProfileIcon },
-];
+/** Whole kroner, e.g. "1.071 kr" (the sidebar is an overview). */
+const kr = (ore: number) => formatDKK(Math.round(ore / 100) * 100);
 
 export default function RetailerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -26,6 +36,9 @@ export default function RetailerLayout({ children }: { children: React.ReactNode
   const { user, profile, loading, signOut } = useAuth();
   const [retailerProfile, setRetailerProfile] = useState<RetailerProfile | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const ready = !!retailerProfile?.onboarding_complete;
+  const shell = useRetailerPortalShell(ready);
+  const notifications = useRetailerNotifications(ready ? retailerProfile!.id : null);
 
   useEffect(() => {
     if (loading) return;
@@ -53,45 +66,73 @@ export default function RetailerLayout({ children }: { children: React.ReactNode
       });
   }, [loading, user, pathname, router]);
 
+  const retailerId = retailerProfile?.id;
+  const search = useCallback(
+    (q: string) => (retailerId ? searchRetailerPortal(retailerId, q) : Promise.resolve([])),
+    [retailerId]
+  );
+
   if (loading || checkingOnboarding) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas-warm font-brand">
+      <div className="portal-dark flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas-dark font-brand">
         <Logo height={24} framed />
-        <p className="animate-pulse text-caption uppercase tracking-[0.7px] text-slate">Loading…</p>
+        <p className="animate-pulse text-caption uppercase tracking-[0.7px] text-smoke">Loading…</p>
       </div>
     );
   }
 
   if (pathname.startsWith('/retailer/onboarding')) {
-    return <div className="min-h-screen bg-canvas-warm font-brand text-primary">{children}</div>;
+    return <div className="portal-dark min-h-screen bg-canvas-dark font-brand text-flare">{children}</div>;
   }
 
-  const storeName = retailerProfile?.name || profile?.name;
+  const storeName = retailerProfile?.name || profile?.name || 'Store';
+
+  // Figma "Retail Portal v2" sidebar: STORE + SETTINGS. Transactions (deposits) and Brands
+  // (partnerships) aren't in the v2 design; kept in the sidebar (decided 17 Nov 2026).
+  // Products = the samples placed in the store.
+  const groups: PortalNavGroup[] = [
+    {
+      heading: 'Store',
+      items: [
+        { href: '/retailer/dashboard', label: 'Dashboard', icon: DashboardIcon },
+        { href: '/retailer/samples', label: 'Products', icon: ProductsIcon, badge: shell?.products },
+        { href: '/retailer/samples/transactions', label: 'Transactions', icon: Receipt },
+        { href: '/retailer/brands', label: 'Brands', icon: Store },
+      ],
+    },
+    {
+      heading: 'Settings',
+      items: [
+        { href: '/retailer/profile', label: 'Store profile', icon: StoreProfileIcon },
+        { label: 'Log out', icon: LogOutIcon, onClick: signOut },
+      ],
+    },
+  ];
+
+  // Next payout: every credited cut not paid out yet. The bar shows the Ready share.
+  const payout = shell
+    ? {
+        date: payoutPeriodInfo(shell.period_start, shell.next_payout).date,
+        amount: kr(shell.payout_amount),
+        progress: shell.payout_amount > 0 ? shell.ready_amount / shell.payout_amount : 0,
+        caption:
+          shell.return_period_amount > 0
+            ? `${kr(shell.return_period_amount)} still in return period`
+            : 'All of it is ready to pay out',
+      }
+    : null;
 
   return (
-    <div className="min-h-screen bg-canvas-warm font-brand text-primary">
-      <SidebarNav
-        items={NAV_ITEMS}
-        homeHref="/retailer/dashboard"
-        account={storeName ? { name: storeName, role: 'Retail Portal' } : undefined}
-        footer={(close) => (
-          <button
-            type="button"
-            onClick={() => {
-              close();
-              signOut();
-            }}
-            className="flex w-full items-center gap-3 px-2 py-2.5 text-body text-on-primary/60 transition-colors hover:text-on-primary"
-          >
-            <LogOutIcon className="h-[18px] w-[18px]" />
-            Log out
-          </button>
-        )}
-      />
-
-      <main className="lg:pl-64">
-        <div className="mx-auto max-w-[1144px] px-4 py-6 sm:px-6 lg:px-12 lg:py-9">{children}</div>
-      </main>
-    </div>
+    <PortalShell
+      sidebar={{ name: storeName, portalLabel: 'Retail Portal', homeHref: '/retailer/dashboard', groups, payout }}
+      topBar={{
+        searchPlaceholder: 'Search products and brands',
+        notifications: <NotificationsMenu items={notifications} storageKey="flaym:retail-notifications-seen" />,
+        account: { name: storeName, role: 'Store manager' },
+      }}
+      search={search}
+    >
+      {children}
+    </PortalShell>
   );
 }

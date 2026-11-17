@@ -862,6 +862,62 @@ export type Database = {
         };
         Returns: Record<string, unknown> | null;
       };
+      // 017: Brand dashboard v2 extras ("Where things stand", saves by size with the previous range, buy rate).
+      get_brand_overview: {
+        Args: {
+          p_start: string;
+          p_end: string;
+          p_saves_days?: number;
+          p_product?: string | null;
+          p_retailer?: string | null;
+          p_size?: string | null;
+        };
+        Returns: {
+          stand: Record<'products' | 'stores' | 'orders' | 'returns', { total: number; done: number; moving: number; waiting: number }>;
+          saves_by_size: { size: string | null; saves: number; prev: number }[];
+          buy_rate: number | null;
+        } | null;
+      };
+      // 018: Product library tiles and Scans column.
+      get_brand_product_stats: {
+        Args: { p_tz?: string };
+        Returns: {
+          scans_month: number;
+          scans_prev_month: number;
+          products: { id: string; scans_month: number; scans_total: number; sold_month: number; stores: number }[];
+        } | null;
+      };
+      // 019: Edit product → In stores.
+      get_product_store_scans: {
+        Args: { p_product?: string | null };
+        Returns: { retailer_id: string; name: string; placed: boolean; scans: number }[];
+      };
+      // 020: Stores & QR tags scan counts.
+      get_brand_store_scans: {
+        Args: Record<string, never>;
+        Returns: {
+          stores: { retailer_id: string; scans: number; products: number }[];
+          product_scans: { retailer_id: string; product_id: string; scans: number }[];
+        } | null;
+      };
+      // 021: Orders → the chain (first names only).
+      get_brand_order_chain: {
+        Args: { p_order: string };
+        Returns: { store: string | null; store_traced: boolean; giver: string | null; buyer: string | null } | null;
+      };
+      // 022: Returns tiles. Rates in percent, amounts in øre.
+      get_brand_return_stats: {
+        Args: { p_tz?: string };
+        Returns: {
+          waiting: number;
+          oldest_waiting_at: string | null;
+          rate: number | null;
+          prev_rate: number | null;
+          refunded_amount: number;
+          refunded_count: number;
+          top_reason: { reason: string; count: number; total: number } | null;
+        } | null;
+      };
       reorder_brand_stories: {
         Args: { p_ids: string[] };
         Returns: undefined;
@@ -869,6 +925,101 @@ export type Database = {
       get_brand_nav_counts: {
         Args: Record<string, never>;
         Returns: { orders: number; returns: number } | null;
+      };
+      // 016: Portals v2 sidebar. Dates are YYYY-MM-DD (Europe/Copenhagen), amounts in øre.
+      get_brand_portal_shell: {
+        Args: { p_payout_day?: number };
+        Returns: {
+          products: number;
+          stores: number;
+          orders: number;
+          returns: number;
+          period_start: string;
+          next_payout: string;
+          sales: number;
+          store_cut: number;
+          payout_amount: number;
+        } | null;
+      };
+      get_retailer_overview: {
+        Args: { p_tz?: string; p_payout_day?: number };
+        Returns: {
+          scans: { month: number; prev_month: number; weeks: number[] };
+          saves: { month: number; prev_month: number; weeks: number[] };
+          purchases: { month: number; prev_month: number; weeks: number[] };
+          earned_month: number;
+          earned_ready: number;
+          earned_return_period: number;
+          earned_paid_out: number;
+          last_paid_out_at: string | null;
+          next_payout: string;
+          earnings_week: { start: string; amount: number }[];
+          earnings_month: { start: string; amount: number }[];
+          earnings_year: { start: string; amount: number }[];
+          latest: {
+            id: string;
+            product_name: string | null;
+            brand_name: string;
+            amount: number;
+            payout_status: 'return_period' | 'ready' | 'paid_out';
+            ordered_at: string;
+            return_period_ends_at: string | null;
+            paid_out_at: string | null;
+            image: string | null;
+          }[];
+          missing_tags: string[];
+        } | null;
+      };
+      get_retailer_profile_stats: {
+        Args: { p_tz?: string };
+        Returns: {
+          earned_total: number;
+          brand_count: number;
+          since: string | null;
+          scans_month: number;
+          preview_sample: string | null;
+          brands: {
+            id: string;
+            name: string;
+            logo_url: string | null;
+            since: string;
+            products: number;
+            scans: number;
+            share: number | null;
+          }[];
+        } | null;
+      };
+      get_retailer_product_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          product_id: string;
+          product_name: string;
+          brand_id: string;
+          brand_name: string;
+          image: string | null;
+          price_min: number;
+          price_max: number;
+          sample_ids: string[];
+          placed_at: string;
+          scans: number;
+          buys: number;
+        }[];
+      };
+      get_retailer_portal_shell: {
+        Args: { p_payout_day?: number };
+        Returns: {
+          products: number;
+          period_start: string;
+          next_payout: string;
+          payout_amount: number;
+          ready_amount: number;
+          return_period_amount: number;
+          last_paid_out_at: string | null;
+        } | null;
+      };
+      payout_period: {
+        Args: { p_payout_day?: number };
+        Returns: { period_start: string; next_payout: string }[];
       };
       get_brand_dashboard_stores: {
         Args: Record<string, never>;

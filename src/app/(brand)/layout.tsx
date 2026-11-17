@@ -1,37 +1,32 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Database } from '@/lib/database.types';
-import { useBrandNavCounts } from '@/components/brand/nav-counts';
+import { formatDKK } from '@/lib/utils';
+import { useBrandPortalShell } from '@/components/brand/nav-counts';
+import { searchBrandPortal, useBrandNotifications } from '@/components/brand/portal-data';
 import {
   AccountIcon,
   DashboardIcon,
   Logo,
   LogOutIcon,
+  NotificationsMenu,
   OrdersIcon,
+  PortalShell,
   ProductsIcon,
   ReturnsIcon,
-  SidebarNav,
   StoresQrIcon,
-  cn,
-  type NavItem,
+  payoutPeriodInfo,
+  type PortalNavGroup,
 } from '@/components/ds';
 
 type BrandProfile = Database['public']['Tables']['brand_profiles']['Row'];
 
-// Figma "Brand Portal" nav. Stores & QR tags covers samples, sample requests,
-// swaps, deposits and partnerships (sub-tabs on those pages).
-const NAV_ITEMS: NavItem[] = [
-  { href: '/brand/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { href: '/brand/products', label: 'Products', icon: ProductsIcon },
-  { href: '/brand/samples', label: 'Stores & QR tags', icon: StoresQrIcon, match: ['/brand/partnerships'] },
-  { href: '/brand/orders', label: 'Orders', icon: OrdersIcon },
-  { href: '/brand/returns', label: 'Returns', icon: ReturnsIcon },
-];
+/** Whole kroner, e.g. "466 kr" (the sidebar is an overview). */
+const kr = (ore: number) => formatDKK(Math.round(ore / 100) * 100);
 
 export default function BrandLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -39,7 +34,12 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
   const { user, profile, loading, signOut } = useAuth();
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
-  const counts = useBrandNavCounts(!!brandProfile?.onboarding_complete);
+  const ready = !!brandProfile?.onboarding_complete;
+  const shell = useBrandPortalShell(ready);
+  const notifications = useBrandNotifications(
+    ready ? brandProfile!.id : null,
+    shell ? `${shell.orders}-${shell.returns}` : ''
+  );
 
   useEffect(() => {
     if (loading) return;
@@ -67,69 +67,73 @@ export default function BrandLayout({ children }: { children: React.ReactNode })
       });
   }, [loading, user, pathname, router]);
 
+  const brandId = brandProfile?.id;
+  const search = useCallback((q: string) => (brandId ? searchBrandPortal(brandId, q) : Promise.resolve([])), [brandId]);
+
   if (loading || checkingOnboarding) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas-warm font-brand">
+      <div className="portal-dark flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas-dark font-brand">
         <Logo height={24} framed />
-        <p className="animate-pulse text-caption uppercase tracking-[0.7px] text-slate">Loading…</p>
+        <p className="animate-pulse text-caption uppercase tracking-[0.7px] text-smoke">Loading…</p>
       </div>
     );
   }
 
   if (pathname.startsWith('/brand/onboarding')) {
-    return <div className="min-h-screen bg-canvas-warm font-brand text-primary">{children}</div>;
+    return <div className="portal-dark min-h-screen bg-canvas-dark font-brand text-flare">{children}</div>;
   }
 
-  const brandName = brandProfile?.name || profile?.name;
-  const accountActive = pathname === '/brand/account' || pathname.startsWith('/brand/account/');
-  const footerLink = 'flex w-full items-center gap-3 border-l-2 px-5 py-2.5 text-body transition-colors';
+  const brandName = brandProfile?.name || profile?.name || 'Brand';
+
+  // Figma "Brand Portal v2" sidebar: WORKSPACE + SETTINGS. Stores & tags covers samples,
+  // sample requests, swaps, deposits and partnerships (sub-tabs on those pages).
+  const groups: PortalNavGroup[] = [
+    {
+      heading: 'Workspace',
+      items: [
+        { href: '/brand/dashboard', label: 'Dashboard', icon: DashboardIcon },
+        { href: '/brand/products', label: 'Products', icon: ProductsIcon, badge: shell?.products },
+        { href: '/brand/samples', label: 'Stores & tags', icon: StoresQrIcon, match: ['/brand/partnerships'], badge: shell?.stores },
+        { href: '/brand/orders', label: 'Orders', icon: OrdersIcon, badge: shell?.orders },
+        { href: '/brand/returns', label: 'Returns', icon: ReturnsIcon, badge: shell?.returns },
+      ],
+    },
+    {
+      heading: 'Settings',
+      items: [
+        { href: '/brand/account', label: 'Account', icon: AccountIcon },
+        { label: 'Log out', icon: LogOutIcon, onClick: signOut },
+      ],
+    },
+  ];
+
+  // Next payout: an estimate (sales via Flaym this period minus the store cut; no Flaym fee yet).
+  const period = shell ? payoutPeriodInfo(shell.period_start, shell.next_payout) : null;
+  const payout =
+    shell && period
+      ? {
+          date: period.date,
+          amount: kr(shell.payout_amount),
+          progress: period.progress,
+          caption:
+            period.daysLeft === 0
+              ? 'Payout day · estimate'
+              : `${period.daysLeft} ${period.daysLeft === 1 ? 'day' : 'days'} left in the period · estimate`,
+        }
+      : null;
 
   return (
-    <div className="min-h-screen bg-canvas-warm font-brand text-primary">
-      <SidebarNav
-        items={NAV_ITEMS.map((item) =>
-          item.href === '/brand/orders'
-            ? { ...item, badge: counts.orders }
-            : item.href === '/brand/returns'
-              ? { ...item, badge: counts.returns }
-              : item
-        )}
-        homeHref="/brand/dashboard"
-        account={brandName ? { name: brandName, role: 'Brand Portal' } : undefined}
-        footer={(close) => (
-          <div className="-mx-3 -my-3 py-3">
-            <Link
-              href="/brand/account"
-              onClick={close}
-              aria-current={accountActive ? 'page' : undefined}
-              className={cn(
-                footerLink,
-                accountActive
-                  ? 'border-accent bg-on-primary/5 text-on-primary'
-                  : 'border-transparent text-on-primary/60 hover:text-on-primary'
-              )}
-            >
-              <AccountIcon className={cn('h-[18px] w-[18px] shrink-0', accountActive && 'text-accent')} />
-              Account
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                close();
-                signOut();
-              }}
-              className={cn(footerLink, 'border-transparent text-on-primary/60 hover:text-on-primary')}
-            >
-              <LogOutIcon className="h-[18px] w-[18px] shrink-0" />
-              Log out
-            </button>
-          </div>
-        )}
-      />
-
-      <main className="lg:pl-64">
-        <div className="mx-auto max-w-[1144px] px-4 py-6 sm:px-6 lg:px-12 lg:py-9">{children}</div>
-      </main>
-    </div>
+    <PortalShell
+      sidebar={{ name: brandName, portalLabel: 'Brand Portal', homeHref: '/brand/dashboard', groups, payout }}
+      topBar={{
+        searchPlaceholder: 'Search products, stores, orders',
+        action: { label: 'New product', href: '/brand/products/new' },
+        notifications: <NotificationsMenu items={notifications} storageKey="flaym:brand-notifications-seen" />,
+        account: { name: brandName, role: 'Brand admin' },
+      }}
+      search={search}
+    >
+      {children}
+    </PortalShell>
   );
 }

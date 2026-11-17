@@ -17,7 +17,7 @@ import {
   ProfileIcon,
   ReturnsIcon,
   ScanIcon,
-  SidebarNav,
+  PortalSidebar,
   StatTile,
   StatusPill,
   StoreProfileIcon,
@@ -26,6 +26,7 @@ import {
   Toggle,
   buttonClasses,
   type NavItem,
+  type PortalNavGroup,
 } from '@/components/ds';
 import { useState } from 'react';
 
@@ -83,12 +84,18 @@ const APP_TABS: NavItem[] = [
   { href: '/consumer/profile', label: 'Profile', icon: ProfileIcon },
 ];
 
-const PORTAL_NAV: NavItem[] = [
+const PORTAL_NAV: PortalNavGroup[] = [
+  {
+    heading: 'Workspace',
+    items: [
   { href: '/ds-preview', label: 'Dashboard', icon: DashboardIcon },
   { href: '/brand/products', label: 'Products', icon: ProductsIcon },
   { href: '/brand/samples', label: 'Stores & QR tags', icon: StoresQrIcon },
   { href: '/brand/orders', label: 'Orders', icon: OrdersIcon },
   { href: '/brand/returns', label: 'Returns', icon: ReturnsIcon },
+    ],
+  },
+  { heading: 'Settings', items: [{ href: '/brand/account', label: 'Account', icon: AccountIcon }] },
 ];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -278,8 +285,15 @@ export function DsPreview() {
 
         <Section title="Navigation">
           <div className="grid gap-4 lg:grid-cols-2">
-            <div className="h-[420px] overflow-hidden border border-line">
-              <SidebarNav embedded items={PORTAL_NAV} homeHref="/ds-preview" account={{ name: 'Studio Nord', role: 'Brand' }} />
+            <div className="portal-dark h-[560px] overflow-hidden border border-line">
+              <PortalSidebar
+                name="Studio Nord"
+                portalLabel="Brand Portal"
+                homeHref="/ds-preview"
+                groups={PORTAL_NAV}
+                payout={{ date: '1 Dec', amount: '41.072 kr', progress: 0.4, caption: '18 days left in the period' }}
+                className="h-full"
+              />
             </div>
             <div className="flex flex-col justify-end border border-line bg-canvas-dark">
               <BottomNav fixed={false} items={APP_TABS} />

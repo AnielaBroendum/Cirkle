@@ -37,7 +37,7 @@ function FormSkeleton() {
         <Skeleton className="h-4 w-40" />
         <Skeleton className="mt-2 h-10 w-64" />
       </div>
-      <div className="grid gap-4 lg:grid-cols-[617fr_455fr] lg:gap-5">
+      <div className="grid gap-4 lg:grid-cols-[606fr_334fr]">
         <Skeleton className="h-[480px] w-full" />
         <Skeleton className="h-[320px] w-full" />
       </div>

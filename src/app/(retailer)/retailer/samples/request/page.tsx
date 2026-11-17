@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
 import { ArrowLeft, Plus, Trash2, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
-import { Button, Card, EmptyState, Field, Select, Skeleton, Textarea, buttonClasses } from '@/components/ds';
+import { Button, Card, EmptyState, Field, PageHeader, Select, Skeleton, Textarea, buttonClasses } from '@/components/ds';
 
 type BrandGroup = {
   brand_id: string;
@@ -177,13 +177,15 @@ export default function RequestSamplesPage() {
 
   return (
     <div className="space-y-7">
-      <div>
-        <Link href="/retailer/samples" className="-ml-1 inline-flex items-center gap-1.5 text-caption text-slate hover:text-primary">
+      <PageHeader
+        eyebrow={
+          <Link href="/retailer/samples" className="-ml-1 inline-flex items-center gap-1.5 text-caption text-smoke hover:text-flare">
           <ArrowLeft className="h-4 w-4" /> Products in the store
         </Link>
-        <h1 className="mt-2 font-brand text-heading-xl uppercase text-primary">Request samples</h1>
-        <p className="mt-1 text-body text-slate">Pick products from your partner brands. Each sample has a deposit.</p>
-      </div>
+        }
+        title="Request samples"
+        subtitle="Pick products from your partner brands. Each sample has a deposit."
+      />
 
       {brands.length === 0 ? (
         <EmptyState
@@ -199,7 +201,7 @@ export default function RequestSamplesPage() {
       ) : (
         <div className="grid items-start gap-4 lg:grid-cols-2">
           {/* Product picker */}
-          <Card padding="none" className="space-y-4 p-5 lg:p-6">
+          <Card tone="portal" padding="none" className="space-y-4 p-5 lg:p-6">
             <SectionTitle>Add products</SectionTitle>
 
             <Field label="Brand" htmlFor="brand">
@@ -254,8 +256,8 @@ export default function RequestSamplesPage() {
                 </div>
 
                 {currentProduct.deposit_amount_dkk && (
-                  <p className="text-body text-slate">
-                    Deposit: <span className="text-primary">{formatDKK(currentProduct.deposit_amount_dkk)}</span>
+                  <p className="text-body text-smoke">
+                    Deposit: <span className="text-flare">{formatDKK(currentProduct.deposit_amount_dkk)}</span>
                   </p>
                 )}
 
@@ -272,30 +274,30 @@ export default function RequestSamplesPage() {
           </Card>
 
           {/* Cart / summary */}
-          <Card padding="none" className="space-y-4 p-5 lg:p-6">
+          <Card tone="portal" padding="none" className="space-y-4 p-5 lg:p-6">
             <SectionTitle>
-              Your request <span className="ml-1 text-slate">{cart.length}</span>
+              Your request <span className="ml-1 text-smoke">{cart.length}</span>
             </SectionTitle>
 
             {cart.length === 0 ? (
-              <p className="border border-dashed border-line py-8 text-center text-caption text-slate">
+              <p className="border border-dashed border-line-dark-subtle py-8 text-center text-caption text-smoke">
                 Add products to build your request
               </p>
             ) : (
-              <ul className="divide-y divide-line border-y border-line">
+              <ul className="divide-y divide-line-dark-subtle border-y border-line-dark-subtle">
                 {cart.map((item, i) => (
                   <li key={i} className="flex items-center justify-between gap-3 py-3">
                     <div className="min-w-0">
-                      <p className="truncate text-body text-primary">{item.product_name}</p>
-                      <p className="mt-0.5 text-caption text-slate">{item.size} / {item.color}</p>
+                      <p className="truncate text-body text-flare">{item.product_name}</p>
+                      <p className="mt-0.5 text-caption text-smoke">{item.size} / {item.color}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className="text-body text-primary">{formatDKK(item.deposit_amount_dkk)}</span>
+                      <span className="text-body text-flare">{formatDKK(item.deposit_amount_dkk)}</span>
                       <button
                         type="button"
                         onClick={() => removeFromCart(i)}
                         aria-label={`Remove ${item.product_name}`}
-                        className="inline-flex h-8 w-8 items-center justify-center text-slate hover:text-primary"
+                        className="inline-flex h-8 w-8 items-center justify-center text-smoke hover:text-flare"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -308,8 +310,8 @@ export default function RequestSamplesPage() {
             {cart.length > 0 && (
               <>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-label uppercase text-slate">Total deposit</span>
-                  <span className="text-heading-lg text-primary">{formatDKK(totalDeposit)}</span>
+                  <span className="text-label uppercase text-smoke">Total deposit</span>
+                  <span className="text-heading-lg text-flare">{formatDKK(totalDeposit)}</span>
                 </div>
 
                 <Field label="Note (optional)" htmlFor="note">
@@ -325,7 +327,7 @@ export default function RequestSamplesPage() {
 
                 {error && <p className="border border-accent bg-accent-subtle px-4 py-3 text-body text-accent-strong">{error}</p>}
 
-                <Button variant="accent" size="lg" fullWidth onClick={handleSubmit} loading={submitting} disabled={submitting}>
+                <Button variant="flame" size="lg" fullWidth onClick={handleSubmit} loading={submitting} disabled={submitting}>
                   {submitting ? 'Submitting…' : `Submit request (${formatDKK(totalDeposit)} deposit)`}
                 </Button>
               </>
@@ -339,5 +341,5 @@ export default function RequestSamplesPage() {
 
 // Figma card title: 14px uppercase.
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{children}</h2>;
+  return <h2 className="font-brand text-body uppercase tracking-[0.3px] text-flare">{children}</h2>;
 }
