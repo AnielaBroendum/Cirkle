@@ -14,7 +14,7 @@ The portals move from the light theme to the dark v2 theme of the consumer app, 
 | # | Figma screen | Node | Route | Part | Done |
 |---|---|---|---|---|---|
 | B01 | Brand Portal v2 / 01 Login | `368:480` | `/auth/login` (shared by every role) | B | [x] |
-| B02 | Brand Portal v2 / 02 Dashboard | `358:161` | `/brand/dashboard` | B (shell), later | [ ] |
+| B02 | Brand Portal v2 / 02 Dashboard | `358:161` | `/brand/dashboard` | C1 | [x] |
 | B03 | Brand Portal v2 / 03 Product library | `364:238` | `/brand/products` | later | [ ] |
 | B04 | Brand Portal v2 / 04 Edit product | `364:587` | `/brand/products/[id]/edit` (and `/brand/products/new`) | later | [ ] |
 | B05 | Brand Portal v2 / 05 Stores and QR tags | `365:318` | `/brand/samples` (sub-tabs: requests, swaps, transactions, `/brand/partnerships`) | later | [ ] |
@@ -85,6 +85,13 @@ One page for brands, stores and shoppers. v2 has two variants (Brand Portal, Ret
 ## B02 Brand dashboard (`/brand/dashboard`)
 
 Today: `get_brand_dashboard` (009) with period Day/Week/Month/Year and product/store/size filters.
+
+**Done (17 Nov, C1).** Numbers: `get_brand_dashboard` (009) for scans, saves, purchases, sales, store cut, orders waiting and top stores; `get_brand_overview` (017) for Where things stand, saves by size (with the range before it) and the buy rate. Checked against manual SQL counts on QA Atelier.
+- Filter row (Day/Week/Month/Year, product, store, size) sits under the greeting, as decided. Every block follows product, store and size. Where things stand is live (no period); Saves by size has its own 7 days / 4 weeks / 6 months switch (the brief says 4 weeks; Figma says 8 weeks).
+- Insight line: the size whose saves changed most against the range before (at least 3 saves across both), plus the most saved size. Text is built from those two facts only.
+- "Your payout" = sales − store cut for the filtered period (same estimate as the sidebar). "N orders to ship today" = orders still pending.
+- Export settlement left out (MISSING). Top stores show a gradient square: stores have no logo field shown here.
+- Shared v2 pieces in `src/components/ds/portal-ui.tsx`: `PageHeader`, `Panel`, `PanelHeader`, `Segmented`, `MetricTile`, `ScanBar`, `ArrowLink`, `Chip`, `Thumb`.
 
 | Element | Mark | Source / note |
 |---|---|---|

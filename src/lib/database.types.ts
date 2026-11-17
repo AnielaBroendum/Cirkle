@@ -862,6 +862,22 @@ export type Database = {
         };
         Returns: Record<string, unknown> | null;
       };
+      // 017: Brand dashboard v2 extras ("Where things stand", saves by size with the previous range, buy rate).
+      get_brand_overview: {
+        Args: {
+          p_start: string;
+          p_end: string;
+          p_saves_days?: number;
+          p_product?: string | null;
+          p_retailer?: string | null;
+          p_size?: string | null;
+        };
+        Returns: {
+          stand: Record<'products' | 'stores' | 'orders' | 'returns', { total: number; done: number; moving: number; waiting: number }>;
+          saves_by_size: { size: string | null; saves: number; prev: number }[];
+          buy_rate: number | null;
+        } | null;
+      };
       reorder_brand_stories: {
         Args: { p_ids: string[] };
         Returns: undefined;

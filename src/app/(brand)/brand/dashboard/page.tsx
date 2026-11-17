@@ -6,33 +6,48 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { formatDKK } from '@/lib/utils';
-import { ScanLine, ShoppingBag, ArrowRight, Bookmark, Clock, Coins, Wallet } from 'lucide-react';
+import type { Database } from '@/lib/database.types';
 import {
-  Badge,
-  Card,
-  EmptyState,
+  ArrowLink,
+  Chip,
   KPISkeleton,
-  ListSkeleton,
+  OrdersIcon,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  ProductsIcon,
+  ReturnsIcon,
+  Segmented,
   Select,
   Skeleton,
-  StatTile,
-  Tabs,
-  THead,
-  TBody,
-  TR,
-  TH,
-  TD,
+  StoresQrIcon,
+  Thumb,
+  buttonClasses,
   cn,
 } from '@/components/ds';
-type Period = 'day' | 'week' | 'month' | 'year';
 
+/*
+ * Brand dashboard, Portals v2 (Figma "Brand Portal v2 / 02 Dashboard", 358:161).
+ * Numbers: get_brand_dashboard (009) for the period KPIs and top stores, get_brand_overview (017)
+ * for "Where things stand", saves by size (with the range before it) and the buy rate.
+ * The filter row (period, product, store, size) applies to every block; "Where things stand" is
+ * live, so the period doesn't narrow it, and "Saves by size" has its own range switch.
+ */
+
+type Period = 'day' | 'week' | 'month' | 'year';
 const PERIODS: Period[] = ['day', 'week', 'month', 'year'];
 const PERIOD_LABEL: Record<Period, string> = { day: 'today', week: 'this week', month: 'this month', year: 'this year' };
-const PREV_LABEL: Record<Period, string> = { day: 'yesterday', week: 'last week', month: 'last month', year: 'last year' };
+
+type SavesRange = '7d' | '4w' | '6m';
+const SAVES_RANGES: { value: SavesRange; label: string; days: number; span: string }[] = [
+  { value: '7d', label: '7 days', days: 7, span: 'the last 7 days' },
+  { value: '4w', label: '4 weeks', days: 28, span: 'the last 4 weeks' },
+  { value: '6m', label: '6 months', days: 182, span: 'the last 6 months' },
+];
 
 const DAY = 24 * 60 * 60 * 1000;
 
-// Start of the selected period and of the period before it (for "vs. last …").
+// Start of the selected period and of the one before it (009 wants both).
 function periodRange(period: Period, now: Date): { start: Date; prevStart: Date } {
   if (period === 'day') {
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -43,79 +58,17 @@ function periodRange(period: Period, now: Date): { start: Date; prevStart: Date 
     return { start, prevStart: new Date(start.getTime() - 7 * DAY) };
   }
   if (period === 'month') {
-    return {
-      start: new Date(now.getFullYear(), now.getMonth(), 1),
-      prevStart: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-    };
+    return { start: new Date(now.getFullYear(), now.getMonth(), 1), prevStart: new Date(now.getFullYear(), now.getMonth() - 1, 1) };
   }
   return { start: new Date(now.getFullYear(), 0, 1), prevStart: new Date(now.getFullYear() - 1, 0, 1) };
 }
 
-// Chart buckets: 2-hour blocks today, days this week / month, months this year.
-function buckets(period: Period, start: Date, now: Date): { label: string; from: number; to: number }[] {
-  const out: { label: string; from: number; to: number }[] = [];
-  if (period === 'day') {
-    for (let h = 0; h < 24; h += 2) {
-      const from = start.getTime() + h * 60 * 60 * 1000;
-      out.push({ label: String(h).padStart(2, '0'), from, to: from + 2 * 60 * 60 * 1000 });
-    }
-  } else if (period === 'week') {
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6 + i);
-      out.push({
-        label: d.toLocaleDateString('en-GB', { weekday: 'short' }),
-        from: d.getTime(),
-        to: d.getTime() + DAY,
-      });
-    }
-  } else if (period === 'month') {
-    for (let day = 1; day <= now.getDate(); day++) {
-      const d = new Date(now.getFullYear(), now.getMonth(), day);
-      out.push({ label: String(day), from: d.getTime(), to: d.getTime() + DAY });
-    }
-  } else {
-    for (let m = 0; m <= now.getMonth(); m++) {
-      const d = new Date(now.getFullYear(), m, 1);
-      out.push({
-        label: d.toLocaleDateString('en-GB', { month: 'short' }),
-        from: d.getTime(),
-        to: new Date(now.getFullYear(), m + 1, 1).getTime(),
-      });
-    }
-  }
-  return out;
-}
-
-// Everything below is counted in the database (get_brand_dashboard, migration 009).
 type Dashboard = {
-  kpis: {
-    scans: number;
-    saves: number;
-    purchases: number;
-    sales: number;
-    store_cut: number;
-    prev_scans: number;
-    prev_saves: number;
-    prev_purchases: number;
-  };
-  saves_by_size: { size: string | null; saves: number }[];
-  chart: { t: string; scans: number; saves: number; purchases: number }[];
+  kpis: { scans: number; saves: number; purchases: number; sales: number; store_cut: number };
   by_store: { id: string; name: string; scans: number; buys: number; cut: number }[];
-  top_products: { id: string; name: string; scans: number; buys: number }[];
-  commissions: {
-    id: string;
-    retailer_name: string;
-    amount_dkk: number;
-    type: string;
-    order_number: number | null;
-    created_at: string;
-  }[];
-  recent: { id: string; type: 'scan' | 'save' | 'purchase'; product: string; store: string | null; size: string | null; time: string }[];
-  deposits: { retailer_name: string; total: number }[];
-  active_samples: number;
   pending_orders: number;
 };
-
+type Overview = NonNullable<Database['public']['Functions']['get_brand_overview']['Returns']>;
 type ProductOption = { id: string; name: string; sizes: string[] };
 type StoreOption = { id: string; name: string };
 
@@ -130,24 +83,52 @@ function sizeRank(size: string | null): number {
 }
 const bySize = (a: string | null, b: string | null) => sizeRank(a) - sizeRank(b) || String(a).localeCompare(String(b));
 
-// "32%" or "4.9%"; "–" when there is nothing to divide by.
-function ratio(part: number, whole: number): string {
-  if (whole === 0) return '–';
-  const pct = (part / whole) * 100;
-  return `${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%`;
+const count = (n: number) => n.toLocaleString('en-GB');
+const plural = (n: number, one: string, many = `${one}s`) => `${count(n)} ${n === 1 ? one : many}`;
+
+function greeting(now: Date) {
+  const h = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Europe/Copenhagen' }).format(now));
+  return h < 5 ? 'Good evening' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
-const CHART_BUCKET: Record<Period, 'hour' | 'day' | 'month'> = { day: 'hour', week: 'day', month: 'day', year: 'month' };
+/**
+ * The one-line insight under Saves by size, from the data: the size whose saves changed most
+ * against the range before it (sizes with at least 3 saves across both ranges), plus the most
+ * saved size. Null when there are no saves.
+ */
+function savesInsight(rows: Overview['saves_by_size'], span: string): { chip: string; tone: 'up' | 'down' | 'flat'; text: string } | null {
+  const named = rows.filter((r) => r.saves > 0 || r.prev > 0);
+  if (named.every((r) => r.saves === 0)) return null;
+  const label = (s: string | null) => s ?? 'No size';
+  const top = [...named].sort((a, b) => b.saves - a.saves || bySize(a.size, b.size))[0];
+  const changes = named
+    .filter((r) => r.prev > 0 && r.saves + r.prev >= 3)
+    .map((r) => ({ ...r, pct: Math.round(((r.saves - r.prev) / r.prev) * 100) }))
+    .sort((a, b) => Math.abs(b.pct) - Math.abs(a.pct) || b.saves - a.saves);
+  const biggest = changes[0];
+  const topText = `Size ${label(top.size)} is saved most in ${span}.`;
+  if (!biggest || biggest.pct === 0) {
+    return { chip: `${label(top.size)} saved most`, tone: 'flat', text: `${topText} No change in saves against the period before.` };
+  }
+  const up = biggest.pct > 0;
+  const advice =
+    up && biggest.size === top.size
+      ? ' Consider a bigger batch.'
+      : up
+        ? ` ${label(biggest.size)} is catching up.`
+        : ` Saves of ${label(biggest.size)} have slowed against the period before.`;
+  return { chip: `${label(biggest.size)} is ${up ? 'up' : 'down'} ${Math.abs(biggest.pct)}%`, tone: up ? 'up' : 'down', text: topText + advice };
+}
 
 export default function BrandDashboardPage() {
   return (
     <Suspense fallback={<KPISkeleton />}>
-      <Dashboard />
+      <DashboardView />
     </Suspense>
   );
 }
 
-function Dashboard() {
+function DashboardView() {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -159,13 +140,15 @@ function Dashboard() {
   const productId = searchParams.get('product');
   const storeId = searchParams.get('store');
   const size = searchParams.get('size');
+  const savesParam = searchParams.get('saves');
+  const savesRange = SAVES_RANGES.find((r) => r.value === savesParam) ?? SAVES_RANGES[1];
 
   const setFilter = useCallback(
-    (key: 'period' | 'product' | 'store' | 'size', value: string | null) => {
+    (key: 'period' | 'product' | 'store' | 'size' | 'saves', value: string | null) => {
       const next = new URLSearchParams(searchParams.toString());
       if (value) next.set(key, value);
       else next.delete(key);
-      // A size that the newly chosen product doesn't come in would match nothing.
+      // A size the newly chosen product doesn't come in would match nothing.
       if (key === 'product') next.delete('size');
       const qs = next.toString();
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
@@ -173,20 +156,22 @@ function Dashboard() {
     [router, pathname, searchParams]
   );
 
+  const [brandName, setBrandName] = useState('');
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [data, setData] = useState<Dashboard | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [overview, setOverview] = useState<Overview | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  // Filter options
+  // Brand name and filter options
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
     (async () => {
-      const { data: bp } = await supabase.from('brand_profiles').select('id').eq('user_id', user.id).single();
+      const { data: bp } = await supabase.from('brand_profiles').select('id, name').eq('user_id', user.id).single();
       if (!bp) return;
+      setBrandName(bp.name ?? '');
       const [productsRes, storesRes] = await Promise.all([
         supabase.from('products').select('id, name, sizes').eq('brand_id', bp.id).order('name'),
         supabase.rpc('get_brand_dashboard_stores'),
@@ -196,480 +181,400 @@ function Dashboard() {
     })();
   }, [user]);
 
-  // Dashboard numbers
+  // Every number on the page, counted in the database.
   useEffect(() => {
     if (!user) return;
-    // Ignore responses from earlier filters if they change mid-load.
-    let stale = false;
+    let stale = false; // ignore answers to earlier filters
     setRefreshing(true);
     const now = new Date();
     const { start, prevStart } = periodRange(period, now);
-    createClient()
-      .rpc('get_brand_dashboard', {
+    const supabase = createClient();
+    Promise.all([
+      supabase.rpc('get_brand_dashboard', {
         p_start: start.toISOString(),
         p_prev_start: prevStart.toISOString(),
         p_end: now.toISOString(),
         p_product: productId,
         p_retailer: storeId,
         p_size: size,
-        p_bucket: CHART_BUCKET[period],
+        p_bucket: 'day',
         p_tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      })
-      .then(({ data: result, error: rpcError }: { data: Dashboard | null; error: { message: string } | null }) => {
-        if (stale) return;
-        setError(rpcError ? 'Could not load the dashboard. Try again in a moment.' : '');
-        if (result) setData(result);
-        setLoading(false);
-        setRefreshing(false);
-      });
+      }),
+      supabase.rpc('get_brand_overview', {
+        p_start: start.toISOString(),
+        p_end: now.toISOString(),
+        p_saves_days: savesRange.days,
+        p_product: productId,
+        p_retailer: storeId,
+        p_size: size,
+      }),
+    ]).then(([dash, over]) => {
+      if (stale) return;
+      setError(dash.error || over.error ? 'Could not load the dashboard. Try again in a moment.' : '');
+      if (dash.data) setData(dash.data as unknown as Dashboard);
+      if (over.data) setOverview(over.data as Overview);
+      setRefreshing(false);
+    });
     return () => {
       stale = true;
     };
-  }, [user, period, productId, storeId, size]);
+  }, [user, period, productId, storeId, size, savesRange.days]);
 
   const sizeOptions = useMemo(() => {
     const source = productId ? products.filter((p) => p.id === productId) : products;
     return Array.from(new Set(source.flatMap((p) => p.sizes))).sort(bySize);
   }, [products, productId]);
 
-  const chart = useMemo(() => {
-    if (!data) return [];
-    const now = new Date();
-    const { start } = periodRange(period, now);
-    // Rows come back per hour / day / month in the browser's time zone.
-    const rows = data.chart.map((r) => ({ ...r, ms: new Date(r.t).getTime() }));
-    return buckets(period, start, now).map((b) => {
-      const inside = rows.filter((r) => r.ms >= b.from && r.ms < b.to);
-      return {
-        label: b.label,
-        scans: inside.reduce((n, r) => n + r.scans, 0),
-        saves: inside.reduce((n, r) => n + r.saves, 0),
-        purchases: inside.reduce((n, r) => n + r.purchases, 0),
-      };
-    });
-  }, [data, period]);
+  const storeName = stores.find((s) => s.id === storeId)?.name;
+  const productName = products.find((p) => p.id === productId)?.name;
+  const scope = [storeName ?? 'all stores', productName, size ? `size ${size}` : null].filter(Boolean).join(', ');
+  const periodText = PERIOD_LABEL[period];
 
-  function timeAgo(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  }
-
-  // "+18%" vs. the previous period; hidden when there's nothing to compare with.
-  function delta(current: number, previous: number): string | undefined {
-    if (previous === 0) return undefined;
-    const pct = Math.round(((current - previous) / previous) * 100);
-    return `${pct >= 0 ? '+' : ''}${pct}%`;
-  }
-
-  const header = (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-brand text-heading-xl uppercase text-primary">Dashboard</h1>
-          <p className="mt-1 text-body text-slate">Demand, orders and settlement in one place</p>
-        </div>
-        <Tabs
-          items={[
-            { value: 'day', label: 'Day' },
-            { value: 'week', label: 'Week' },
-            { value: 'month', label: 'Month' },
-            { value: 'year', label: 'Year' },
-          ]}
-          value={period}
-          onValueChange={(v) => setFilter('period', v === 'month' ? null : v)}
-          className="self-start sm:self-auto [&>button]:h-[42px]"
-        />
-      </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <Select
-          aria-label="Product"
-          value={productId ?? ''}
-          onChange={(e) => setFilter('product', e.target.value || null)}
-          className="sm:w-64"
-        >
-          <option value="">Product: All products</option>
-          {products.map((p) => (
-            <option key={p.id} value={p.id}>
-              Product: {p.name}
-            </option>
-          ))}
-        </Select>
-        <Select
-          aria-label="Store"
-          value={storeId ?? ''}
-          onChange={(e) => setFilter('store', e.target.value || null)}
-          className="sm:w-56"
-        >
-          <option value="">Store: All stores</option>
-          {stores.map((s) => (
-            <option key={s.id} value={s.id}>
-              Store: {s.name}
-            </option>
-          ))}
-        </Select>
-        <Select
-          aria-label="Size"
-          value={size ?? ''}
-          onChange={(e) => setFilter('size', e.target.value || null)}
-          className="sm:w-48"
-        >
-          <option value="">Size: All sizes</option>
-          {sizeOptions.map((s) => (
-            <option key={s} value={s}>
-              Size: {s}
-            </option>
-          ))}
-        </Select>
-      </div>
+  const filters = (
+    <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center">
+      <Segmented
+        label="Period"
+        items={[
+          { value: 'day', label: 'Day' },
+          { value: 'week', label: 'Week' },
+          { value: 'month', label: 'Month' },
+          { value: 'year', label: 'Year' },
+        ]}
+        value={period}
+        onValueChange={(v) => setFilter('period', v === 'month' ? null : v)}
+        className="self-start"
+      />
+      <Select aria-label="Product" value={productId ?? ''} onChange={(e) => setFilter('product', e.target.value || null)} className="h-[38px] md:w-56">
+        <option value="">All products</option>
+        {products.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </Select>
+      <Select aria-label="Store" value={storeId ?? ''} onChange={(e) => setFilter('store', e.target.value || null)} className="h-[38px] md:w-52">
+        <option value="">All stores</option>
+        {stores.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
+          </option>
+        ))}
+      </Select>
+      <Select aria-label="Size" value={size ?? ''} onChange={(e) => setFilter('size', e.target.value || null)} className="h-[38px] md:w-40">
+        <option value="">All sizes</option>
+        {sizeOptions.map((s) => (
+          <option key={s} value={s}>
+            Size {s}
+          </option>
+        ))}
+      </Select>
     </div>
   );
 
-  if (loading || !data) {
+  const header = (
+    <PageHeader
+      title={`${greeting(new Date())}${brandName ? `, ${brandName}` : ''}`}
+      subtitle={
+        data
+          ? `${plural(data.kpis.scans, 'scan')} ${periodText}, ${plural(data.kpis.purchases, 'piece')} sold and ${plural(
+              data.pending_orders,
+              'order'
+            )} waiting to ship.`
+          : ' '
+      }
+      actions={
+        <Link href="/brand/products/new" className={buttonClasses({ variant: 'flame', className: 'h-[43px]' })}>
+          + New product
+        </Link>
+      }
+    />
+  );
+
+  if (!data || !overview) {
     return (
-      <div className="space-y-7">
+      <div className="space-y-6">
         {header}
+        {filters}
         {error ? (
           <p className="text-body text-accent-strong">{error}</p>
         ) : (
-          <>
-            <KPISkeleton />
-            <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-              <Skeleton className="h-72 w-full" />
-              <ListSkeleton rows={4} />
-            </div>
-          </>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <Skeleton className="h-[374px] w-full" />
+            <Skeleton className="h-[259px] w-full" />
+          </div>
         )}
       </div>
     );
   }
 
   const { kpis } = data;
-  const vs = `vs. ${PREV_LABEL[period]}`;
-  const chartMax = Math.max(1, ...chart.map((b) => b.scans + b.saves + b.purchases));
-  const labelEvery = chart.length > 16 ? 3 : 1;
-  const savesBySize = [...data.saves_by_size].sort((a, b) => bySize(a.size, b.size));
-  const sizeMax = Math.max(1, ...savesBySize.map((s) => s.saves));
-  const funnelMax = Math.max(1, kpis.scans);
-  const totalCommission = data.commissions.reduce((n, c) => n + c.amount_dkk, 0);
-  const depositsHeld = data.deposits.reduce((n, d) => n + d.total, 0);
+  const payout = kpis.sales - kpis.store_cut;
+  const savesRows = [...overview.saves_by_size].filter((r) => r.saves > 0 || r.prev > 0).sort((a, b) => bySize(a.size, b.size));
+  const savesMax = Math.max(1, ...savesRows.map((r) => r.saves));
+  const insight = savesInsight(overview.saves_by_size, savesRange.span);
+  const { stand } = overview;
 
   return (
-    <div className={cn('space-y-7 transition-opacity', refreshing && 'opacity-60')}>
+    <div className={cn('space-y-6 transition-opacity', refreshing && 'opacity-60')}>
       {header}
+      {filters}
       {error && <p className="text-body text-accent-strong">{error}</p>}
 
-      {/* KPI tiles */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <StatTile label="Scans" value={kpis.scans.toLocaleString('en-GB')} delta={delta(kpis.scans, kpis.prev_scans)} hint={vs} />
-        <StatTile label="Saves" value={kpis.saves.toLocaleString('en-GB')} delta={delta(kpis.saves, kpis.prev_saves)} hint={vs} />
-        <StatTile
-          label="Purchases"
-          value={kpis.purchases.toLocaleString('en-GB')}
-          delta={delta(kpis.purchases, kpis.prev_purchases)}
-          hint={vs}
-        />
-        <StatTile
-          label="Sales via Flaym"
-          value={formatDKK(kpis.sales)}
-          hint={<span className="text-success">Store cut: {formatDKK(kpis.store_cut)}</span>}
-        />
-      </div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* Where things stand */}
+          <Panel aria-labelledby="stand-title">
+            <PanelHeader
+              title={<span id="stand-title">Where things stand</span>}
+              subtitle={`Products, stores, orders and returns, live${storeName || productName || size ? ` · ${scope}` : ''}`}
+              action={
+                <div className="flex items-center gap-3.5 text-caption text-ash">
+                  <LegendDot className="bg-primary" label="Done" />
+                  <LegendDot className="bg-accent" label="Moving" />
+                  <LegendDot className="bg-surface-dark" label="Waiting" />
+                </div>
+              }
+            />
+            <div className="mt-1 divide-y divide-flare/[0.04]">
+              <StandRow icon={ProductsIcon} label="Products" href="/brand/products" row={stand.products} caption={`${count(stand.products.done)} live in stores`} />
+              <StandRow
+                icon={StoresQrIcon}
+                label="Stores"
+                href="/brand/samples"
+                row={stand.stores}
+                caption={`${count(stand.stores.done + stand.stores.moving)} active`}
+              />
+              <StandRow icon={OrdersIcon} label="Orders" href="/brand/orders" row={stand.orders} caption={`${count(stand.orders.done)} delivered`} />
+              <StandRow icon={ReturnsIcon} label="Returns" href="/brand/returns" row={stand.returns} caption={`${count(stand.returns.done)} resolved`} />
+            </div>
+          </Panel>
 
-      {/* Orders waiting */}
-      {data.pending_orders > 0 && (
-        <Link
-          href="/brand/orders"
-          className="group flex items-center justify-between gap-3 border border-line bg-surface px-5 py-4 transition-colors hover:border-primary"
-        >
-          <span className="flex items-center gap-3 text-body text-primary">
-            <Badge tone="accent">New</Badge>
-            {data.pending_orders} order{data.pending_orders !== 1 ? 's' : ''} waiting to be shipped
-          </span>
-          <ArrowRight className="h-4 w-4 text-slate transition-transform group-hover:translate-x-1" />
-        </Link>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
-        {/* Funnel + saves by size (Figma 02, left card) */}
-        <Card padding="none" className="rounded-none p-5 lg:p-6">
-          <SectionTitle title="From scan to purchase" />
-          <p className="mt-1 text-caption text-slate">{`${PERIOD_LABEL[period][0].toUpperCase()}${PERIOD_LABEL[period].slice(1)}, filtered as above`}</p>
-
-          <div className="mt-6 space-y-2">
-            <FunnelBar label="Scans" value={kpis.scans} max={funnelMax} className="bg-ash" />
-            <p className="pb-2 text-caption text-cinder">↓ {ratio(kpis.saves, kpis.scans)} of scans were saved</p>
-            <FunnelBar label="Saves" value={kpis.saves} max={funnelMax} className="bg-accent/50" />
-            <p className="pb-2 text-caption text-cinder">
-              ↓ {ratio(kpis.purchases, kpis.saves)} of saves were bought · {ratio(kpis.purchases, kpis.scans)} of scans
-            </p>
-            <FunnelBar label="Purchases" value={kpis.purchases} max={funnelMax} className="bg-accent" />
-          </div>
-          {size && (
-            <p className="mt-4 border-l-2 border-accent pl-3 text-caption text-slate">
-              Size {size}: saves and purchases are size {size} only. Scans count every size, because people scan before
-              they pick a size.
-            </p>
-          )}
-
-          <div className="mt-10">
-            <SectionTitle title="Saves by size" />
-            <p className="mt-1 text-caption text-slate">Shows which sizes to produce more of</p>
-            {savesBySize.length === 0 ? (
-              <p className="mt-6 text-caption text-slate">No saves {PERIOD_LABEL[period]}.</p>
+          {/* Saves by size */}
+          <Panel aria-labelledby="saves-title" className="flex flex-col gap-5">
+            <PanelHeader
+              title={<span id="saves-title">Saves by size</span>}
+              subtitle="What people want, so you know what to make next"
+              action={
+                <Segmented
+                  label="Saves range"
+                  items={SAVES_RANGES.map((r) => ({ value: r.value, label: r.label }))}
+                  value={savesRange.value}
+                  onValueChange={(v) => setFilter('saves', v === '4w' ? null : v)}
+                />
+              }
+            />
+            {savesRows.every((r) => r.saves === 0) ? (
+              <p className="py-10 text-center text-caption text-smoke">No saves in {savesRange.span}.</p>
             ) : (
-              <div className="mt-6 flex items-end gap-3 sm:gap-6">
-                {savesBySize.map((s) => (
-                  <div key={s.size ?? 'none'} className="flex min-w-0 max-w-16 flex-1 flex-col">
-                    <div className="flex h-32 items-end">
+              <div className="flex h-[180px] items-end gap-2 sm:gap-[18px]" role="img" aria-label={`Saves per size in ${savesRange.span}`}>
+                {savesRows.map((r) => {
+                  const top = r.saves === savesMax;
+                  const share = r.saves / savesMax;
+                  return (
+                    <div key={r.size ?? 'none'} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                      <span className={cn('text-caption font-medium tabular-nums', top ? 'text-flare' : 'text-ash')}>{count(r.saves)}</span>
                       <div
-                        className={cn('w-full', s.saves === sizeMax ? 'bg-accent' : 'bg-accent/50')}
-                        style={{ height: `${Math.max(4, (s.saves / sizeMax) * 100)}%` }}
-                        title={`${s.size ?? 'No size'}: ${s.saves} saves`}
+                        className={cn('w-full', top ? 'bg-flaym-tile' : share >= 0.5 ? 'bg-slate/40' : 'bg-surface-dark')}
+                        style={{ height: `${Math.max(r.saves > 0 ? 6 : 2, share * 115)}px` }}
                       />
+                      <span className="max-w-full truncate text-caption text-smoke">{r.size ?? 'No size'}</span>
                     </div>
-                    <p className="mt-2 flex flex-wrap gap-x-2 text-caption">
-                      <span className="font-medium text-primary">{s.size ?? 'No size'}</span>
-                      <span className="tabular-nums text-slate">{s.saves}</span>
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
-          </div>
-        </Card>
-
-        {/* By store + top products */}
-        <Card padding="none" className="rounded-none p-5 lg:p-6">
-          <SectionTitle title="By store" />
-          {data.by_store.length === 0 ? (
-            <p className="mb-6 mt-3 text-caption text-slate">No store scans or purchases {PERIOD_LABEL[period]}.</p>
-          ) : (
-            <div className="-mx-1 mb-6 mt-3 overflow-x-auto">
-              <table className="w-full border-collapse font-brand text-body-sm text-primary">
-                <THead>
-                  <tr>
-                    <TH className="px-3 py-2 text-label font-medium">Store</TH>
-                    <TH className="px-3 py-2 text-right text-label font-medium">Scans</TH>
-                    <TH className="px-3 py-2 text-right text-label font-medium">Buys</TH>
-                    <TH className="px-3 py-2 text-right text-label font-medium">Cut</TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {data.by_store.map((s) => (
-                    <TR key={s.id}>
-                      <TD className="px-3">{s.name}</TD>
-                      <TD className="px-3 text-right tabular-nums">{s.scans}</TD>
-                      <TD className="px-3 text-right tabular-nums">{s.buys}</TD>
-                      <TD className="whitespace-nowrap px-3 text-right tabular-nums">{formatDKK(s.cut)}</TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </table>
-            </div>
-          )}
-
-          <SectionTitle title="Top products" />
-          {data.top_products.length === 0 ? (
-            <p className="mt-3 text-caption text-slate">No product scans or purchases {PERIOD_LABEL[period]}.</p>
-          ) : (
-            <div className="-mx-1 mt-3 overflow-x-auto">
-              <table className="w-full border-collapse font-brand text-body-sm text-primary">
-                <THead>
-                  <tr>
-                    <TH className="px-3 py-2 text-label font-medium">Product</TH>
-                    <TH className="px-3 py-2 text-right text-label font-medium">Scans</TH>
-                    <TH className="px-3 py-2 text-right text-label font-medium">Buys</TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {data.top_products.map((p) => (
-                    <TR key={p.id}>
-                      <TD className="px-3">{p.name}</TD>
-                      <TD className="px-3 text-right tabular-nums">{p.scans}</TD>
-                      <TD className="px-3 text-right tabular-nums">{p.buys}</TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </table>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {/* Activity over time */}
-      <Card padding="none" className="rounded-none p-5 lg:p-6">
-        <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
-          <SectionTitle title="Activity over time" />
-          <div className="flex flex-wrap gap-4 text-caption text-slate">
-            <Legend className="bg-line" label="Scans" />
-            <Legend className="bg-accent/50" label="Saves" />
-            <Legend className="bg-accent" label="Purchases" />
-          </div>
+            {insight && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Chip>
+                  <span
+                    className={cn('h-2 w-2 rounded-pill', insight.tone === 'up' ? 'bg-accent' : insight.tone === 'down' ? 'bg-smoke' : 'bg-primary')}
+                    aria-hidden
+                  />
+                  {insight.chip}
+                </Chip>
+                <p className="min-w-0 flex-1 text-caption text-smoke">{insight.text}</p>
+              </div>
+            )}
+          </Panel>
         </div>
-        {chart.every((b) => b.scans + b.saves + b.purchases === 0) ? (
-          <EmptyState
-            className="border-none py-12"
-            icon={<ScanLine className="h-5 w-5" />}
-            title={`No activity ${PERIOD_LABEL[period]}`}
-            description="Scans, saves and purchases show up here as people find your products in stores."
-          />
-        ) : (
-          <div>
-            <div className="flex h-48 items-end gap-[3px] sm:h-56 sm:gap-1.5" role="img" aria-label="Scans, saves and purchases per period">
-              {chart.map((b) => (
-                <div key={b.label} className="flex h-full flex-1 flex-col justify-end gap-px" title={`${b.label}: ${b.scans} scans, ${b.saves} saves, ${b.purchases} purchases`}>
-                  <div className="bg-line" style={{ height: `${(b.scans / chartMax) * 100}%` }} />
-                  <div className="bg-accent/50" style={{ height: `${(b.saves / chartMax) * 100}%` }} />
-                  <div className="bg-accent" style={{ height: `${(b.purchases / chartMax) * 100}%` }} />
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 flex gap-[3px] sm:gap-1.5">
-              {chart.map((b, i) => (
-                <span key={b.label} className="flex-1 text-center text-caption text-slate">
-                  {i % labelEvery === 0 ? b.label : ''}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </Card>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Commission owed */}
-        <Card padding="none" className="rounded-none p-5 lg:p-6">
-          <SectionTitle
-            title={`Commission ${PERIOD_LABEL[period]}`}
-            aside={data.commissions.length > 0 ? `${formatDKK(totalCommission)} owed` : undefined}
-          />
-          {data.commissions.length === 0 ? (
-            <EmptyState
-              className="border-none py-8"
-              icon={<Coins className="h-5 w-5" />}
-              title="No commission owed"
-              description="When a store's scan leads to a purchase, the store's cut shows up here."
+        <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:flex xl:flex-col">
+          {/* Sales via Flaym */}
+          <section className="flex flex-col gap-3.5 bg-flame-gradient p-[22px] font-brand text-flare" aria-labelledby="sales-title">
+            <div className="flex items-center">
+              <h2 id="sales-title" className="flex-1 text-body-sm font-medium">
+                Sales via Flaym
+              </h2>
+              <ArrowLink href="/brand/orders" label="Open orders" className="bg-flare/20 text-flare hover:text-flare" />
+            </div>
+            <p className="text-display font-medium tabular-nums tracking-[-0.76px]">{formatDKK(kpis.sales)}</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="bg-flare/20 px-3.5 py-3">
+                <p className="text-caption">Store cut</p>
+                <p className="mt-0.5 text-body-lg font-semibold tabular-nums">{formatDKK(kpis.store_cut)}</p>
+              </div>
+              <div className="bg-flare/20 px-3.5 py-3">
+                <p className="text-caption">Your payout</p>
+                <p className="mt-0.5 text-body-lg font-semibold tabular-nums">{formatDKK(payout)}</p>
+              </div>
+            </div>
+            <p className="text-caption">
+              {periodText[0].toUpperCase() + periodText.slice(1)}
+              {storeName || productName || size ? `, ${scope}` : ''}. Payout = sales minus the store cut.
+            </p>
+            {data.pending_orders > 0 && (
+              <Link href="/brand/orders" className="self-start whitespace-pre bg-obsidian px-3 py-[7px] text-caption font-medium text-flare hover:bg-canvas-dark">
+                {`⚑  ${plural(data.pending_orders, 'order')} to ship today`}
+              </Link>
+            )}
+          </section>
+
+          {/* From scan to purchase + top stores */}
+          <Panel aria-labelledby="funnel-title" className="flex flex-col gap-[18px]">
+            <PanelHeader
+              title={<span id="funnel-title">From scan to purchase</span>}
+              subtitle={`${periodText[0].toUpperCase() + periodText.slice(1)}, ${scope}`}
+              action={<span className="text-caption font-medium text-accent-bright">Funnel</span>}
             />
-          ) : (
-            <ul className="mt-2 divide-y divide-line">
-              {data.commissions.map((c) => {
-                const typeLabel = c.type === 'direct' ? 'Direct' : c.type === 'deferred' ? 'Deferred' : 'Tier 2';
-                const typeTone = c.type === 'direct' ? 'accent' : c.type === 'deferred' ? 'neutral' : 'outline';
-                return (
-                  <li key={c.id} className="flex items-center gap-3 py-3">
+            <div className="flex items-center gap-[18px]">
+              <Donut scans={kpis.scans} saves={kpis.saves} buys={kpis.purchases} rate={overview.buy_rate} />
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <FunnelRow dot="bg-char" label="Scanned" value={kpis.scans} />
+                <FunnelRow dot="bg-primary" label="Saved" value={kpis.saves} />
+                <FunnelRow dot="bg-accent" label="Bought" value={kpis.purchases} />
+              </div>
+            </div>
+            {size && <p className="text-caption text-smoke">Scans count every size: people scan before they pick one.</p>}
+
+            <p className="pt-1 text-label uppercase text-smoke">Top stores</p>
+            {data.by_store.length === 0 ? (
+              <p className="text-caption text-smoke">No store scans or purchases {periodText}.</p>
+            ) : (
+              <ul className="flex flex-col gap-[18px]">
+                {data.by_store.slice(0, 3).map((s) => (
+                  <li key={s.id} className="flex items-center gap-2.5">
+                    <Thumb />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-body-sm text-primary">{c.retailer_name}</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <Badge tone={typeTone}>{typeLabel}</Badge>
-                        {c.order_number && <span className="text-caption text-slate">Order #{c.order_number}</span>}
-                      </div>
+                      <p className="truncate text-body-sm font-medium text-flare">{s.name}</p>
+                      <p className="text-caption text-smoke">{plural(s.scans, 'scan')}</p>
                     </div>
-                    <span className="whitespace-nowrap text-body-sm font-medium tabular-nums text-primary">{formatDKK(c.amount_dkk)}</span>
+                    <Chip className="tabular-nums">{count(s.buys)} sold</Chip>
                   </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
-
-        {/* Deposits held */}
-        <Card padding="none" className="rounded-none p-5 lg:p-6">
-          <SectionTitle title="Deposits held" aside={depositsHeld > 0 ? `${formatDKK(depositsHeld)} total` : undefined} />
-          <p className="text-caption text-slate">
-            {data.active_samples} active sample{data.active_samples !== 1 ? 's' : ''} in stores
-          </p>
-          {data.deposits.length === 0 || depositsHeld === 0 ? (
-            <EmptyState
-              className="border-none py-8"
-              icon={<Wallet className="h-5 w-5" />}
-              title="No deposits held"
-              description="Stores pay a deposit when they receive a sample."
-            />
-          ) : (
-            <ul className="mt-2 divide-y divide-line">
-              {data.deposits.map((r) => (
-                <li key={r.retailer_name} className="flex items-center justify-between gap-3 py-3 text-body-sm">
-                  <span className="truncate text-primary">{r.retailer_name}</span>
-                  <span className="whitespace-nowrap font-medium tabular-nums text-primary">{formatDKK(r.total)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        {/* Activity feed */}
-        <Card padding="none" className="rounded-none p-5 lg:p-6">
-          <SectionTitle title="Recent activity" />
-          {data.recent.length === 0 ? (
-            <EmptyState
-              className="border-none py-8"
-              icon={<Clock className="h-5 w-5" />}
-              title="No activity yet"
-              description="Scans, saves and purchases will appear here"
-            />
-          ) : (
-            <ul className="mt-2 divide-y divide-line">
-              {data.recent.map((item) => (
-                <li key={item.id} className="flex items-center gap-3 py-3">
-                  <span className={cn('shrink-0', item.type === 'purchase' ? 'text-accent' : 'text-slate')}>
-                    {item.type === 'scan' ? (
-                      <ScanLine className="h-4 w-4" />
-                    ) : item.type === 'save' ? (
-                      <Bookmark className="h-4 w-4" />
-                    ) : (
-                      <ShoppingBag className="h-4 w-4" />
-                    )}
-                  </span>
-                  <p className="min-w-0 flex-1 truncate text-body-sm text-primary">
-                    {item.type === 'scan' ? 'Scan' : item.type === 'save' ? 'Save' : 'Purchase'} · {item.product}
-                    {item.size ? ` · ${item.size}` : ''}
-                    {item.store ? ` · ${item.store}` : ''}
-                  </p>
-                  <span className="whitespace-nowrap text-caption text-slate">{timeAgo(item.time)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </div>
       </div>
     </div>
   );
 }
 
-function FunnelBar({ label, value, max, className }: { label: string; value: number; max: number; className: string }) {
-  return (
-    <div>
-      <div className="mb-2 flex items-baseline justify-between">
-        <span className="text-label uppercase text-slate">{label}</span>
-        <span className="text-title tabular-nums text-primary">{value.toLocaleString('en-GB')}</span>
-      </div>
-      <div className="h-8 w-full">
-        <div className={cn('h-full', className)} style={{ width: `${Math.max(value > 0 ? 2 : 0, (value / max) * 100)}%` }} />
-      </div>
-    </div>
-  );
-}
-
-// Figma card title: 14px uppercase, with an optional muted note on the right.
-function SectionTitle({ title, aside }: { title: string; aside?: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <h2 className="font-brand text-body uppercase tracking-[0.3px] text-primary">{title}</h2>
-      {aside && <span className="whitespace-nowrap text-caption text-slate">{aside}</span>}
-    </div>
-  );
-}
-
-function Legend({ className, label }: { className: string; label: string }) {
+function LegendDot({ className, label }: { className: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <span className={cn('h-2.5 w-2.5', className)} />
+      <span className={cn('h-2 w-2 rounded-pill', className)} aria-hidden />
       {label}
     </span>
+  );
+}
+
+type StandCounts = { total: number; done: number; moving: number; waiting: number };
+
+function StandRow({
+  icon: Icon,
+  label,
+  href,
+  row,
+  caption,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  href: string;
+  row: StandCounts;
+  caption: string;
+}) {
+  const parts = [
+    { key: 'done', n: row.done, className: 'bg-primary text-on-primary', name: 'done' },
+    { key: 'moving', n: row.moving, className: 'bg-flaym-progress text-flare', name: 'moving' },
+    { key: 'waiting', n: row.waiting, className: 'bg-surface-dark text-ash', name: 'waiting' },
+  ].filter((p) => p.n > 0);
+  return (
+    <Link href={href} className="group flex flex-wrap items-center gap-x-4 gap-y-2 py-3 sm:flex-nowrap">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-surface-dark text-ash">
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      <span className="w-[72px] shrink-0 text-body font-medium text-flare sm:w-[110px]">{label}</span>
+      <span className="flex w-[110px] shrink-0 flex-col sm:w-[140px]">
+        <span className="text-heading-lg font-medium tabular-nums text-flare">{count(row.total)}</span>
+        <span className="text-caption text-smoke">{caption}</span>
+      </span>
+      <span
+        className="order-last flex h-9 min-w-0 basis-full gap-1.5 sm:order-none sm:basis-auto sm:flex-1"
+        aria-label={`${row.done} done, ${row.moving} moving, ${row.waiting} waiting`}
+      >
+        {parts.length === 0 ? (
+          <span className="flex flex-1 items-center bg-surface-dark px-3.5 text-caption text-smoke">None yet</span>
+        ) : (
+          parts.map((p) => (
+            <span
+              key={p.key}
+              title={`${p.n} ${p.name}`}
+              className={cn('flex min-w-[50px] items-center justify-end px-3.5 text-caption font-medium tabular-nums', p.className)}
+              style={{ flexGrow: p.n, flexBasis: 0 }}
+            >
+              {count(p.n)}
+            </span>
+          ))
+        )}
+      </span>
+      <span className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-pill border border-flare/10 text-body text-ash transition-colors group-hover:border-flare/30 group-hover:text-flare sm:ml-0">
+        ↗
+      </span>
+    </Link>
+  );
+}
+
+function FunnelRow({ dot, label, value }: { dot: string; label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-2 bg-surface-dark/60 px-3 py-[9px]">
+      <span className={cn('h-2 w-2 shrink-0 rounded-pill', dot)} aria-hidden />
+      <span className="flex-1 text-caption text-ash">{label}</span>
+      <span className="text-caption font-medium tabular-nums text-flare">{count(value)}</span>
+    </div>
+  );
+}
+
+/** Scans as the full ring; the light arc is the saved share, the orange arc the bought share. */
+function Donut({ scans, saves, buys, rate }: { scans: number; saves: number; buys: number; rate: number | null }) {
+  const r = 60;
+  const c = 2 * Math.PI * r;
+  const savedShare = scans > 0 ? Math.min(1, saves / scans) : 0;
+  const boughtShare = scans > 0 ? Math.min(1, buys / scans) : 0;
+  return (
+    <div className="relative h-[140px] w-[140px] shrink-0">
+      <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90" aria-hidden>
+        <circle cx="70" cy="70" r={r} fill="none" strokeWidth="14" className="stroke-surface-dark" />
+        {savedShare > 0 && (
+          <circle cx="70" cy="70" r={r} fill="none" strokeWidth="14" className="stroke-primary" strokeDasharray={`${savedShare * c} ${c}`} />
+        )}
+        {boughtShare > 0 && (
+          <circle
+            cx="70"
+            cy="70"
+            r={r}
+            fill="none"
+            strokeWidth="14"
+            className="stroke-accent"
+            strokeDasharray={`${Math.max(2, boughtShare * c)} ${c}`}
+            strokeDashoffset={-savedShare * c}
+          />
+        )}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-heading-lg font-medium tabular-nums text-flare">{rate === null ? '–' : `${rate}%`}</span>
+        <span className="text-caption text-smoke">buy rate</span>
+      </div>
+    </div>
   );
 }

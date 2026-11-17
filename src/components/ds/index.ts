@@ -30,3 +30,17 @@ export { Toast, ToastProvider, useToast, type ToastType } from './toast';
 export { List, ListRow, Table, THead, TBody, TR, TH, TD } from './list';
 export { ProductCard } from './product-card';
 export * from './icons';
+export {
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Segmented,
+  MetricTile,
+  ScanBar,
+  ArrowLink,
+  Chip,
+  Thumb,
+  portalPanel,
+  useToday,
+  type SegmentItem,
+} from './portal-ui';
