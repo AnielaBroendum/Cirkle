@@ -870,6 +870,37 @@ export type Database = {
         Args: Record<string, never>;
         Returns: { orders: number; returns: number } | null;
       };
+      // 016: Portals v2 sidebar. Dates are YYYY-MM-DD (Europe/Copenhagen), amounts in øre.
+      get_brand_portal_shell: {
+        Args: { p_payout_day?: number };
+        Returns: {
+          products: number;
+          stores: number;
+          orders: number;
+          returns: number;
+          period_start: string;
+          next_payout: string;
+          sales: number;
+          store_cut: number;
+          payout_amount: number;
+        } | null;
+      };
+      get_retailer_portal_shell: {
+        Args: { p_payout_day?: number };
+        Returns: {
+          products: number;
+          period_start: string;
+          next_payout: string;
+          payout_amount: number;
+          ready_amount: number;
+          return_period_amount: number;
+          last_paid_out_at: string | null;
+        } | null;
+      };
+      payout_period: {
+        Args: { p_payout_day?: number };
+        Returns: { period_start: string; next_payout: string }[];
+      };
       get_brand_dashboard_stores: {
         Args: Record<string, never>;
         Returns: { id: string; name: string }[];
