@@ -15,7 +15,7 @@ Scanned at (store) → Passed on by (giver) → Bought by (buyer), kept on every
 - [x] Scenario test on production (rolled back): store → 1 step → 2 steps, privacy, store share at 500 bps
 - [ ] App flow in the browser against a database with 026–030 (not done: no test database with the migrations; see Testing)
 - [x] Type check, lint, build
-- [x] E: `031_brand_top_stores.sql` and Top stores on the brand dashboard (tested rolled back)
+- [x] E: `031_brand_top_stores.sql` and Top stores on the brand dashboard; applied to production 22 Nov 2026, QA brand shows QA Concept Store 4 scans this month (3 tag + 1 passed on)
 - [x] Applied 026–030 to production (22 Nov 2026); counts as in the dry run, setting 0, brand/buyer/giver functions answer on a real passed-on order
 
 ## Who gets what
