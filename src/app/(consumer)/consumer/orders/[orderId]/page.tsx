@@ -13,6 +13,7 @@ import PushPrompt from '@/components/pwa/push-prompt';
 import { buttonClasses } from '@/components/ds';
 import { DarkCard, ScreenHeader, Thumb } from '@/components/consumer/checkout-parts';
 import { expectedDelivery, formatRange, isPastDay } from '@/components/consumer/order-utils';
+import { chainLine } from '@/components/consumer/chain-line';
 
 type OrderDetail = {
   id: string;
@@ -54,6 +55,14 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [peerQR, setPeerQR] = useState<{ product_id: string; url: string; qr_data_url: string }[] | null>(null);
+  // Where it came from: "Found at [store] · Passed on by [friend]" (get_my_order_chain, 030).
+  const [foundLine, setFoundLine] = useState<string | null>(null);
+  useEffect(() => {
+    if (!orderId) return;
+    createClient()
+      .rpc('get_my_order_chain', { p_order: orderId })
+      .then(({ data }: { data: Parameters<typeof chainLine>[0] }) => setFoundLine(chainLine(data)));
+  }, [orderId]);
 
   useEffect(() => {
     if (!user) return;
@@ -188,6 +197,10 @@ export default function OrderDetailPage() {
               · {order.brand_profiles.name}
             </p>
           </section>
+        )}
+
+        {foundLine && (
+          <p className={`text-caption text-smoke ${delivered ? 'mt-4 text-center' : 'mt-2'}`}>{foundLine}</p>
         )}
 
         {/* Status timeline */}

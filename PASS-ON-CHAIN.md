@@ -10,7 +10,7 @@ Scanned at (store) → Passed on by (giver) → Bought by (buyer), kept on every
 - [x] B: `027_attribution_chain.sql` — origin/chain on attributions, checkout fills them, backfill
 - [x] B2: `028_peer_store_share.sql` — `platform_settings.peer_store_commission_bps` (0), store share on peer attributions, payouts and earnings
 - [x] C: `029_brand_order_chain_v2.sql`, Orders detail chain, CSV export
-- [ ] D: `030_my_order_chain.sql`, buyer line, giver "Passed on" list
+- [x] D: `030_my_order_chain.sql`, buyer line, giver "Passed on" list
 - [ ] Test on the scratch project, dry run on production (rolled back), type check, lint, build
 
 ## Why some old peer scans have no giver

@@ -915,6 +915,11 @@ export type Database = {
         Args: { p_order: string };
         Returns: Omit<OrderChain, 'store_share_dkk'> | null;
       };
+      // 030: get_my_order_chain for every order the caller bought.
+      get_my_order_chains: {
+        Args: Record<string, never>;
+        Returns: { order_id: string; chain: Omit<OrderChain, 'store_share_dkk'> }[];
+      };
       // 030: orders bought from a pass-on the caller is part of. First names only, no prices.
       get_my_passed_on: {
         Args: Record<string, never>;

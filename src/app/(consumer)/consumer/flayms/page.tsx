@@ -9,8 +9,10 @@ import { FlameIcon, Thumb } from '@/components/consumer/checkout-parts';
 import { timeAgo } from '@/components/consumer/time-ago';
 import type { FlaymsStats } from '@/components/consumer/use-flayms';
 import { useFlayms } from '@/components/consumer/use-flayms';
+import type { Database } from '@/lib/database.types';
 
 type PointsEntry = { id: string; amount: number; reason: string; created_at: string };
+type PassedOnRow = Database['public']['Functions']['get_my_passed_on']['Returns'][number];
 
 const REASON_LABELS: Record<string, string> = {
   welcome_bonus: 'Welcome bonus',
@@ -41,6 +43,16 @@ export default function FlaymsPage() {
   const { stats, error } = useFlayms();
   const [history, setHistory] = useState<PointsEntry[] | null>(null);
   const [copied, setCopied] = useState(false);
+  // Bought from something you passed on (get_my_passed_on, 030): first names and dates only.
+  const [passedOn, setPassedOn] = useState<PassedOnRow[] | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    createClient()
+      .rpc('get_my_passed_on')
+      .then(({ data }: { data: PassedOnRow[] | null }) =>
+        setPassedOn([...(data ?? [])].sort((a, b) => new Date(b.bought_at).getTime() - new Date(a.bought_at).getTime()))
+      );
+  }, [user]);
 
   // Points history (moved here from Profile): same query as before.
   useEffect(() => {
@@ -132,6 +144,29 @@ export default function FlaymsPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Passed on: who bought what you passed on */}
+      {passedOn && passedOn.length > 0 && (
+        <>
+          <p className="mt-6 text-label uppercase text-smoke">Passed on</p>
+          <ul className="mt-1 divide-y divide-line-dark">
+            {passedOn.map((row) => (
+              <li key={row.order_id} className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-body text-on-primary">
+                    {row.buyer ?? 'A friend'} bought it · {new Date(row.bought_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  </p>
+                  <p className="truncate text-caption text-smoke">
+                    {row.product_name}
+                    {!row.direct && row.via ? ` · via ${row.via}` : ''}
+                  </p>
+                </div>
+                {row.direct && row.points != null && <span className="shrink-0 text-body text-accent">+{row.points}</span>}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       {/* Earned & spent */}

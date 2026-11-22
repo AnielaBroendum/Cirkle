@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase';
 import { Card, buttonClasses, cn } from '@/components/ds';
 import { ScreenHeader } from '@/components/consumer/checkout-parts';
 import { ACTIVE_STATUSES, expectedDelivery, formatDay, isPastDay } from '@/components/consumer/order-utils';
+import { chainLine } from '@/components/consumer/chain-line';
 
 type Order = {
   id: string;
@@ -35,7 +36,7 @@ function fmt(iso: string, withTime = false) {
 }
 
 /** Figma 07 card: three steps, Placed → Shipped → Delivered. */
-function OrderCard({ order }: { order: Order }) {
+function OrderCard({ order, found }: { order: Order; found?: string | null }) {
   const at = (status: string) => order.order_events?.find((e) => e.status === status)?.created_at;
   const cancelled = order.status === 'cancelled';
   const shippedAt = at('shipped');
@@ -61,6 +62,7 @@ function OrderCard({ order }: { order: Order }) {
         </p>
         <span className="shrink-0 bg-line-dark px-2.5 py-0.5 text-caption font-medium text-on-primary">#{order.order_number}</span>
       </div>
+      {found && <p className="mt-1 truncate text-caption text-smoke">{found}</p>}
       <ol className="mt-4 space-y-4">
         {steps.map((s) => (
           <li key={s.label} className="flex gap-3.5">
@@ -84,6 +86,8 @@ export default function ConsumerOrdersPage() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  // "Found at [store] · Passed on by [friend]" per order (get_my_order_chains, 030).
+  const [found, setFound] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!user) return;
@@ -105,6 +109,17 @@ export default function ConsumerOrdersPage() {
       .then(({ data }: { data: Order[] | null }) => {
         setOrders(data ?? []);
         setLoading(false);
+      });
+
+    supabase
+      .rpc('get_my_order_chains')
+      .then(({ data }: { data: { order_id: string; chain: Parameters<typeof chainLine>[0] }[] | null }) => {
+        const lines = new Map<string, string>();
+        for (const row of data ?? []) {
+          const line = chainLine(row.chain);
+          if (line) lines.set(row.order_id, line);
+        }
+        setFound(lines);
       });
   }, [user]);
 
@@ -141,7 +156,7 @@ export default function ConsumerOrdersPage() {
             </Card>
           )}
           {orders.map((order) => (
-            <OrderCard key={order.id} order={order} />
+            <OrderCard key={order.id} order={order} found={found.get(order.id)} />
           ))}
         </div>
       )}
