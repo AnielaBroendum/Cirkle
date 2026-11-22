@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import jsQR from 'jsqr';
+import { getAppUrl, getLegacyHosts } from '@/lib/base-url';
 
 // In-app QR scanner (Figma 03). It only reads Flaym codes and then opens the
 // same /p/{sampleId} or /d/{productId}?ref= URL the phone camera would, so scan
@@ -18,10 +19,10 @@ export function flaymPathFromQR(text: string): string | null {
   } catch {
     return null;
   }
-  const known = new Set([window.location.host, 'cirkle.dk', 'www.cirkle.dk']);
-  // QR links are built from NEXT_PUBLIC_QR_BASE_URL (falling back to the app URL),
-  // so accept both hosts.
-  for (const configured of [process.env.NEXT_PUBLIC_QR_BASE_URL, process.env.NEXT_PUBLIC_APP_URL]) {
+  // Tags carry the app URL they were made with: this host, the configured app
+  // URL, a local QR override, or an address the app used to live on.
+  const known = new Set([window.location.host, 'cirkle.dk', 'www.cirkle.dk', ...getLegacyHosts()]);
+  for (const configured of [getAppUrl(), process.env.NEXT_PUBLIC_QR_BASE_URL]) {
     try {
       if (configured) known.add(new URL(configured).host);
     } catch {

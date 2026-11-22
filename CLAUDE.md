@@ -77,10 +77,10 @@ Each purchase credited to a store has a payout status that is worked out from da
 
 ## QR Code URLs
 
-- **Retailer sample**: `https://cirkle.dk/p/{sample_id}` — resolves to product page with retailer attribution
-- **Peer discovery**: `https://cirkle.dk/d/{product_id}?ref={owner_user_id}` — resolves to product page with peer attribution
+- **Retailer sample**: `https://app.flaymforward.com/p/{sample_id}` — resolves to product page with retailer attribution
+- **Peer discovery**: `https://app.flaymforward.com/d/{product_id}?ref={owner_user_id}` — resolves to product page with peer attribution
 
-The host is not hardcoded: `src/lib/base-url.ts` uses `NEXT_PUBLIC_QR_BASE_URL`, then `NEXT_PUBLIC_APP_URL`, and falls back to the request's own origin when those point at localhost. Set both to the public domain in production, or printed tags and shared peer links will point somewhere friends can't reach. Sample tags are rendered to PNG when the sample is created, so they keep the host they were made with; peer QR codes are generated on demand.
+The host is not hardcoded: `src/lib/base-url.ts` (`getBaseUrl(request)` in route handlers, `getAppUrl()` elsewhere) uses `NEXT_PUBLIC_APP_URL`, then the local-only override `NEXT_PUBLIC_QR_BASE_URL`, skipping localhost values, and falls back to the request's (or browser's) own origin. In production set `NEXT_PUBLIC_APP_URL=https://app.flaymforward.com`, or printed tags and shared peer links will point somewhere friends can't reach. Old hosts in `NEXT_PUBLIC_LEGACY_HOSTS` (`cirkle-tan.vercel.app`) redirect permanently (308) to the same path (`next.config.js`) and are still accepted by the in-app scanner. Sample tags are rendered to PNG when the sample is created, so they keep the host they were made with; peer QR codes are generated on demand.
 
 ## Database
 
@@ -262,7 +262,8 @@ See `.env.example` for required variables. Key ones:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `NEXT_PUBLIC_APP_URL`
-- `NEXT_PUBLIC_QR_BASE_URL`
+- `NEXT_PUBLIC_QR_BASE_URL` (local override only, e.g. a `.local` host so a phone can scan dev tags)
+- `NEXT_PUBLIC_LEGACY_HOSTS` (old hosts that redirect to the app URL)
 - `RESEND_API_KEY`, `EMAIL_FROM`
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (web push; generate with `npx web-push generate-vapid-keys`)
 

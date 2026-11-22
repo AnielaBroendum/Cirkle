@@ -12,6 +12,7 @@ import { consumerTabs } from './tab-items';
 import { BrandStoriesViewer, type BrandStory } from './brand-stories-viewer';
 import { isSoldOut, type VariantStock } from '@/lib/stock';
 import { formatPriceRange, priceRange, type VariantPrice } from '@/lib/pricing';
+import { getAppUrl } from '@/lib/base-url';
 
 function timeAgo(iso?: string): string {
   if (!iso) return '';
@@ -187,12 +188,7 @@ export default function ProductPageClient({
       window.location.href = `/auth/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
       return;
     }
-    const configured = process.env.NEXT_PUBLIC_QR_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
-    const base =
-      configured && !configured.includes('localhost') && !configured.includes('127.0.0.1')
-        ? configured.replace(/\/+$/, '')
-        : window.location.origin;
-    const url = `${base}/d/${product.id}?ref=${user.id}`;
+    const url = `${getAppUrl()}/d/${product.id}?ref=${user.id}`;
 
     // Try native share (works on mobile HTTPS)
     if (typeof navigator.share === 'function') {

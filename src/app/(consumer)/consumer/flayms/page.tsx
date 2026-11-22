@@ -9,6 +9,7 @@ import { FlameIcon, Thumb } from '@/components/consumer/checkout-parts';
 import { timeAgo } from '@/components/consumer/time-ago';
 import type { FlaymsStats } from '@/components/consumer/use-flayms';
 import { useFlayms } from '@/components/consumer/use-flayms';
+import { getAppUrl } from '@/lib/base-url';
 import type { Database } from '@/lib/database.types';
 
 type PointsEntry = { id: string; amount: number; reason: string; created_at: string };
@@ -67,7 +68,7 @@ export default function FlaymsPage() {
   }, [user]);
 
   async function copyInvite() {
-    const url = window.location.origin;
+    const url = getAppUrl();
     try {
       if (typeof navigator.share === 'function') {
         await navigator.share({ title: 'Flaym', text: 'Find things in real shops with Flaym', url });

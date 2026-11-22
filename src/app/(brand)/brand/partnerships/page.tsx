@@ -8,6 +8,7 @@ import { Handshake, Check, X, Copy, Store, MapPin, Plus } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, Field, Input, ListSkeleton, StatusPill } from '@/components/ds';
 import { StoresPageHeader } from '@/components/brand/stores-tabs';
 import { InviteStoreModal } from '@/components/brand/invite-store-modal';
+import { getAppUrl } from '@/lib/base-url';
 import type { Database } from '@/lib/database.types';
 
 type Partnership = Database['public']['Tables']['brand_retailer_partnerships']['Row'];
@@ -207,7 +208,7 @@ export default function BrandPartnershipsPage() {
       {invited.length > 0 && (
         <Section title="Pending invitations" note="Waiting for the store to accept">
           {invited.map((p) => {
-            const url = p.invitation_token ? `${window.location.origin}/invite/${p.invitation_token}` : null;
+            const url = p.invitation_token ? `${getAppUrl()}/invite/${p.invitation_token}` : null;
             return (
               <Row
                 key={p.id}

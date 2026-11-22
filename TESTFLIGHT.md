@@ -14,12 +14,13 @@ Legend: `[x]` done, `[ ]` to do. "In code" says what already existed when the it
 
 ### Part A2 — Move to app.flaymforward.com
 In code: `src/lib/base-url.ts` (`getBaseUrl`) already builds QR tag and peer links from `NEXT_PUBLIC_QR_BASE_URL` / `NEXT_PUBLIC_APP_URL`, falling back to the request origin. Manifest uses relative URLs. Auth sends no `emailRedirectTo`; `/auth/callback` uses its own origin. No Open Graph images, no `metadataBase`.
-- [ ] One variable `NEXT_PUBLIC_APP_URL` for the app's address (`getAppUrl()` for code without a request)
-- [ ] Store invite email links (`/api/partnerships/invite`) and copied invite links use it
-- [ ] Flayms share link uses it
-- [ ] QR scanner recognises the app host and old hosts
-- [ ] `metadataBase` in the root layout
-- [ ] Old addresses (`LEGACY_HOSTS`, a `*.vercel.app` domain) redirect permanently to the same path on app.flaymforward.com
+- [x] One variable `NEXT_PUBLIC_APP_URL` for the app's address (`getAppUrl()` for code without a request)
+- [x] Store invite email links (`/api/partnerships/invite`) and copied invite links use it
+- [x] Flayms share link uses it
+- [x] QR scanner recognises the app host and old hosts
+- [x] `metadataBase` in the root layout
+- [x] Old addresses (`NEXT_PUBLIC_LEGACY_HOSTS=cirkle-tan.vercel.app`, found by decoding the stored tag PNGs) redirect permanently to the same path on app.flaymforward.com
+- [ ] Tags made on a dev machine (3 in production point at `Anielas-MacBook-Air.local:3000`) can't be redirected: re-render their PNGs or make new tags
 - [ ] Native app: `/` goes to Scan; web keeps the welcome screen
 - [ ] Supabase URL Configuration, Vercel env + redeploy (you)
 - [ ] Live test: login, new tag, flame link, old tag redirect

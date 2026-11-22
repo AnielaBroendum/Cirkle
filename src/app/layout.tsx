@@ -3,6 +3,7 @@ import { IBM_Plex_Mono } from 'next/font/google';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { ToastProvider } from '@/components/ds';
 import ServiceWorkerRegister from '@/components/pwa/sw-register';
+import { getAppUrl } from '@/lib/base-url';
 import './globals.css';
 
 // Flaym brand font (used via `font-brand`).
@@ -14,6 +15,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  // Absolute URLs in metadata (Open Graph etc.) use the app's address.
+  metadataBase: new URL(getAppUrl('http://localhost:3000')),
   title: 'Flaym — Fashion worth wanting.',
   description: 'Scan, discover and buy fashion from your favourite brands, in stores and from friends.',
   manifest: '/manifest.json',

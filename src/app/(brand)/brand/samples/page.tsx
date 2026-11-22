@@ -25,6 +25,7 @@ import {
 } from '@/components/ds';
 import { StoresTabs } from '@/components/brand/stores-tabs';
 import { InviteStoreModal } from '@/components/brand/invite-store-modal';
+import { getAppUrl } from '@/lib/base-url';
 import type { Database } from '@/lib/database.types';
 
 /*
@@ -200,7 +201,7 @@ export default function BrandSamplesPage() {
 
   function copyInvite(p: Partnership) {
     if (!p.invitation_token) return;
-    navigator.clipboard.writeText(`${window.location.origin}/invite/${p.invitation_token}`);
+    navigator.clipboard.writeText(`${getAppUrl()}/invite/${p.invitation_token}`);
     setCopied(p.id);
     setTimeout(() => setCopied(null), 2000);
   }
