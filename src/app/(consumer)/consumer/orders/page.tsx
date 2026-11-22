@@ -62,7 +62,7 @@ function OrderCard({ order, found }: { order: Order; found?: string | null }) {
         </p>
         <span className="shrink-0 bg-line-dark px-2.5 py-0.5 text-caption font-medium text-on-primary">#{order.order_number}</span>
       </div>
-      {found && <p className="mt-1 truncate text-caption text-smoke">{found}</p>}
+      {found && <p className="mt-1 text-caption text-smoke">{found}</p>}
       <ol className="mt-4 space-y-4">
         {steps.map((s) => (
           <li key={s.label} className="flex gap-3.5">

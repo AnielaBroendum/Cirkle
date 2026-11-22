@@ -760,7 +760,7 @@ function ChainStep({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 flex-1 bg-surface-dark px-2.5 py-2">
       <p className="text-caption text-smoke">{label}</p>
-      <p className="truncate text-caption font-semibold text-flare">{value}</p>
+      <p className="break-words text-caption font-semibold text-flare">{value}</p>
     </div>
   );
 }
