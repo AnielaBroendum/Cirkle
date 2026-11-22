@@ -9,6 +9,9 @@ export type AttributingScan = {
   source_retailer_id: string | null;
   source_user_id: string | null;
   scanned_at: string;
+  /** The chain (migration 026): store where it started, and the chain id. */
+  origin_retailer_id: string | null;
+  chain_id: string | null;
 };
 
 // A scan credits someone only if it came from a store's tag or from a real
@@ -31,7 +34,7 @@ export async function findAttributingScan(
   const since = new Date(Date.now() - ATTRIBUTION_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const { data } = await admin
     .from('scans')
-    .select('id, sample_id, source_type, source_retailer_id, source_user_id, scanned_at')
+    .select('id, sample_id, source_type, source_retailer_id, source_user_id, scanned_at, origin_retailer_id, chain_id')
     .eq('product_id', productId)
     .eq('scanner_user_id', userId)
     .gte('scanned_at', since.toISOString())

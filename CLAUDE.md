@@ -25,7 +25,7 @@ Signs up → completes onboarding (brand profile only; products are added afterw
 Receives email invitation from a brand → accepts → completes onboarding (store profile) → receives physical samples → displays them with QR tags → earns commission when scans lead to sales → sees dashboard.
 
 ### Consumer
-Scans QR code (phone camera) → lands on public product page (no auth needed to browse) → creates account to buy → mock checkout → order confirmed → brand fulfills → consumer's product gets a peer-discovery QR → friends scan → consumer earns Cirkle Points.
+Scans QR code (phone camera) → logs in or creates an account (signed-out visitors to `/p/*` and `/d/*` are sent to `/auth/login` by the middleware, with the full link, `?ref=` included, as `redirect`) → lands on the product page → mock checkout → order confirmed → brand fulfills → consumer's product gets a peer-discovery QR → friends scan → consumer earns Cirkle Points.
 
 ## Key Mechanics
 
@@ -39,6 +39,7 @@ Scans QR code (phone camera) → lands on public product page (no auth needed to
 - Retailer deferred sale (within 90 days): 15%
 - Retailer tier-2 / brand discovery (different product, same brand, 90 days): 10%
 - Peer discovery: 50 Cirkle Points to the peer (not monetary)
+- Store share on a passed-on sale: the store where the chain started gets `platform_settings.peer_store_commission_bps` of the item price (migration 028). It is **0 (off)** until set; change it with `update public.platform_settings set peer_store_commission_bps = 500;` (500 = 5 %). Saved on each attribution when the order is placed, so a change never touches old orders. Shown to the store as "Passed on" in earnings and payouts. Details: `PASS-ON-CHAIN.md`
 - **Not built yet:** checkout (`src/app/api/checkout/route.ts`) always writes `deferred` at 15% for store sales, whatever the partnership's rates. `direct` and `tier2` are never produced.
 
 ### Cirkle Points
@@ -83,7 +84,7 @@ The host is not hardcoded: `src/lib/base-url.ts` uses `NEXT_PUBLIC_QR_BASE_URL`,
 
 ## Database
 
-The schema is the migrations in `supabase/migrations` (001–025; there are two 002 and two 015 files), applied in order. Every database change goes in a new numbered file there. Key tables:
+The schema is the migrations in `supabase/migrations` (001–031; there are two 002 and two 015 files), applied in order. Every database change goes in a new numbered file there. Key tables:
 
 - `users` — extended via Supabase Auth, adds role + profile fields
 - `brand_profiles` — brand-specific data (name, logo, description)
@@ -108,6 +109,7 @@ The schema is the migrations in `supabase/migrations` (001–025; there are two 
 - `push_subscriptions` (010) — one web-push endpoint per browser/device, owner-only RLS
 - `tag_prints` (011) — every printed QR tag: sample (the code), user, portal (`brand` / `retail`), time. Written by `/api/tag-prints`; no UI reads it yet
 - `brand_stories` (012) — up to 10 story images/videos per brand, in a fixed `position` (1–10). Reorder with the `reorder_brand_stories` RPC
+- `platform_settings` (028) — one row of settings the app (service role) and SQL both read: `peer_store_commission_bps` (store share on passed-on sales, 0 = off). No RLS policies
 - `consumer_consents` (014) — append-only consent log: `consent` (`chain`, `share_with_brands`, `news_from_brands`), `granted`, `source` (`consent_screen`, `profile`), time. The latest row per consent wins; no row means off. `chain` is always on (logged as an acknowledgement). Owner-only RLS, insert and read only
 
 Columns added during the Figma update:
@@ -115,18 +117,26 @@ Columns added during the Figma update:
 - `orders.carrier`, `shipped_at`, `delivered_at` (010); `orders.return_period_ends_at` (013): delivered + `RETURN_PERIOD_DAYS`, written on delivery so later changes don't move old deadlines
 - `attributions.paid_out_at` (013): when the store's cut was paid out
 
+Pass-on chain (026–030, `PASS-ON-CHAIN.md`):
+- `scans.origin_retailer_id`, `origin_sample_id`, `parent_scan_id`, `chain_id` (026): the store and tag where the chain started, the giver's scan this one came from, and the chain. Filled by the `scans_fill_chain` BEFORE INSERT trigger, never by the client; a store scan's `source_retailer_id` is always the sample's store. `source_retailer_id` on peer scans and `events.retailer_id` are unchanged (null for peer), so store stats don't count passed-on scans
+- `attributions.origin_retailer_id`, `chain_id` (027), `store_commission_rate`, `store_commission_amount_dkk` (028): written by checkout from the attributing scan; the store share only on peer rows
+- Only the service role inserts scans (the open insert policy was dropped in 026)
+
 Dashboard RPCs (security definer, only return the caller's own rows):
 - `get_brand_dashboard` (009): every block on the brand dashboard, filtered by period, product, store and size
 - `get_retailer_payouts`, `get_retailer_most_scanned` (013): the store's credited purchases with payout status, and scans/buys per product
 - `get_brand_portal_shell`, `get_retailer_portal_shell` (016): sidebar counts and the Next payout box
-- Brand portal v2 screens: `get_brand_overview` (017, dashboard: where things stand, saves by size vs. the range before, buy rate), `get_brand_product_stats` (018, product library), `get_product_store_scans` (019, Edit product → In stores), `get_brand_store_scans` (020, Stores & QR tags), `get_brand_order_chain` (021, the chain on an order, first names only), `get_brand_return_stats` (022, Returns tiles). Definitions are in each migration's header
+- Brand portal v2 screens: `get_brand_overview` (017, dashboard: where things stand, saves by size vs. the range before, buy rate), `get_brand_product_stats` (018, product library), `get_product_store_scans` (019, Edit product → In stores), `get_brand_store_scans` (020, Stores & QR tags), `get_brand_order_chain` (029, replaces 021: Scanned at → every giver → buyer, chain ID, store share; first names only) and `get_brand_order_chains` (029, the same for the Orders CSV), `get_brand_return_stats` (022, Returns tiles). Definitions are in each migration's header
 - Retail portal v2 screens: `get_retailer_overview` (023, dashboard tiles, weekly bars, earnings per week/month/year, earned this month, tags never printed), `get_retailer_product_stats` (024, Products in the store: scans and buys per product in this store), `get_retailer_profile_stats` (025, Store profile: earned since joining, brands with their share of this month's scans)
+- `get_brand_top_stores` (031): brand dashboard Top stores. A store's scans = scan events on its tags plus scan events of QRs passed on from it (via `scans.origin_retailer_id`), one number per store, same period/product/store filters as the dashboard
+- Pass-on chain for shoppers (030): `get_my_order_chain` (the buyer or any giver in the chain, else null), `get_my_order_chains` (Your orders), `get_my_passed_on` (Flayms → Passed on). Built on the internal `order_chain_detail` (029), which clients can't call
+- `get_retailer_payouts` (028) also returns passed-on shares (`kind` = `passed_on`) for the chain's origin store, so the store shell, overview and profile stats include them; the brand dashboard store cut and payout box subtract them
 - Functions that take an id (`get_product_store_scans`, `get_brand_overview` filters, `get_brand_order_chain`) still answer only for the caller's own brand: a foreign id returns nothing
 
 Storage buckets: `brand-assets` (logos, store photos, QR PNGs at `qr-codes/{sample_id}.png`, older product images; not in any migration), `product-images` (10 MB, JPEG/PNG/WebP) and `brand-stories` (50 MB, MP4/MOV/JPEG/PNG), both from 012.
 
 ### Events
-`events.type` is `scan`, `save` or `purchase`. Each row has the user (null for an anonymous scan), brand, product, size (save and purchase only; a scan never has one), store (`retailer_id`, from the scanned tag), tag (`sample_id`), giver (`giver_user_id`, from a peer link), the `scan_id` that carries store and giver, the order and order item (purchase only), quantity, unit price and `occurred_at`.
+`events.type` is `scan`, `save` or `purchase`. Each row has the user (null only on old anonymous scans: since the pass-on chain, every scan needs a signed-in user), brand, product, size (save and purchase only; a scan never has one), store (`retailer_id`, from the scanned tag), tag (`sample_id`), giver (`giver_user_id`, from a peer link), the `scan_id` that carries store and giver, the order and order item (purchase only), quantity, unit price and `occurred_at`.
 - Written with the service role (no insert policies) by `/api/scans`, `/api/saved-products` and `/api/checkout`, through `src/lib/events.ts`
 - Save and checkout credit the user's latest scan of the product within the 90-day window, so store and giver carry through
 - `origin` is `live`, `backfill` (rows made from existing scans/saves/orders in 008) or `seed`. `npm run db:seed-events` adds seed rows and QA orders for the QA brand and store; `npm run db:seed-events -- --reset` removes them

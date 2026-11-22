@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createMiddlewareClient } from '@/lib/supabase-middleware';
 
-// /api/scans is public so a first-time, signed-out QR scan is still recorded.
+// /api/scans answers signed-out calls itself (401), so it isn't redirected.
 // /ds-preview is a development-only page (404 in production).
-const PUBLIC_PATHS = ['/', '/auth', '/p', '/d', '/invite', '/api/scans', '/ds-preview'];
+const PUBLIC_PATHS = ['/', '/auth', '/invite', '/api/scans', '/ds-preview'];
+
+// QR landing pages: a store tag (/p/{sample}) or a pass-on link (/d/{product}?ref=).
+// A scan must belong to a signed-in shopper, or the chain can't continue from
+// them, so signed-out visitors log in (or sign up) first and come back to the
+// same URL, query included (?ref= carries the giver).
+const SCAN_PATHS = ['/p', '/d'];
 
 // Each route section is locked to a single role.
 const ROLE_SECTIONS: Record<string, 'brand' | 'retailer' | 'consumer'> = {
@@ -33,6 +39,13 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!user && SCAN_PATHS.some((path) => pathname === path || pathname.startsWith(path + '/'))) {
+    const loginUrl = new URL('/auth/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname + request.nextUrl.search);
+    loginUrl.searchParams.set('role', 'consumer');
+    return NextResponse.redirect(loginUrl);
+  }
 
   // Unauthenticated users can't reach private routes.
   if (!isPublicPath(pathname) && !user) {

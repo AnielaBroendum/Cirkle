@@ -179,8 +179,20 @@ export default function ProductPageClient({
     setSaving(false);
   }
 
+  // Pass it on: the link always carries the person sharing it (?ref=), so the
+  // friend's scan credits them and continues their chain. Sharing the page's
+  // own URL would pass on a store tag or someone else's ref instead.
   async function handleShare() {
-    const url = window.location.href;
+    if (!user) {
+      window.location.href = `/auth/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      return;
+    }
+    const configured = process.env.NEXT_PUBLIC_QR_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
+    const base =
+      configured && !configured.includes('localhost') && !configured.includes('127.0.0.1')
+        ? configured.replace(/\/+$/, '')
+        : window.location.origin;
+    const url = `${base}/d/${product.id}?ref=${user.id}`;
 
     // Try native share (works on mobile HTTPS)
     if (typeof navigator.share === 'function') {
