@@ -32,9 +32,9 @@ In code: sign-up already logs in straight away (no "check your email" screen). N
 
 ### Part C — Delete account (Apple 5.1.1(v))
 In code: nothing. `orders.consumer_user_id` and `returns.user_id` cascade-deleted with the user.
-- [ ] Migration 032: orders and returns keep a null user instead of being deleted
-- [ ] `POST /api/account/delete`: anonymises orders, deletes the auth user (personal rows cascade)
-- [ ] "Delete account" with confirmation in the consumer profile
+- [x] Migration 032: orders and returns keep a null user instead of being deleted
+- [x] `POST /api/account/delete`: anonymises orders, deletes the auth user (personal rows cascade)
+- [x] "Delete account" with confirmation (inline panel under Sign out) in the consumer profile
 - [ ] 032 applied to production
 - [ ] Test: delete a test account and check what's left
 

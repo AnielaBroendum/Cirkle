@@ -71,7 +71,7 @@ type Order = {
   tracking_url: string | null;
   shipped_at: string | null;
   created_at: string;
-  consumer_user_id: string;
+  consumer_user_id: string | null;
   order_items: OrderItem[];
   order_events: OrderEvent[];
   profiles: { name: string; email: string } | null;

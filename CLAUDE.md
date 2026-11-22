@@ -84,7 +84,7 @@ The host is not hardcoded: `src/lib/base-url.ts` (`getBaseUrl(request)` in route
 
 ## Database
 
-The schema is the migrations in `supabase/migrations` (001–031; there are two 002 and two 015 files), applied in order. Every database change goes in a new numbered file there. Key tables:
+The schema is the migrations in `supabase/migrations` (001–032; there are two 002 and two 015 files), applied in order. Every database change goes in a new numbered file there. Key tables:
 
 - `users` — extended via Supabase Auth, adds role + profile fields
 - `brand_profiles` — brand-specific data (name, logo, description)
@@ -121,6 +121,8 @@ Pass-on chain (026–030, `PASS-ON-CHAIN.md`):
 - `scans.origin_retailer_id`, `origin_sample_id`, `parent_scan_id`, `chain_id` (026): the store and tag where the chain started, the giver's scan this one came from, and the chain. Filled by the `scans_fill_chain` BEFORE INSERT trigger, never by the client; a store scan's `source_retailer_id` is always the sample's store. `source_retailer_id` on peer scans and `events.retailer_id` are unchanged (null for peer), so store stats don't count passed-on scans
 - `attributions.origin_retailer_id`, `chain_id` (027), `store_commission_rate`, `store_commission_amount_dkk` (028): written by checkout from the attributing scan; the store share only on peer rows
 - Only the service role inserts scans (the open insert policy was dropped in 026)
+
+Account deletion (032): a shopper deletes their account from Profile (`POST /api/account/delete`, shoppers only, 403 for brand/store). The route blanks the name and address on their orders and their return comments, then deletes the auth user. `orders.consumer_user_id` and `returns.user_id` are nullable and `ON DELETE SET NULL`, like events, scans and attributions, so brand and store numbers don't change; points, saves, consents and push subscriptions cascade away. Order emails and push skip orders whose shopper is gone.
 
 Dashboard RPCs (security definer, only return the caller's own rows):
 - `get_brand_dashboard` (009): every block on the brand dashboard, filtered by period, product, store and size
