@@ -189,6 +189,18 @@ src/
     shared/                 — Shared components (product card, status timeline, etc.)
 ```
 
+## TestFlight rules
+
+The consumer app ships to TestFlight as an iPhone app: a Capacitor shell that loads the live site (branch `testflight`, checklist in `TESTFLIGHT.md`).
+
+- Don't change payment, checkout, points or attribution logic in this round.
+- Every database change goes in a new file in `supabase/migrations`. Never drop or rename columns/tables or delete data without asking first.
+- Keep RLS: brands only see their own data, retailers only their own store's data, consumers only their own.
+- Secrets (such as Apple push keys) only on the server and in env variables, never in client code or git.
+- The web app must keep working in a normal browser. Native-only code runs only when `Capacitor.isNativePlatform()` is true (`src/lib/native.ts`).
+- The app's address is https://app.flaymforward.com, read from one env variable (`NEXT_PUBLIC_APP_URL`, via `src/lib/base-url.ts`). Never hard-code it.
+- Commit after each finished part.
+
 ## Conventions
 
 - Use server components by default; add `'use client'` only when needed (interactivity, hooks)
