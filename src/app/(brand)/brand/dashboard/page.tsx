@@ -28,13 +28,16 @@ import {
 
 /*
  * Brand dashboard, Portals v2 (Figma "Brand Portal v2 / 02 Dashboard", 358:161).
- * Numbers: get_brand_dashboard (009) for the period KPIs and top stores, get_brand_overview (017)
+ * Numbers: get_brand_dashboard (009) for the period KPIs, get_brand_top_stores (031) for Top stores
+ * (scans of a store's tags plus scans of QRs passed on from it), get_brand_overview (017)
  * for "Where things stand", saves by size (with the range before it) and the buy rate.
  * The filter row (period, product, store, size) applies to every block; "Where things stand" is
  * live, so the period doesn't narrow it, and "Saves by size" has its own range switch.
  */
 
 type Period = 'day' | 'week' | 'month' | 'year';
+/** Top stores (031): scans of the store's tags plus scans of QRs passed on from it. */
+type TopStore = Database['public']['Functions']['get_brand_top_stores']['Returns'][number];
 const PERIODS: Period[] = ['day', 'week', 'month', 'year'];
 const PERIOD_LABEL: Record<Period, string> = { day: 'today', week: 'this week', month: 'this month', year: 'this year' };
 
@@ -161,6 +164,7 @@ function DashboardView() {
   const [stores, setStores] = useState<StoreOption[]>([]);
   const [data, setData] = useState<Dashboard | null>(null);
   const [overview, setOverview] = useState<Overview | null>(null);
+  const [topStores, setTopStores] = useState<TopStore[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
@@ -208,11 +212,19 @@ function DashboardView() {
         p_retailer: storeId,
         p_size: size,
       }),
-    ]).then(([dash, over]) => {
+      supabase.rpc('get_brand_top_stores', {
+        p_start: start.toISOString(),
+        p_end: now.toISOString(),
+        p_product: productId,
+        p_retailer: storeId,
+        p_limit: 3,
+      }),
+    ]).then(([dash, over, top]) => {
       if (stale) return;
-      setError(dash.error || over.error ? 'Could not load the dashboard. Try again in a moment.' : '');
+      setError(dash.error || over.error || top.error ? 'Could not load the dashboard. Try again in a moment.' : '');
       if (dash.data) setData(dash.data as unknown as Dashboard);
       if (over.data) setOverview(over.data as Overview);
+      if (top.data) setTopStores(top.data as TopStore[]);
       setRefreshing(false);
     });
     return () => {
@@ -447,18 +459,15 @@ function DashboardView() {
             {size && <p className="text-caption text-smoke">Scans count every size: people scan before they pick one.</p>}
 
             <p className="pt-1 text-label uppercase text-smoke">Top stores</p>
-            {data.by_store.length === 0 ? (
-              <p className="text-caption text-smoke">No store scans or purchases {periodText}.</p>
+            {!topStores?.length ? (
+              <p className="text-caption text-smoke">No store scans {periodText}.</p>
             ) : (
               <ul className="flex flex-col gap-[18px]">
-                {data.by_store.slice(0, 3).map((s) => (
-                  <li key={s.id} className="flex items-center gap-2.5">
+                {topStores.map((s) => (
+                  <li key={s.retailer_id} className="flex items-center gap-2.5">
                     <Thumb />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-body-sm font-medium text-flare">{s.name}</p>
-                      <p className="text-caption text-smoke">{plural(s.scans, 'scan')}</p>
-                    </div>
-                    <Chip className="tabular-nums">{count(s.buys)} sold</Chip>
+                    <p className="min-w-0 flex-1 truncate text-body-sm font-medium text-flare">{s.name}</p>
+                    <Chip className="tabular-nums">{plural(s.scans, 'scan')}</Chip>
                   </li>
                 ))}
               </ul>

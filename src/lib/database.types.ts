@@ -1056,6 +1056,11 @@ export type Database = {
         Args: Record<string, never>;
         Returns: { id: string; name: string }[];
       };
+      // 031: stores by scans of their tags plus scans of QRs passed on from them.
+      get_brand_top_stores: {
+        Args: { p_start: string; p_end: string; p_product?: string | null; p_retailer?: string | null; p_limit?: number };
+        Returns: { retailer_id: string; name: string; scans: number }[];
+      };
       get_retailer_payouts: {
         Args: Record<string, never>;
         Returns: {

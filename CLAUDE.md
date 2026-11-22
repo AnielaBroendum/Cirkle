@@ -84,7 +84,7 @@ The host is not hardcoded: `src/lib/base-url.ts` uses `NEXT_PUBLIC_QR_BASE_URL`,
 
 ## Database
 
-The schema is the migrations in `supabase/migrations` (001–030; there are two 002 and two 015 files), applied in order. Every database change goes in a new numbered file there. Key tables:
+The schema is the migrations in `supabase/migrations` (001–031; there are two 002 and two 015 files), applied in order. Every database change goes in a new numbered file there. Key tables:
 
 - `users` — extended via Supabase Auth, adds role + profile fields
 - `brand_profiles` — brand-specific data (name, logo, description)
@@ -128,6 +128,7 @@ Dashboard RPCs (security definer, only return the caller's own rows):
 - `get_brand_portal_shell`, `get_retailer_portal_shell` (016): sidebar counts and the Next payout box
 - Brand portal v2 screens: `get_brand_overview` (017, dashboard: where things stand, saves by size vs. the range before, buy rate), `get_brand_product_stats` (018, product library), `get_product_store_scans` (019, Edit product → In stores), `get_brand_store_scans` (020, Stores & QR tags), `get_brand_order_chain` (029, replaces 021: Scanned at → every giver → buyer, chain ID, store share; first names only) and `get_brand_order_chains` (029, the same for the Orders CSV), `get_brand_return_stats` (022, Returns tiles). Definitions are in each migration's header
 - Retail portal v2 screens: `get_retailer_overview` (023, dashboard tiles, weekly bars, earnings per week/month/year, earned this month, tags never printed), `get_retailer_product_stats` (024, Products in the store: scans and buys per product in this store), `get_retailer_profile_stats` (025, Store profile: earned since joining, brands with their share of this month's scans)
+- `get_brand_top_stores` (031): brand dashboard Top stores. A store's scans = scan events on its tags plus scan events of QRs passed on from it (via `scans.origin_retailer_id`), one number per store, same period/product/store filters as the dashboard
 - Pass-on chain for shoppers (030): `get_my_order_chain` (the buyer or any giver in the chain, else null), `get_my_order_chains` (Your orders), `get_my_passed_on` (Flayms → Passed on). Built on the internal `order_chain_detail` (029), which clients can't call
 - `get_retailer_payouts` (028) also returns passed-on shares (`kind` = `passed_on`) for the chain's origin store, so the store shell, overview and profile stats include them; the brand dashboard store cut and payout box subtract them
 - Functions that take an id (`get_product_store_scans`, `get_brand_overview` filters, `get_brand_order_chain`) still answer only for the caller's own brand: a foreign id returns nothing

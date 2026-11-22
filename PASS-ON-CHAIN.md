@@ -15,6 +15,7 @@ Scanned at (store) → Passed on by (giver) → Bought by (buyer), kept on every
 - [x] Scenario test on production (rolled back): store → 1 step → 2 steps, privacy, store share at 500 bps
 - [ ] App flow in the browser against a database with 026–030 (not done: no test database with the migrations; see Testing)
 - [x] Type check, lint, build
+- [x] E: `031_brand_top_stores.sql` and Top stores on the brand dashboard (tested rolled back)
 - [x] Applied 026–030 to production (22 Nov 2026); counts as in the dry run, setting 0, brand/buyer/giver functions answer on a real passed-on order
 
 ## Who gets what
@@ -56,6 +57,12 @@ Before/after with the share at 0: store payouts, store shell, overview, product 
 All 21 giverless peer scans are from 7–9 June 2026, before commit `136f2cb` started skipping in-app views of `/d/{product}` (no `?ref`). Those views were recorded as peer scans with nobody to credit. Nothing has written one since.
 
 The live bug was the product page's Share button: it shared the page's own URL, so sharing from a store tag passed on the tag (the friend became a store scan, no giver), and re-sharing a friend's link passed on the friend's `ref` instead of your own.
+
+## Top stores on the brand dashboard (Part E)
+
+`get_brand_top_stores` (031) ranks stores by scans in the selected period: scans of the store's tags plus scans of QRs passed on from it. It counts scan events, like the rest of the dashboard (so seed events count too). A tag scan's store is `events.retailer_id`, and a passed-on scan's store is its scan's `origin_retailer_id`. The list shows one number per store; the "sold" chip is gone, since the brief asks for scans only. Nothing else changes: `events.retailer_id` and `source_retailer_id` stay as they are.
+
+Tested on production in a rolled-back transaction, as the QA brand: QA Concept Store 625 → 628 all time (+3 passed-on scans), 3 → 4 this month (+1); Sonny Test and Kayak Bar unchanged. Every other dashboard number (KPIs, by-store cut, shell, overview) was identical before and after. Another brand doesn't see the QA store, and a shopper gets nothing.
 
 ## Scanning needs an account
 
