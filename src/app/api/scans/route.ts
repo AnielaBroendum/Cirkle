@@ -13,7 +13,12 @@ export async function POST(request: NextRequest) {
   const {
     data: { user },
   } = await session.auth.getUser();
-  const scanner_user_id = user?.id ?? null;
+  // Every scan belongs to a signed-in shopper (the QR pages send signed-out
+  // visitors to log in first), so the chain can continue from them.
+  if (!user) {
+    return NextResponse.json({ error: 'Sign in to scan' }, { status: 401 });
+  }
+  const scanner_user_id = user.id;
 
   if (!product_id || (source_type !== 'retailer' && source_type !== 'peer')) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });

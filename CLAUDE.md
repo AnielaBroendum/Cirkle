@@ -25,7 +25,7 @@ Signs up → completes onboarding (brand profile only; products are added afterw
 Receives email invitation from a brand → accepts → completes onboarding (store profile) → receives physical samples → displays them with QR tags → earns commission when scans lead to sales → sees dashboard.
 
 ### Consumer
-Scans QR code (phone camera) → lands on public product page (no auth needed to browse) → creates account to buy → mock checkout → order confirmed → brand fulfills → consumer's product gets a peer-discovery QR → friends scan → consumer earns Cirkle Points.
+Scans QR code (phone camera) → logs in or creates an account (signed-out visitors to `/p/*` and `/d/*` are sent to `/auth/login` by the middleware, with the full link, `?ref=` included, as `redirect`) → lands on the product page → mock checkout → order confirmed → brand fulfills → consumer's product gets a peer-discovery QR → friends scan → consumer earns Cirkle Points.
 
 ## Key Mechanics
 
@@ -135,7 +135,7 @@ Dashboard RPCs (security definer, only return the caller's own rows):
 Storage buckets: `brand-assets` (logos, store photos, QR PNGs at `qr-codes/{sample_id}.png`, older product images; not in any migration), `product-images` (10 MB, JPEG/PNG/WebP) and `brand-stories` (50 MB, MP4/MOV/JPEG/PNG), both from 012.
 
 ### Events
-`events.type` is `scan`, `save` or `purchase`. Each row has the user (null for an anonymous scan), brand, product, size (save and purchase only; a scan never has one), store (`retailer_id`, from the scanned tag), tag (`sample_id`), giver (`giver_user_id`, from a peer link), the `scan_id` that carries store and giver, the order and order item (purchase only), quantity, unit price and `occurred_at`.
+`events.type` is `scan`, `save` or `purchase`. Each row has the user (null only on old anonymous scans: since the pass-on chain, every scan needs a signed-in user), brand, product, size (save and purchase only; a scan never has one), store (`retailer_id`, from the scanned tag), tag (`sample_id`), giver (`giver_user_id`, from a peer link), the `scan_id` that carries store and giver, the order and order item (purchase only), quantity, unit price and `occurred_at`.
 - Written with the service role (no insert policies) by `/api/scans`, `/api/saved-products` and `/api/checkout`, through `src/lib/events.ts`
 - Save and checkout credit the user's latest scan of the product within the 90-day window, so store and giver carry through
 - `origin` is `live`, `backfill` (rows made from existing scans/saves/orders in 008) or `seed`. `npm run db:seed-events` adds seed rows and QA orders for the QA brand and store; `npm run db:seed-events -- --reset` removes them

@@ -57,6 +57,12 @@ All 21 giverless peer scans are from 7–9 June 2026, before commit `136f2cb` st
 
 The live bug was the product page's Share button: it shared the page's own URL, so sharing from a store tag passed on the tag (the friend became a store scan, no giver), and re-sharing a friend's link passed on the friend's `ref` instead of your own.
 
+## Scanning needs an account
+
+A scan has to belong to a signed-in shopper, or the chain can't continue from them. The middleware sends signed-out visitors to `/p/*` and `/d/*` to `/auth/login?redirect=<the full link>&role=consumer`; "Create one" keeps the link, and after login, or sign-up plus the consent screen, they land back on the same page, `?ref=` included. `/api/scans` answers 401 without a session. Checked in the browser: signed out → login → back on a pass-on link, and the scan was saved with the shopper, its parent, origin store and chain.
+
+Trade-off: people who scan but don't log in are no longer counted as scans in the brand and store stats.
+
 ## Testing
 
 Before applying, both runs were on production inside one transaction that was always rolled back (nothing saved):
