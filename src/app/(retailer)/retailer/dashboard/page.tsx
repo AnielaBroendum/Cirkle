@@ -10,6 +10,7 @@ import type { Database } from '@/lib/database.types';
 import {
   ArrowLink,
   Button,
+  Chip,
   KPISkeleton,
   PageHeader,
   Panel,
@@ -267,6 +268,11 @@ export default function RetailerDashboardPage() {
                       <p className="truncate text-caption text-smoke" title={payoutNote(p, data.next_payout)}>
                         {p.brand_name} · {kr(p.amount)}
                       </p>
+                      {p.kind === 'passed_on' && (
+                        <Chip className="mt-1 py-0.5" title="Bought by a friend of someone who scanned it in your store">
+                          Passed on
+                        </Chip>
+                      )}
                     </div>
                     <StatusPill status={p.payout_status} label={PAYOUT_STATUS_LABEL[p.payout_status]} />
                   </li>

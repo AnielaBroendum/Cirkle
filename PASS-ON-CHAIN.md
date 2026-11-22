@@ -7,8 +7,8 @@ Scanned at (store) → Passed on by (giver) → Bought by (buyer), kept on every
 - [x] Findings reported and confirmed (where scans/attributions/events are written, commissions and payouts, pass-on link, giverless scans)
 - [x] A: `026_scan_chain.sql` — origin/parent/chain columns on scans, BEFORE INSERT trigger, backfill, open insert policy dropped
 - [x] A: Share button passes on `/d/{product}?ref={me}` (sign-in first); `/api/scans` takes the store from the tag only, skips self pass-ons
-- [ ] B: `027_attribution_chain.sql` — origin/chain on attributions, checkout fills them, backfill
-- [ ] B2: `028_peer_store_share.sql` — `platform_settings.peer_store_commission_bps` (0), store share on peer attributions, payouts and earnings
+- [x] B: `027_attribution_chain.sql` — origin/chain on attributions, checkout fills them, backfill
+- [x] B2: `028_peer_store_share.sql` — `platform_settings.peer_store_commission_bps` (0), store share on peer attributions, payouts and earnings
 - [ ] C: `029_brand_order_chain_v2.sql`, Orders detail chain, CSV export
 - [ ] D: `030_my_order_chain.sql`, buyer line, giver "Passed on" list
 - [ ] Test on the scratch project, dry run on production (rolled back), type check, lint, build

@@ -6,6 +6,7 @@ import { ATTRIBUTION_WINDOW_DAYS, findAttributingScan } from '@/lib/attribution'
 import { recordEvent } from '@/lib/events';
 import { isSoldOut } from '@/lib/stock';
 import { priceRange } from '@/lib/pricing';
+import { getPeerStoreCommissionBps } from '@/lib/platform-settings';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -146,15 +147,29 @@ export async function POST(request: NextRequest) {
     const isPeer = recentScan.source_type === 'peer';
     const attributionType = isPeer ? 'peer' : 'deferred';
 
+    // Passed on: the store where the chain started can get a share of the sale
+    // (platform_settings.peer_store_commission_bps, migration 028; 0 = off).
+    // Same base as store commission: the item price, before points, no delivery.
+    // Saved on the order, so a later change of the setting never touches it.
+    let storeShare: { rate: number; amount: number } | null = null;
+    if (isPeer && recentScan.origin_retailer_id) {
+      const bps = await getPeerStoreCommissionBps(admin);
+      if (bps > 0) storeShare = { rate: bps, amount: Math.round((unitPriceOre * bps) / 10000) };
+    }
+
     await admin.from('attributions').insert({
       order_id: order.id,
       scan_id: recentScan.id,
       attribution_type: attributionType,
       source_retailer_id: recentScan.source_retailer_id,
       source_user_id: recentScan.source_user_id,
+      origin_retailer_id: recentScan.origin_retailer_id,
+      chain_id: recentScan.chain_id,
       commission_rate: isPeer ? null : 1500,
       commission_amount_dkk: isPeer ? null : Math.round(unitPriceOre * 0.15),
       points_amount: isPeer ? 50 : null,
+      store_commission_rate: storeShare?.rate ?? null,
+      store_commission_amount_dkk: storeShare?.amount ?? null,
       status: 'pending',
       attribution_window_expires_at: new Date(
         new Date(recentScan.scanned_at).getTime() + ATTRIBUTION_WINDOW_DAYS * 24 * 60 * 60 * 1000

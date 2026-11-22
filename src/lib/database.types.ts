@@ -962,6 +962,8 @@ export type Database = {
             brand_name: string;
             amount: number;
             payout_status: 'return_period' | 'ready' | 'paid_out';
+            /** 'passed_on' = the store's share of a sale passed on from its tag (028). */
+            kind: 'store' | 'passed_on';
             ordered_at: string;
             return_period_ends_at: string | null;
             paid_out_at: string | null;
