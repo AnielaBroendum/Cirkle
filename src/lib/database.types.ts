@@ -903,7 +903,31 @@ export type Database = {
       // 021: Orders → the chain (first names only).
       get_brand_order_chain: {
         Args: { p_order: string };
-        Returns: { store: string | null; store_traced: boolean; giver: string | null; buyer: string | null } | null;
+        Returns: OrderChain | null;
+      };
+      // 029: the same for many orders (CSV export); other brands' orders left out.
+      get_brand_order_chains: {
+        Args: { p_orders: string[] };
+        Returns: { order_id: string; chain: OrderChain }[];
+      };
+      // 030: the buyer or a giver in the chain; anyone else gets null. No store share.
+      get_my_order_chain: {
+        Args: { p_order: string };
+        Returns: Omit<OrderChain, 'store_share_dkk'> | null;
+      };
+      // 030: orders bought from a pass-on the caller is part of. First names only, no prices.
+      get_my_passed_on: {
+        Args: Record<string, never>;
+        Returns: {
+          order_id: string;
+          product_id: string;
+          product_name: string;
+          buyer: string | null;
+          bought_at: string;
+          direct: boolean;
+          via: string | null;
+          points: number | null;
+        }[];
       };
       // 022: Returns tiles. Rates in percent, amounts in øre.
       get_brand_return_stats: {
@@ -1048,4 +1072,23 @@ export type Database = {
       };
     };
   };
+};
+
+/** The chain on one order (get_brand_order_chain, 029). First names only. */
+export type OrderChain = {
+  store: string | null;
+  /** True when the store was guessed from the giver's earlier purchase (orders before 026). */
+  store_traced: boolean;
+  /** The direct giver. */
+  giver: string | null;
+  /** Every giver, first giver first. */
+  givers: string[];
+  buyer: string | null;
+  chain_id: string | null;
+  /** Store's share of a passed-on sale in øre (028); null when none. */
+  store_share_dkk: number | null;
+  /** The order has an attribution (false: bought without a scan). */
+  credited: boolean;
+  /** The attribution is a pass-on. */
+  passed_on: boolean;
 };

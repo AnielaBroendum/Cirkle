@@ -32,9 +32,9 @@ import {
  * Orders, Portals v2 (Figma "Brand Portal v2 / 06 Orders", 365:645).
  * Shipping is unchanged: bulk "Mark as shipped" (/api/orders/ship), and per order carrier,
  * tracking and status steps (/api/orders/[id]/status, /tracking). New: the chain block
- * (get_brand_order_chain, 021). Tabs New / Shipped / Delivered / All: confirmed and packed
- * orders sit under New, since they still need shipping. Left out: Export (no CSV) and the
- * Chain ID (not stored).
+ * (get_brand_order_chain, 029: Scanned at → Passed on by → Bought by, short chain ID).
+ * Tabs New / Shipped / Delivered / All: confirmed and packed orders sit under New, since they
+ * still need shipping. Export CSV writes the orders on the current tab with their chain.
  */
 
 type Chain = NonNullable<Database['public']['Functions']['get_brand_order_chain']['Returns']>;
@@ -320,6 +320,49 @@ export default function BrandOrdersPage() {
 
   const filteredOrders = filter === 'all' ? orders : orders.filter((o) => FILTER_STATUSES[filter].includes(o.status));
 
+  // CSV of the orders on the current tab, with their chain (get_brand_order_chains, 029).
+  const [exporting, setExporting] = useState(false);
+  async function exportCsv() {
+    setExporting(true);
+    setActionError('');
+    try {
+      const ids = filteredOrders.map((o) => o.id);
+      const chains = new Map<string, Chain>();
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data, error } = await createClient().rpc('get_brand_order_chains', { p_orders: ids.slice(i, i + 200) });
+        if (error) throw error;
+        for (const row of (data ?? []) as { order_id: string; chain: Chain }[]) chains.set(row.order_id, row.chain);
+      }
+      const header = ['Order number', 'Date', 'Product', 'Store', 'Passed on by', 'Buyer', 'Chain ID', 'Store share DKK'];
+      const lines = filteredOrders.map((o) => {
+        const c = chains.get(o.id);
+        return [
+          o.order_number,
+          o.created_at.slice(0, 10),
+          o.order_items.map((it) => it.product_name).join('; '),
+          c?.credited ? c.store ?? 'Unknown' : '',
+          c?.credited ? (c.passed_on ? (c.givers.length ? c.givers.join(' > ') : 'Unknown') : '') : '',
+          c?.buyer ?? '',
+          c?.chain_id ? c.chain_id.slice(0, 8) : '',
+          c?.store_share_dkk != null ? (c.store_share_dkk / 100).toFixed(2) : '',
+        ]
+          .map(csvCell)
+          .join(',');
+      });
+      const blob = new Blob([[header.join(','), ...lines].join('\n') + '\n'], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `orders-${filter}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setActionError('Could not export the orders. Try again.');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const counts = orders.reduce(
     (acc, o) => {
       acc[o.status] = (acc[o.status] || 0) + 1;
@@ -428,19 +471,23 @@ export default function BrandOrdersPage() {
           <p className="text-label uppercase text-accent-bright">The chain</p>
           {c === undefined ? (
             <p className="mt-2.5 text-caption text-smoke">Loading…</p>
-          ) : !c || (!c.store && !c.giver) ? (
+          ) : !c || !c.credited ? (
             <p className="mt-2.5 text-caption text-ash">Bought without a scan.</p>
           ) : (
             <>
-              <div className="mt-2.5 flex items-stretch gap-1.5">
-                {c.store && <ChainStep label="Store" value={c.store} />}
-                {c.store && (c.giver || c.buyer) && <ChainArrow />}
-                {c.giver && <ChainStep label="Passed on" value={c.giver} />}
-                {c.giver && c.buyer && <ChainArrow />}
-                {c.buyer && <ChainStep label="Bought" value={c.buyer} />}
+              <div className="mt-2.5 flex flex-col items-stretch gap-1.5 sm:flex-row">
+                <ChainStep label="Scanned at" value={c.store ?? 'Unknown'} />
+                <ChainArrow />
+                <ChainStep label="Passed on by" value={chainGivers(c)} />
+                <ChainArrow />
+                <ChainStep label="Bought by" value={c.buyer ?? 'Unknown'} />
               </div>
+              <p className="mt-2.5 text-caption text-smoke">
+                Chain ID <span className="font-semibold text-ash">{shortChainId(c.chain_id)}</span>
+                {c.store_share_dkk != null && <> · Store share {formatDKK(c.store_share_dkk)}</>}
+              </p>
               {c.store_traced && (
-                <p className="mt-2.5 text-caption text-smoke">The store is where {c.giver ?? 'the friend'} bought it first.</p>
+                <p className="mt-1 text-caption text-smoke">The store is where {c.giver ?? 'the friend'} bought it first.</p>
               )}
             </>
           )}
@@ -570,6 +617,9 @@ export default function BrandOrdersPage() {
               className="self-start"
             />
             <div className="flex items-center gap-3">
+              <Button size="sm" variant="ghost" onClick={exportCsv} disabled={filteredOrders.length === 0 || exporting} loading={exporting}>
+                Export CSV
+              </Button>
               <span className="whitespace-nowrap text-caption text-smoke">{checked.size} selected</span>
               <Button size="sm" variant="flame" onClick={shipSelected} disabled={checked.size === 0 || bulkShipping} loading={bulkShipping}>
                 Mark as shipped
@@ -717,8 +767,24 @@ function ChainStep({ label, value }: { label: string; value: string }) {
 
 function ChainArrow() {
   return (
-    <span className="flex items-center text-caption text-accent-bright" aria-hidden>
-      →
+    <span className="flex items-center justify-center text-caption text-accent-bright" aria-hidden>
+      <span className="sm:hidden">↓</span>
+      <span className="hidden sm:inline">→</span>
     </span>
   );
+}
+
+/** "Passed on by": every giver in order; "Unknown" when a pass-on lost its giver. */
+function chainGivers(c: Chain): string {
+  if (!c.passed_on) return 'Not passed on';
+  return c.givers.length ? c.givers.join(' → ') : 'Unknown';
+}
+
+function shortChainId(id: string | null): string {
+  return id ? id.slice(0, 8) : 'Unknown';
+}
+
+function csvCell(v: string | number | null | undefined): string {
+  const t = v == null ? '' : String(v);
+  return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
 }
