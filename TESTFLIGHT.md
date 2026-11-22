@@ -21,7 +21,7 @@ In code: `src/lib/base-url.ts` (`getBaseUrl`) already builds QR tag and peer lin
 - [x] `metadataBase` in the root layout
 - [x] Old addresses (`NEXT_PUBLIC_LEGACY_HOSTS=cirkle-tan.vercel.app`, found by decoding the stored tag PNGs) redirect permanently to the same path on app.flaymforward.com
 - [ ] Tags made on a dev machine (3 in production point at `Anielas-MacBook-Air.local:3000`) can't be redirected: re-render their PNGs or make new tags
-- [ ] Native app: `/` goes to Scan; web keeps the welcome screen
+- [x] Native app: `/` goes to Scan; web keeps the welcome screen
 - [ ] Supabase URL Configuration, Vercel env + redeploy (you)
 - [ ] Live test: login, new tag, flame link, old tag redirect
 
@@ -40,8 +40,8 @@ In code: nothing. `orders.consumer_user_id` and `returns.user_id` cascade-delete
 
 ### Part D — Buy without payments
 In code: no Capacitor package. Buy adds to the basket; checkout creates mock orders.
-- [ ] `@capacitor/core` + `src/lib/native.ts` (`isNativeApp`, `useIsNativeApp`)
-- [ ] Native only: Buy shows "Coming soon" (product page, saved list, basket, checkout)
+- [x] `@capacitor/core` 8.6.0 + `src/lib/native.ts` (`isNativeApp`, `useIsNativeApp`)
+- [x] Native only: Buy shows "Coming soon" (product page, saved list; basket and checkout via `NativeBuyGuard` layouts)
 
 ## Session 2 — Capacitor shell
 - [ ] To be filled in from the next brief (iOS project, `server.url` from env, icons, splash)

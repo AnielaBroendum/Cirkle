@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Logo, buttonClasses, cn } from '@/components/ds';
+import { NativeHomeRedirect } from '@/components/consumer/native-home-redirect';
 
 // Figma "App / 01 Welcome and login". The three buttons are the role links
 // (each opens signup with ?role=), same targets as before.
@@ -12,6 +13,7 @@ const ROLES = [
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col bg-flaym-welcome font-brand text-on-primary">
+      <NativeHomeRedirect />
       <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col px-5 pb-8">
         <div className="flex justify-end pt-6">
           <Link href="/auth/login" className="text-body text-on-primary hover:underline">
