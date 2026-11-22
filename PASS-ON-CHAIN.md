@@ -15,6 +15,7 @@ Scanned at (store) → Passed on by (giver) → Bought by (buyer), kept on every
 - [x] Scenario test on production (rolled back): store → 1 step → 2 steps, privacy, store share at 500 bps
 - [ ] App flow in the browser against a database with 026–030 (not done: no test database with the migrations; see Testing)
 - [x] Type check, lint, build
+- [x] Applied 026–030 to production (22 Nov 2026); counts as in the dry run, setting 0, brand/buyer/giver functions answer on a real passed-on order
 
 ## Who gets what
 
@@ -58,7 +59,7 @@ The live bug was the product page's Share button: it shared the page's own URL, 
 
 ## Testing
 
-No database has 026–030 applied yet. Both runs were on production inside one transaction that was always rolled back (nothing saved):
+Before applying, both runs were on production inside one transaction that was always rolled back (nothing saved):
 
 1. The dry run above.
 2. A scenario with throwaway users: store, brand, a second brand, five shoppers. Shopper 1 scans the tag (sent with a wrong store id, which the trigger replaced) and buys; 1 passes on to 2; 2 passes on to 3 before buying; 3 buys, then 2 buys. Checked: every scan and attribution has the store as origin and one chain id; the brand chain shows Store → Ann → Bo → Cy with the right chain id, and the CSV function matches; shoppers 2 and 3 see their chain, 1 and 2 see "bought it" (1 also sees Cy via Bo); the other brand and an unrelated shopper get nothing; points 50 to each direct giver; store payout only the 15 % on the direct order. Then at 500 bps a fifth shopper bought from shopper 1's link: the store got a 25 kr "Passed on" row (5 % of 500 kr), the brand's store cut went up by the same, earlier orders didn't change; set back to 0.
