@@ -24,7 +24,7 @@ In code: `src/lib/base-url.ts` (`getBaseUrl`) already builds QR tag and peer lin
 - [x] Native app: `/` goes to Scan; web keeps the welcome screen
 - [x] Supabase URL Configuration, Vercel env (`NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_LEGACY_HOSTS` as Config, Production + Preview) + preview redeploy (you, 2026-11-23)
 - [x] Preview check (2026-11-23): shopper and brand login work, scanning a tag while signed out returns to it after login, flame link and invite link use https://app.flaymforward.com, a new tag decodes to https://app.flaymforward.com/p/… (test sample deleted again)
-- [ ] Live test: login, new tag, flame link, old tag redirect (redirect checked locally: `cirkle-tan.vercel.app/p/…` and `/d/…?ref=` → 308 to app.flaymforward.com, path and query kept)
+- [x] Live on production (2026-11-23, `testflight` merged into `main`): `cirkle-tan.vercel.app/p/…` and `/d/…?ref=` redirect 308 to app.flaymforward.com with path and query; sign-up on app.flaymforward.com lands signed in on the consent screen, sign-out and log-in work, Delete account removes the auth user, profile and consents
 
 ### Part B — Login without confirmation emails
 In code: sign-up already logs in straight away (no "check your email" screen). No Forgot password, magic link or social login exists.
@@ -47,6 +47,7 @@ In code: no Capacitor package. Buy adds to the basket; checkout creates mock ord
 ### Follow-ups found
 - [ ] A peer link (`/d/…?ref=`) from a deleted shopper: the scan's `source_user_id` points at a profile that no longer exists, so recording that scan fails. Decide whether to drop `ref` for unknown users (touches scan recording)
 - [ ] `EMAIL_FROM` and the VAPID subject still default to `@cirkle.dk`; use an address on a domain verified in Resend
+- [ ] Welcome points are only given at a shopper's first checkout (`/api/checkout`), not at sign-up as CLAUDE.md says. Decide which is right (checkout/points logic, so not this round)
 - [ ] Test order #46 (QA Atelier, pending) can be cancelled in the brand portal
 
 ## Session 2 — Capacitor shell
