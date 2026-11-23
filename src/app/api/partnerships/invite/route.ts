@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { generateToken } from '@/lib/utils';
 import { sendRetailerInvitation } from '@/lib/email';
+import { getBaseUrl } from '@/lib/base-url';
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
   }
 
   const token = generateToken();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = getBaseUrl(request);
   const invitationUrl = `${appUrl}/invite/${token}`;
 
   const { data: partnership, error: insertError } = await supabase

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, LogOut } from 'lucide-react';
+import { ChevronRight, Loader2, LogOut } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { buttonClasses, cn } from '@/components/ds';
@@ -31,6 +31,28 @@ export default function ConsumerProfilePage() {
   const [saving, setSaving] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  // Delete account (Apple 5.1.1(v)): POST /api/account/delete removes the login and
+  // personal data; orders stay for the brand with the name and address removed.
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const res = await fetch('/api/account/delete', { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || 'Could not delete your account. Please try again.');
+      }
+      await createClient().auth.signOut().catch(() => {});
+      window.location.href = '/';
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Could not delete your account. Please try again.');
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -172,6 +194,50 @@ export default function ConsumerProfilePage() {
           <LogOut className="h-4 w-4" />
           Sign out
         </button>
+
+        {!confirmDelete ? (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="mt-4 w-full py-2 text-center text-body-sm text-smoke underline hover:text-on-primary"
+          >
+            Delete account
+          </button>
+        ) : (
+          <div role="alertdialog" aria-labelledby="delete-title" className="mt-4 border border-line-dark-subtle bg-surface-dark p-4">
+            <p id="delete-title" className="text-label uppercase text-accent-bright">Delete account?</p>
+            <p className="mt-2 text-body-sm text-ash">
+              This deletes your login, profile, Cirkle Points, saved items and privacy choices. You can&rsquo;t undo it.
+            </p>
+            <p className="mt-2 text-body-sm text-ash">
+              Orders you placed stay with the brand for their records, without your name or address. QR codes you&rsquo;ve
+              passed on stop earning points.
+            </p>
+            {deleteError && <p className="mt-3 text-body-sm text-accent-bright">{deleteError}</p>}
+            <div className="mt-4 flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmDelete(false);
+                  setDeleteError('');
+                }}
+                disabled={deleting}
+                className="flex h-11 flex-1 items-center justify-center border border-char text-body text-on-primary hover:border-on-primary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className={buttonClasses({ variant: 'flame', className: 'flex-1 disabled:opacity-60' })}
+              >
+                {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

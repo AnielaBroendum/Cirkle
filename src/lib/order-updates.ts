@@ -8,7 +8,7 @@ export type OrderForUpdate = {
   id: string;
   order_number: number;
   status: string;
-  consumer_user_id: string;
+  consumer_user_id: string | null; // null once the shopper deleted their account
   brand_id: string;
   carrier: string | null;
   tracking_number: string | null;
@@ -87,7 +87,9 @@ export async function applyOrderStatus(
     .insert({ order_id: order.id, status, note: change.note || null, created_at: now });
   if (eventError) console.error('[orders] event insert failed:', eventError.message);
 
-  const { data: consumer } = await admin.from('profiles').select('email').eq('id', order.consumer_user_id).single();
+  const { data: consumer } = order.consumer_user_id
+    ? await admin.from('profiles').select('email').eq('id', order.consumer_user_id).single()
+    : { data: null };
   if (consumer?.email) {
     try {
       await sendOrderStatusUpdate(
@@ -101,7 +103,7 @@ export async function applyOrderStatus(
   }
 
   const text = pushText(status, brandName, carrier);
-  if (text) {
+  if (text && order.consumer_user_id) {
     try {
       await sendPush(admin, order.consumer_user_id, {
         title: 'Flaym',

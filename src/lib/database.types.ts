@@ -328,7 +328,7 @@ export type Database = {
         Row: {
           id: string;
           order_number: number;
-          consumer_user_id: string;
+          consumer_user_id: string | null;
           brand_id: string;
           status: 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'cancelled';
           total_dkk: number;
@@ -350,7 +350,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          consumer_user_id: string;
+          consumer_user_id?: string | null;
           brand_id: string;
           status?: 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'cancelled';
           total_dkk: number;
@@ -370,7 +370,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          consumer_user_id?: string;
+          consumer_user_id?: string | null;
           brand_id?: string;
           status?: 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered' | 'cancelled';
           total_dkk?: number;

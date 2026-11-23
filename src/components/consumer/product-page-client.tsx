@@ -12,6 +12,8 @@ import { consumerTabs } from './tab-items';
 import { BrandStoriesViewer, type BrandStory } from './brand-stories-viewer';
 import { isSoldOut, type VariantStock } from '@/lib/stock';
 import { formatPriceRange, priceRange, type VariantPrice } from '@/lib/pricing';
+import { getAppUrl } from '@/lib/base-url';
+import { NATIVE_BUY_SOON, useIsNativeApp } from '@/lib/native';
 
 function timeAgo(iso?: string): string {
   if (!iso) return '';
@@ -90,6 +92,8 @@ export default function ProductPageClient({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(!!savedBefore);
   const [hydrated, setHydrated] = useState(false);
+  // No payments in the iPhone app yet: Buy shows "Coming soon" there (web unchanged).
+  const nativeApp = useIsNativeApp();
   const [showCopied, setShowCopied] = useState(false);
   const [storiesOpen, setStoriesOpen] = useState(false);
   const stories = [...(brand.brand_stories ?? [])].sort((a, b) => a.position - b.position);
@@ -187,12 +191,7 @@ export default function ProductPageClient({
       window.location.href = `/auth/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
       return;
     }
-    const configured = process.env.NEXT_PUBLIC_QR_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
-    const base =
-      configured && !configured.includes('localhost') && !configured.includes('127.0.0.1')
-        ? configured.replace(/\/+$/, '')
-        : window.location.origin;
-    const url = `${base}/d/${product.id}?ref=${user.id}`;
+    const url = `${getAppUrl()}/d/${product.id}?ref=${user.id}`;
 
     // Try native share (works on mobile HTTPS)
     if (typeof navigator.share === 'function') {
@@ -500,13 +499,23 @@ export default function ProductPageClient({
       {/* Buy + Save. Buy is an <a> so it still works before JS hydrates. */}
       <div className={cn('fixed inset-x-0 z-40 bg-canvas-dark', user ? 'bottom-16' : 'bottom-0 pb-[env(safe-area-inset-bottom)]')}>
         <div className="mx-auto flex max-w-lg gap-2.5 px-5 py-3">
-          <a
-            href={buyHref}
-            onClick={handleBuyToBasket}
-            className={cn('flex h-[52px] flex-1 items-center justify-center text-body-lg font-medium uppercase tracking-[0.8px] transition-[filter] hover:brightness-110', flameSurface)}
-          >
-            Buy
-          </a>
+          {nativeApp ? (
+            <button
+              type="button"
+              disabled
+              className="flex h-[52px] flex-1 cursor-not-allowed items-center justify-center border border-char text-body-lg font-medium uppercase tracking-[0.8px] text-smoke"
+            >
+              {NATIVE_BUY_SOON}
+            </button>
+          ) : (
+            <a
+              href={buyHref}
+              onClick={handleBuyToBasket}
+              className={cn('flex h-[52px] flex-1 items-center justify-center text-body-lg font-medium uppercase tracking-[0.8px] transition-[filter] hover:brightness-110', flameSurface)}
+            >
+              Buy
+            </a>
+          )}
           <button
             type="button"
             onClick={handleSave}

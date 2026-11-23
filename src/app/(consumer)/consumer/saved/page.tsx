@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { NATIVE_BUY_SOON, useIsNativeApp } from '@/lib/native';
 import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { createClient } from '@/lib/supabase';
@@ -29,6 +30,7 @@ export default function ConsumerSavedPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<SavedProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const nativeApp = useIsNativeApp(); // no payments in the iPhone app yet
 
   useEffect(() => {
     if (!user) return;
@@ -109,7 +111,10 @@ export default function ConsumerSavedPage() {
                     </div>
                   </Link>
                   <div className="flex shrink-0 flex-col items-end gap-2">
-                    {!expired && (
+                    {!expired && nativeApp && (
+                      <span className="border border-char px-2.5 py-0.5 text-caption text-smoke">{NATIVE_BUY_SOON}</span>
+                    )}
+                    {!expired && !nativeApp && (
                       <a
                         href={`/consumer/checkout/${product.id}`}
                         className="bg-accent px-2.5 py-0.5 text-caption font-medium text-on-primary hover:bg-accent/90"

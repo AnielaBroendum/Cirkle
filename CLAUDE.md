@@ -77,14 +77,14 @@ Each purchase credited to a store has a payout status that is worked out from da
 
 ## QR Code URLs
 
-- **Retailer sample**: `https://cirkle.dk/p/{sample_id}` — resolves to product page with retailer attribution
-- **Peer discovery**: `https://cirkle.dk/d/{product_id}?ref={owner_user_id}` — resolves to product page with peer attribution
+- **Retailer sample**: `https://app.flaymforward.com/p/{sample_id}` — resolves to product page with retailer attribution
+- **Peer discovery**: `https://app.flaymforward.com/d/{product_id}?ref={owner_user_id}` — resolves to product page with peer attribution
 
-The host is not hardcoded: `src/lib/base-url.ts` uses `NEXT_PUBLIC_QR_BASE_URL`, then `NEXT_PUBLIC_APP_URL`, and falls back to the request's own origin when those point at localhost. Set both to the public domain in production, or printed tags and shared peer links will point somewhere friends can't reach. Sample tags are rendered to PNG when the sample is created, so they keep the host they were made with; peer QR codes are generated on demand.
+The host is not hardcoded: `src/lib/base-url.ts` (`getBaseUrl(request)` in route handlers, `getAppUrl()` elsewhere) uses `NEXT_PUBLIC_APP_URL`, then the local-only override `NEXT_PUBLIC_QR_BASE_URL`, skipping localhost values, and falls back to the request's (or browser's) own origin. In production set `NEXT_PUBLIC_APP_URL=https://app.flaymforward.com`, or printed tags and shared peer links will point somewhere friends can't reach. Old hosts in `NEXT_PUBLIC_LEGACY_HOSTS` (`cirkle-tan.vercel.app`) redirect permanently (308) to the same path (`next.config.js`) and are still accepted by the in-app scanner. Sample tags are rendered to PNG when the sample is created, so they keep the host they were made with; peer QR codes are generated on demand.
 
 ## Database
 
-The schema is the migrations in `supabase/migrations` (001–031; there are two 002 and two 015 files), applied in order. Every database change goes in a new numbered file there. Key tables:
+The schema is the migrations in `supabase/migrations` (001–032; there are two 002 and two 015 files), applied in order. Every database change goes in a new numbered file there. Key tables:
 
 - `users` — extended via Supabase Auth, adds role + profile fields
 - `brand_profiles` — brand-specific data (name, logo, description)
@@ -121,6 +121,8 @@ Pass-on chain (026–030, `PASS-ON-CHAIN.md`):
 - `scans.origin_retailer_id`, `origin_sample_id`, `parent_scan_id`, `chain_id` (026): the store and tag where the chain started, the giver's scan this one came from, and the chain. Filled by the `scans_fill_chain` BEFORE INSERT trigger, never by the client; a store scan's `source_retailer_id` is always the sample's store. `source_retailer_id` on peer scans and `events.retailer_id` are unchanged (null for peer), so store stats don't count passed-on scans
 - `attributions.origin_retailer_id`, `chain_id` (027), `store_commission_rate`, `store_commission_amount_dkk` (028): written by checkout from the attributing scan; the store share only on peer rows
 - Only the service role inserts scans (the open insert policy was dropped in 026)
+
+Account deletion (032): a shopper deletes their account from Profile (`POST /api/account/delete`, shoppers only, 403 for brand/store). The route blanks the name and address on their orders and their return comments, then deletes the auth user. `orders.consumer_user_id` and `returns.user_id` are nullable and `ON DELETE SET NULL`, like events, scans and attributions, so brand and store numbers don't change; points, saves, consents and push subscriptions cascade away. Order emails and push skip orders whose shopper is gone.
 
 Dashboard RPCs (security definer, only return the caller's own rows):
 - `get_brand_dashboard` (009): every block on the brand dashboard, filtered by period, product, store and size
@@ -189,6 +191,18 @@ src/
     shared/                 — Shared components (product card, status timeline, etc.)
 ```
 
+## TestFlight rules
+
+The consumer app ships to TestFlight as an iPhone app: a Capacitor shell that loads the live site (branch `testflight`, checklist in `TESTFLIGHT.md`).
+
+- Don't change payment, checkout, points or attribution logic in this round.
+- Every database change goes in a new file in `supabase/migrations`. Never drop or rename columns/tables or delete data without asking first.
+- Keep RLS: brands only see their own data, retailers only their own store's data, consumers only their own.
+- Secrets (such as Apple push keys) only on the server and in env variables, never in client code or git.
+- The web app must keep working in a normal browser. Native-only code runs only when `Capacitor.isNativePlatform()` is true (`src/lib/native.ts`).
+- The app's address is https://app.flaymforward.com, read from one env variable (`NEXT_PUBLIC_APP_URL`, via `src/lib/base-url.ts`). Never hard-code it.
+- Commit after each finished part.
+
 ## Conventions
 
 - Use server components by default; add `'use client'` only when needed (interactivity, hooks)
@@ -250,7 +264,8 @@ See `.env.example` for required variables. Key ones:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `NEXT_PUBLIC_APP_URL`
-- `NEXT_PUBLIC_QR_BASE_URL`
+- `NEXT_PUBLIC_QR_BASE_URL` (local override only, e.g. a `.local` host so a phone can scan dev tags)
+- `NEXT_PUBLIC_LEGACY_HOSTS` (old hosts that redirect to the app URL)
 - `RESEND_API_KEY`, `EMAIL_FROM`
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (web push; generate with `npx web-push generate-vapid-keys`)
 
