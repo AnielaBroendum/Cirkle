@@ -22,7 +22,8 @@ In code: `src/lib/base-url.ts` (`getBaseUrl`) already builds QR tag and peer lin
 - [x] Old addresses (`NEXT_PUBLIC_LEGACY_HOSTS=cirkle-tan.vercel.app`, found by decoding the stored tag PNGs) redirect permanently to the same path on app.flaymforward.com
 - [ ] Tags made on a dev machine (3 in production point at `Anielas-MacBook-Air.local:3000`) can't be redirected: re-render their PNGs or make new tags
 - [x] Native app: `/` goes to Scan; web keeps the welcome screen
-- [ ] Supabase URL Configuration, Vercel env + redeploy (you)
+- [x] Supabase URL Configuration, Vercel env (`NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_LEGACY_HOSTS` as Config, Production + Preview) + preview redeploy (you, 2026-11-23)
+- [x] Preview check (2026-11-23): shopper and brand login work, scanning a tag while signed out returns to it after login, flame link and invite link use https://app.flaymforward.com, a new tag decodes to https://app.flaymforward.com/p/… (test sample deleted again)
 - [ ] Live test: login, new tag, flame link, old tag redirect (redirect checked locally: `cirkle-tan.vercel.app/p/…` and `/d/…?ref=` → 308 to app.flaymforward.com, path and query kept)
 
 ### Part B — Login without confirmation emails
